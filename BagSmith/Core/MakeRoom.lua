@@ -333,7 +333,7 @@ local function questEntries(self)
 		end
 	else
 		-- The game doesn't say which item a quest hands you on accepting, nor how many. (1.7.4-beta1) At least one, and
-		-- more once a refusal shows it: the game said full with that many free slots (q.minNeed, MR:LearnQuestNeed).
+		-- more once a refusal shows it: the game said full with that many free slots (q.minNeed, set in questFull).
 		for _ = 1, math.max(1, q.minNeed or 1) do
 			out[#out + 1] = { name = "An item from this quest", qty = 1, icon = "Interface\\Icons\\INV_Misc_QuestionMark" }
 		end
