@@ -1,3 +1,9 @@
+## 1.7.4
+
+Fixed:
+- Turning in a quest whose rewards won't all fit: clicking a waiting reward in the Loot Helper now just picks it, as
+  the one to make room for. Before, the list swapped rewards in and out each time you clicked.
+
 ## 1.7.3
 
 Changed:

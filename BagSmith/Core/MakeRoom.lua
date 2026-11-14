@@ -423,7 +423,12 @@ function MR:Target(list)
 	return best
 end
 function MR:Waiting()
-	local entries = self.mode == "quest" and questEntries(self) or lootEntries(self)
+	-- (1.7.4-beta1, Shweep) A quest hands over every reward at once, so no reward is first in line for a free slot: which
+	-- rewards are waiting doesn't depend on the one you picked (it took the free slot, counted as fitting and left the
+	-- list, and the reward that had held the slot came back: clicking swapped them back and forth). The pick only moves
+	-- the highlight and what the offers are judged against. Loot keeps it: a slot you free goes to the loot you picked.
+	if self.mode == "quest" then return fitting(self, questEntries(self)) end
+	local entries = lootEntries(self)
 	return fitting(self, entries, self:Target(entries))
 end
 
