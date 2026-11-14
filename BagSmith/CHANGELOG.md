@@ -1,5 +1,7 @@
 ## 1.7.4
 
+Changed:
+- In the Loot Helper, an arrow in your accent color points at the item it's making room for, beside its highlight.
 Fixed:
 - The Loot Helper never offers items your quests ask for, like Westfall Stew's Okra. On WoW Forever it couldn't read
   your quest log, so it could offer them, even at the quest's turn-in.

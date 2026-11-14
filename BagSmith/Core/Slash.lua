@@ -173,7 +173,8 @@ local commands = {
 			has(_G, "GetQuestLogLeaderBoard"), has(C_QuestLog, "GetQuestObjectives"), has(C_QuestLog, "GetInfo"), has(C_QuestLog, "IsOnQuest"))
 		local report = {}
 		local needs, complete, collapsed, lines = MR:QuestObjectives(report)
-		local quests = select(3, pcall(GetNumQuestLogEntries or function() end))
+		-- (1.7.4-beta2) Forever has only C_QuestLog's count (its second answer is the quests)
+		local quests = select(3, pcall(GetNumQuestLogEntries or (C_QuestLog and C_QuestLog.GetNumQuestLogEntries) or function() end))
 		ns:Print("  %s lines, %s quests by the log's own count; %s", tostring(lines or "?"), tostring(quests or "?"),
 			collapsed and "some headings are collapsed (their quests aren't listed)" or "no heading collapsed")
 		local how = { log = "read from the quest log", C_QuestLog = "read through C_QuestLog", none = "nothing to read it with" }

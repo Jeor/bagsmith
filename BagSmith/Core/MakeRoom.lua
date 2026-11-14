@@ -627,7 +627,13 @@ end
 -- (1.7.0-beta9, the beta8 audit's A2) An item objective with blank text, or C_QuestLog's list with a hole in it, is a
 -- failed read too (a non-item objective's blank text is fine).
 MR.questMemo = MR.questMemo or {}
-local function objectiveName(text) return text:match("^(.-):%s*%d+%s*/%s*%d+%s*$") or text end
+-- An objective's item name: "Okra: 3/3" (the classic log) or "0/4 Miners' Union Card" (C_QuestLog on Forever, 1.7.4-beta2);
+-- nil for a line in neither form.
+local function objectiveItem(text)
+	return text:match("^(.-):%s*%d+%s*/%s*%d+%s*$") or text:match("^%s*%d+%s*/%s*%d+%s+(.-)%s*$")
+end
+MR.ObjectiveItem = objectiveItem
+local function objectiveName(text) return objectiveItem(text) or text end
 -- (1.7.0-beta9) A usable quest ID: a positive number (also for /bs questlog's count), else nil.
 function MR.QuestID(v)
 	v = tonumber(v)
@@ -755,7 +761,9 @@ function MR:ForgetQuest(questID) local id = MR.QuestID(questID); if id then self
 function MR:NeededForQuest(name, objectives)
 	if type(name) ~= "string" or name == "" then return false end
 	for _, text in ipairs(objectives or {}) do
-		local named = text:match("^(.-):%s*%d+%s*/%s*%d+%s*$")
+		-- (1.7.4-beta2) both forms matched exactly: "Linen Cloth" isn't kept for "0/5 Bolt of Linen Cloth"; only a line in
+		-- neither form falls back to the name anywhere in it
+		local named = objectiveItem(text)
 		if named then
 			if named == name then return true end
 		elseif text:find(name, 1, true) then
@@ -1638,6 +1646,13 @@ function MR:Paint()
 				r:SetScript("OnClick", function(self) if self.onTarget then self.onTarget() end end)
 			end
 			r.bar:SetVertexColor(ar, ag, ab, 1); r.bar:SetShown(isTarget); r.hl:SetShown(isTarget)
+			-- (1.7.4-beta2, Shweep) an oversized accent caret in the dot column points at the loot it's making room for
+			if not r.caret then
+				r.caret = r:CreateTexture(nil, "OVERLAY")
+				r.caret:SetTexture("Interface\\AddOns\\BagSmith\\Media\\ui-chev-right.tga")
+				r.caret:SetSize(18, 18); r.caret:SetPoint("LEFT", 5, 0)
+			end
+			r.caret:SetVertexColor(ar, ag, ab, 1); r.caret:SetShown(isTarget)
 			r.isTarget = isTarget
 			local key = self:TargetKey(w)
 			local pickable = not quest and n > 1 and not isTarget
