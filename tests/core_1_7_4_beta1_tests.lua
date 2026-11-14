@@ -107,4 +107,59 @@
 		_G.GetTitleText = nil
 		_G.GetQuestReward, _G.GetNumQuestRewards, _G.GetNumQuestChoices, _G.GetQuestItemInfo, _G.GetQuestItemLink = nil, nil, nil, nil, nil
 	end
+
+	-- ======== 1.7.4-beta1: the quest log read through C_QuestLog (Forever: no GetNumQuestLogEntries) ========
+	-- Shweep's /bs questlog on Forever: "? lines", "Items kept for quests: 0", while C_QuestLog listed 20 quests. The log
+	-- was taken as read and empty, so Westfall Stew's Okra was offered at its turn-in. Now it's listed through C_QuestLog.
+	for _, skin in ipairs({ "modern", "classic" }) do
+		package.loaded.mock = nil
+		local M = require("mock")
+		for b = 1, 5 do M.sizes[b] = 0 end
+		M.sizes[0] = 3
+		M.put(0, 1, { id = 4536, name = "Okra", q = 1, count = 7, stack = 20, class = 7, subclass = 0, price = 6 })
+		M.put(0, 2, { id = 9701, name = "Broken Fang", q = 0, class = 15, subclass = 0, price = 3 })
+		M.put(0, 3, { id = 9702, name = "Torn Hide", q = 0, class = 15, subclass = 0, price = 2 })
+		_G.BagSmithCharDB = { version = 1, firstSeen = {} }
+		_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = { skin = skin } } }
+		local fail = {}
+		local log = { { title = "Westfall", header = true }, { title = "Westfall Stew", questID = 38, objs = { { "Okra: 3/3", "item" }, { "Murloc Eye: 3/3", "item" } } } }
+		_G.GetNumQuestLogEntries, _G.GetQuestLogTitle = nil, nil
+		_G.C_QuestLog = {
+			GetNumQuestLogEntries = function() return #log, 1 end,
+			GetInfo = function(i) if fail.info then error("info") end local q = log[i]; if not q then return nil end return { title = q.title, isHeader = q.header or false, isCollapsed = false, questID = q.questID } end,
+			GetQuestObjectives = function(id) for _, q in ipairs(log) do if q.questID == id then local out = {}; for _, o in ipairs(q.objs) do out[#out + 1] = { text = o[1], type = o[2] } end return out end end return {} end,
+		}
+		local n = M.loadAddon("BagSmith")
+		M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
+		local MR = n.MakeRoom
+		local S = skin .. " (C_QuestLog): "
+		local needs, complete, _, lines = MR:QuestObjectives()
+		check(complete and lines == 2 and #needs == 2, S .. "the log is listed through C_QuestLog: 2 lines, 2 items kept (" .. tostring(lines) .. ", " .. #needs .. ")")
+		check(MR:NeededForQuest("Okra", needs) and not MR:NeededForQuest("Broken Fang", needs), S .. "Okra is needed for Westfall Stew; the Fang isn't")
+		-- turning it in with full bags: Okra isn't offered
+		local R = { { 9803, "Sharp Kitchen Knife", 183, 2 } }
+		local realInfo = C_Item.GetItemInfo
+		C_Item.GetItemInfo = function(arg)
+			if tonumber(tostring(arg):match("(%d+)")) == 9803 then return "Sharp Kitchen Knife", "item:9803", 2, nil, nil, nil, nil, 1, nil, nil, 183 end
+			return realInfo(arg)
+		end
+		_G.GetTitleText = function() return "Westfall Stew" end
+		_G.GetNumQuestRewards = function() return 1 end
+		_G.GetNumQuestChoices = function() return 0 end
+		_G.GetQuestItemInfo = function(kind, i) return "Sharp Kitchen Knife", "icon", 1, 2 end
+		_G.GetQuestItemLink = function(kind, i) return "item:9803" end
+		_G.ERR_INV_FULL = _G.ERR_INV_FULL or "Inventory is full."
+		M.fire("QUEST_COMPLETE"); M.fire("UI_ERROR_MESSAGE", 3, ERR_INV_FULL)
+		local f = MR.frame
+		local function offered() local o = {}; for _, r in ipairs(f.destroyRows) do if r:IsShown() then o[#o + 1] = r.name.text end end; table.sort(o); return table.concat(o, ",") end
+		check(f:IsShown() and offered() == "Broken Fang,Torn Hide", S .. "turning in Westfall Stew: Okra isn't offered (" .. offered() .. ")")
+		-- a line that can't be read: nothing is offered (unreadable is a no)
+		fail.info = true; MR.questMemo = {}; MR:Refresh()
+		check(offered() == "", S .. "a quest log line that can't be read: nothing offered (" .. offered() .. ")")
+		fail.info = nil
+		f:Hide()
+		C_Item.GetItemInfo = realInfo
+		_G.C_QuestLog, _G.GetTitleText = nil, nil
+		_G.GetQuestReward, _G.GetNumQuestRewards, _G.GetNumQuestChoices, _G.GetQuestItemInfo, _G.GetQuestItemLink = nil, nil, nil, nil, nil
+	end
 end)()

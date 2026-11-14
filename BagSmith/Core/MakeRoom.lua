@@ -675,15 +675,36 @@ local function apiTexts(questID)
 end
 function MR:QuestObjectives(report)
 	local memo = self.questMemo
-	if not GetNumQuestLogEntries then return {}, true end
-	local okC, n = pcall(GetNumQuestLogEntries)
+	-- (1.7.4-beta1, Shweep's /bs questlog on Forever: "? lines", "Items kept for quests: 0", while C_QuestLog listed 20
+	-- quests) Forever has no GetNumQuestLogEntries: the log was taken as read and empty, so nothing was kept for a quest
+	-- (Westfall Stew's Okra, Goretusk Snouts and Murloc Eyes were offered at its turn-in). Without it, the log is listed
+	-- through C_QuestLog (its lines, each line's title, header state and quest ID), and each quest's items read by its
+	-- ID first. A client with neither still holds nothing back (1.7.0-beta5, by design).
+	local count, lineAt, viaApi
+	if GetNumQuestLogEntries then
+		count = GetNumQuestLogEntries
+		lineAt = function(i)
+			local ok, title, _, _, isHeader, isCollapsed, _, _, questID = pcall(GetQuestLogTitle, i)
+			return ok, title, isHeader, isCollapsed, questID
+		end
+	elseif C_QuestLog and type(C_QuestLog.GetNumQuestLogEntries) == "function" and type(C_QuestLog.GetInfo) == "function" then
+		count, viaApi = C_QuestLog.GetNumQuestLogEntries, true
+		lineAt = function(i)
+			local ok, info = pcall(C_QuestLog.GetInfo, i)
+			if not ok or type(info) ~= "table" then return false end
+			return true, info.title, info.isHeader, info.isCollapsed, info.questID
+		end
+	else
+		return {}, true
+	end
+	local okC, n = pcall(count)
 	n = okC and tonumber(n) or nil
 	local complete = n ~= nil and n >= 0
 	local hasLog = GetNumQuestLeaderBoards and GetQuestLogLeaderBoard
 	local hasApi = C_QuestLog and C_QuestLog.GetQuestObjectives
 	local seen, byTitle, collapsed = {}, {}, false
 	for i = 1, (complete and n or 0) do
-		local ok, title, _, _, isHeader, isCollapsed, _, _, questID = pcall(GetQuestLogTitle, i)
+		local ok, title, isHeader, isCollapsed, questID = lineAt(i)
 		if not ok or type(title) ~= "string" or title == "" then
 			complete = false
 			if report then report[#report + 1] = { line = i, failed = true } end
@@ -692,7 +713,10 @@ function MR:QuestObjectives(report)
 		else
 			questID = MR.QuestID(questID)
 			local texts, via
-			if hasLog then texts = logTexts(i); via = texts and "log" end
+			-- (1.7.4-beta1) a log listed through C_QuestLog: its objectives by quest ID first (the old functions' line
+			-- numbers may not be C_QuestLog's)
+			if viaApi and questID and hasApi then texts = apiTexts(questID); via = texts and "C_QuestLog" end
+			if not texts and hasLog then texts = logTexts(i); via = texts and "log" end
 			if not texts and questID and hasApi then texts = apiTexts(questID); via = texts and "C_QuestLog" end
 			if not texts and not (GetQuestLogLeaderBoard or hasApi) then texts, via = {}, "none" end   -- nothing to read objectives with
 			if questID then
