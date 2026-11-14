@@ -5642,10 +5642,12 @@ end)()
 	_G.GetTitleText = function() return "Report to Goldshire" end
 	ML.fire("QUEST_DETAIL"); ML.fire("QUEST_FINISHED")
 	ML.fire("UI_ERROR_MESSAGE", 3, ERR_INV_FULL)
-	check(f:IsShown() and f.sub.text:find("from Report to Goldshire won't fit") and f.sub.text:find("talk to the quest giver and click Accept"),
+	-- (1.7.4-beta1, by design) the accept wording: "Accepting <quest> gives you at least 1 item, ..."
+	check(f:IsShown() and f.sub.text:find("Accepting Report to Goldshire gives you at least 1 item", 1, true) and f.sub.text:find("talk to the quest giver and click Accept"),
 		"the window closing before the error still opens it, naming the quest, and says to talk to the quest giver")
 	ML.bags[0][1] = nil; n:Scan(); ML.runTimers()
-	check(f:IsShown() and f.sub.text == "There's room now: talk to the quest giver and click Accept.", "it stays open once there's room, with what to do")
+	-- (1.7.4-beta1, by design) with the caveat: the game doesn't say how many items a quest hands you
+	check(f:IsShown() and f.sub.text:find("^There's room now: talk to the quest giver and click Accept%. If the game still says your bags are full"), "it stays open once there's room, with what to do")
 	f:Hide()
 	-- Too long after the window closed: an unrelated "Inventory is full" doesn't open it.
 	ML.fire("QUEST_DETAIL"); ML.fire("QUEST_FINISHED")

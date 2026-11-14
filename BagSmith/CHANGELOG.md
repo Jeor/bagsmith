@@ -1,8 +1,10 @@
 ## 1.7.4
 
 Fixed:
-- Turning in a quest whose rewards won't all fit: clicking a waiting reward in the Loot Helper now just picks it, as
-  the one to make room for. Before, the list swapped rewards in and out each time you clicked.
+- The Loot Helper is clearer for quests. Turning one in, it lists every reward and says how many more free slots you
+  need, since a quest gives you all its rewards at once; the list no longer swaps rewards in and out when you click
+  one. Accepting a quest that hands you items, it says you need at least one free slot (the game doesn't say how many
+  items), and if the game refuses again after you've made room, it says how many more you need.
 
 ## 1.7.3
 
