@@ -91,10 +91,11 @@ end
 -- again. That moves a parent of secure item buttons, so never in combat
 -- (deferred until combat ends). /bs debug logs what it found.
 function View:RefreshCanvas(why)
+	if self.sizing then return end
 	local sf, child = self.scroll, self.child
 	if not (sf and child and sf.SetScrollChild and self.frame:IsShown()) then return end
 	ns:Safely("canvas" .. self.name, function()
-		if not self.frame:IsShown() then return end
+		if self.sizing or not self.frame:IsShown() then return end
 		-- (the log line can never stop the fix: it's shielded)
 		if ns.db and ns.db.debug then pcall(function()
 			local function rect(f)
@@ -229,6 +230,7 @@ function View:SetupScroll(scroll, child)
 	end)
 	scroll:HookScript("OnVerticalScroll", function(sf, offset)
 		self:OnScrollMoved(offset or (sf.GetVerticalScroll and sf:GetVerticalScroll()) or 0)
+		if ns.Buttons and ns.Buttons.WakeModernBorders and ns.db and ns.db.skin ~= "classic" then ns.Buttons:WakeModernBorders() end
 	end)
 	-- The template resets the bar's range whenever the game's range changes.
 	scroll:HookScript("OnScrollRangeChanged", function() self:SyncScrollBar() end)
@@ -259,3 +261,50 @@ function View:RestoreScroll(savedScroll, height, visible)
 		end
 	end)
 end
+
+-- Finish the release layout before repairing the scroll canvas.
+function View:FinishResizeLayout()
+	if self.sizing or not self.frame:IsShown() then return end
+	ns:Safely("resizefinish:" .. self.name, function()
+		if self.sizing or not self.frame:IsShown() then return end
+		self:PlaceScroll()
+		local ok = ns:Guard("Resize " .. self.name, self.Refresh, self, true)
+		if not ok then return end
+		self:RefreshCanvas("resize end")
+		self:ScheduleListPlaced()
+	end)
+end
+
+-- Keep scroll-content textures from snapping independently during Modern resizing.
+local contentSnapping = setmetatable({}, { __mode = "k" })
+local function restoreContentSnapping()
+	for texture, original in pairs(contentSnapping) do
+		texture:SetSnapToPixelGrid(original.snap)
+		texture:SetTexelSnappingBias(original.bias)
+		contentSnapping[texture] = nil
+	end
+end
+local function smoothContentTextures(frame)
+	if frame.GetRegions then
+		for _, texture in ipairs({ frame:GetRegions() }) do
+			if texture.SetSnapToPixelGrid and texture.SetTexelSnappingBias
+				and texture.IsSnappingToPixelGrid and texture.GetTexelSnappingBias then
+				local snap, bias = texture:IsSnappingToPixelGrid(), texture:GetTexelSnappingBias()
+				if not contentSnapping[texture] then contentSnapping[texture] = { snap = snap, bias = bias } end
+				if snap then texture:SetSnapToPixelGrid(false) end
+				if bias ~= 0 then texture:SetTexelSnappingBias(0) end
+			end
+		end
+	end
+	if frame.GetChildren then
+		for _, child in ipairs({ frame:GetChildren() }) do smoothContentTextures(child) end
+	end
+end
+ns:OnSignal("VIEW_LAYOUT", function(view)
+	if not ns.db or ns.db.skin == "classic" then restoreContentSnapping(); return end
+	if ns.Buttons and ns.Buttons.WakeModernBorders then ns.Buttons:WakeModernBorders() end   -- (1.7.3) icons moved
+	if view.child then smoothContentTextures(view.child) end
+end)
+ns:OnSignal("SETTINGS_CHANGED", function(key)
+	if (key == nil or key == "skin") and ns.db and ns.db.skin == "classic" then restoreContentSnapping() end
+end)

@@ -1,3 +1,21 @@
+## 1.7.3
+
+Changed:
+- Modern icons look cleaner: each item's icon is trimmed of its old beveled edge, with a thin, even border in its
+  rarity color (or the neutral border, as Rarity Borders sets). Empty slots keep their look, and Classic is unchanged.
+  Thanks to Jeor.
+- In the Disenchant Helper, each likely result's name is in its rarity color, and hovering it shows the item's
+  tooltip.
+Fixed:
+- With Fit to Items, switching to a smaller sheet no longer moves the bottom tabs out from under your pointer after
+  you've dragged the window: the window keeps its bottom edge and grows or shrinks upward. If you moved your window
+  before, it may settle a little lower once, the first time you open it after updating. Thanks to Jeor.
+- Resizing the bags or bank window, or the Disenchant Helper, by its corner now drags an outline of the new size; the
+  window takes that size when you let go. No more flicker, or a blank window, while you resize. Moving a window by its
+  title bar no longer briefly pulls it back. Thanks to Jeor.
+- With Settings open, the bags window's Width and Height (or Max Width and Max Height) follow along as you resize it,
+  and show the new size when you let go, instead of the old one until Settings is reopened.
+
 ## 1.7.2
 
 Changed:

@@ -6,6 +6,11 @@ package.path = "./tests/?.lua;" .. package.path
 local M = require("mock")
 local fails, passes = 0, 0
 local function check(cond, msg) if cond then passes = passes + 1 else fails = fails + 1; print("FAIL: " .. msg) end end
+function M.modernFrame(b)
+	if not b or not b.modernBorder or #b.modernBorder ~= 4 then return nil end
+	for _, edge in ipairs(b.modernBorder) do if not edge:IsShown() then return nil end end
+	return b.modernBorder[1]
+end
 local function shownButtons() local host = BagSmith.Window.main and BagSmith.Window.main.child; local n = 0; for _, b in ipairs(BagSmith.Buttons.all) do if b:IsShown() and b:GetParent():GetParent() == host then n = n + 1 end end; return n end
 
 M.put(0, 1, { id = 1001, name = "Staff of Jordan", q = 3, ilvl = 24, type = "Weapon", sub = "Staff", class = 2, subclass = 10, price = 810, equip = "INVTYPE_2HWEAPON", bind = 1 })
@@ -533,7 +538,7 @@ ns:Set("replaceBank", true)
 if ns.db.skin ~= "modern" then ns:Set("skin", "modern"); M.runTimers() end
 ToggleAllBags()
 local fb = ns.Buttons:Get(0, 1)
-check(fb.frameBG and fb.frameBG:IsShown(), "modern skin draws the shaded frame behind icons")
+check(M.modernFrame(fb) and not fb.frameBG:IsShown(), "modern skin draws an outline without the shaded frame")
 ns:Set("skin", "classic")
 check(not fb.frameBG:IsShown(), "classic skin uses Blizzard slot art instead")
 ns:Set("skin", "modern")
@@ -542,20 +547,20 @@ ns:Set("skin", "modern")
 if not main:IsShown() then ToggleAllBags() end
 ns:Set("skin", "modern"); ns:Set("border", "all")
 local rb = ns.Buttons:Get(0, 1)  -- rare staff
-check(rb.qRing:IsShown() and not rb.qFrame:IsShown() and rb.frameBG:IsShown(), "modern list: crisp ring plus shaded frame")
+check(M.modernFrame(rb) and not rb.qRing:IsShown() and not rb.qFrame:IsShown() and not rb.frameBG:IsShown(), "modern list: one four-edge outline without the old frame")
 ns:Set("skin", "classic")
 check(rb.qRing:IsShown() and not rb.qFrame:IsShown() and not rb.frameBG:IsShown() and not rb.slotBG:IsShown(), "classic list: plain icon with a thin ring, no slot art")
 ns:Set("view", "icons")
 check(rb.qFrame:IsShown() and not rb.qRing:IsShown() and rb.slotBG:IsShown(), "classic icon cells: Blizzard slot art and Blizzard's rarity frame")
 ns:Set("skin", "modern")
-check(rb.qRing:IsShown() and rb.frameBG:IsShown() and not rb.slotBG:IsShown(), "modern icon cells: shaded frame inside the cell")
+check(M.modernFrame(rb) and not rb.frameBG:IsShown() and not rb.slotBG:IsShown(), "modern icon cells: four-edge outline without slot art")
 ns:Set("view", "list")
 ns:Set("border", "unc")
 local cb = ns.Buttons:Get(0, 2)  -- common potion
-check(cb.qRing:IsShown() and cb.qNeutral and cb.qRing.color[1] == ns.Buttons.NEUTRAL_FRAME[1] and rb.qRing:IsShown() and not rb.qNeutral,
+check(M.modernFrame(cb) and cb.qNeutral and M.modernFrame(cb).color[1] == ns.Buttons.NEUTRAL_FRAME[1] and M.modernFrame(rb) and not rb.qNeutral,
 	"Green and Up: common icons get the neutral thin frame instead of a rarity color, rare keeps its color")
 ns:Set("border", "off")
-check(rb.qRing:IsShown() and rb.qNeutral and rb.qRing.color[1] == ns.Buttons.NEUTRAL_FRAME[1] and not rb.qFrame:IsShown(), "Off: every icon gets the neutral thin frame, no rarity color")
+check(M.modernFrame(rb) and rb.qNeutral and M.modernFrame(rb).color[1] == ns.Buttons.NEUTRAL_FRAME[1] and not rb.qFrame:IsShown(), "Off: every icon gets the neutral thin frame, no rarity color")
 ns:Set("border", "all"); ns:Set("skin", "modern")
 check(rb.IconBorder and not rb.IconBorder:IsShown(), "Blizzard's own border stays hidden")
 
@@ -565,7 +570,7 @@ local drb = ns.Buttons:Get(0, 1)
 check(drb.h == 22 and drb.icon.w == 16, "compact rows shrink the icon with the row: " .. tostring(drb.icon.w))
 check(drb.qRing:IsShown() and not drb.qFrame:IsShown(), "classic compact rows keep the thin ring")
 ns:Set("skin", "modern")
-check(drb.qRing:IsShown() and drb.frameBG:IsShown(), "modern ring and frame follow the smaller icon")
+check(M.modernFrame(drb) and not drb.frameBG:IsShown(), "modern outline follows the smaller icon")
 ns:Set("dense", false)
 check(drb.h == 26 and drb.icon.w == 20, "normal rows restore the icon size")
 
@@ -1359,7 +1364,7 @@ if not main:IsShown() then ToggleAllBags() end
 ns:Set("skin", "modern"); ns:Set("view", "list"); ns.ui.filters = ns.EmptyFilters(); main:SetSheet("All"); ns:RefreshViews(true)
 local function rowAt(bag, slot) for _, b in ipairs(main.used or {}) do if b.rec and b.rec.bag == bag and b.rec.slot == slot then return b end end end
 local gr = rowAt(0, 1)
-check(gr and gr.frameBG:IsShown(), "a filled row draws its icon frame")
+check(M.modernFrame(gr), "a filled row draws its icon outline")
 ns:Set("debug", true)   -- before the hold: a settings change ends a hold, as it should
 main.frame.IsMouseOver = function() return true end
 local keep01 = M.bags[0][1]; M.bags[0][1] = nil
@@ -2082,8 +2087,8 @@ end)()
 				for slot, q in pairs({ [1] = 3, [2] = 1, [3] = 0 }) do
 					local b = n6.Buttons:Get(0, slot)
 					local colored = setting == "all" or (setting == "unc" and q >= 2)
-					local frame = (b.qRing:IsShown() and b.qRing) or (b.qFrame:IsShown() and b.qFrame)
-					local both = b.qRing:IsShown() and b.qFrame:IsShown()
+					local frame = M.modernFrame(b) or (b.qRing:IsShown() and b.qRing) or (b.qFrame:IsShown() and b.qFrame)
+					local both = (b.qRing:IsShown() and b.qFrame:IsShown()) or (M.modernFrame(b) and (b.qRing:IsShown() or b.qFrame:IsShown()))
 					local neutralColor = frame and frame.color and frame.color[1] == N[1] and frame.color[2] == N[2]
 					if not frame or both or (colored and neutralColor) or (not colored and not neutralColor) then
 						ok = false; why = ("%s/%s/%s q%d"):format(skin, view, setting, q)
@@ -2098,7 +2103,7 @@ end)()
 	for _, b in ipairs(n6.Buttons.all) do if not b.hasItem then empty = b; break end end
 	n6.Buttons:SetMode(empty, "cell"); n6.Buttons:Blank(empty, { bag = 0, slot = 9 })
 	n6.Buttons:RefreshSkin()
-	check(empty and not empty.qRing:IsShown() and not empty.qFrame:IsShown(), "empty slots get no frame, also after a skin refresh")
+	check(empty and not M.modernFrame(empty) and not empty.qRing:IsShown() and not empty.qFrame:IsShown(), "empty slots get no frame, also after a skin refresh")
 	n6.ui.bagWindows = false; n6:Set("view", "list"); n6:Set("border", "all"); n6:RefreshViews(true)
 
 	-- Filter's right edge = the end of the toolbar (the View group), any skin, any width.
@@ -6417,7 +6422,7 @@ end)()
 	local tf = io.open("BagSmith/BagSmith.toc", "r"); local toc = tf and tf:read("*a") or ""; if tf then tf:close() end
 	-- (1.5.7) the date's format only: which day it must be is the packaging check's job (it knows the build day). Pinning the
 -- day here carried 7 November into 1.5.6, built on the 8th.
-check(toc:find("## Version: 1%.7%.2\n") and toc:find("## X%-Date: %d%d%d%d%-%d%d%-%d%d\n"), "the TOC version is 1.7.2, with a release date in YYYY-MM-DD form")
+check(toc:find("## Version: 1%.7%.3\n") and toc:find("## X%-Date: %d%d%d%d%-%d%d%-%d%d\n"), "the TOC version is 1.7.3, with a release date in YYYY-MM-DD form")
 	n.version = "0.14.0"
 	local e
 	for _, x in ipairs(WN.ENTRIES) do if x.v == "0.13.0" then e = x end end
@@ -6633,7 +6638,9 @@ end)()
 	local f = main.frame
 	main.grip:GetScript("OnMouseDown")(main.grip)
 	check(main.sizing, "dragging the corner: the window knows it's being resized")
-	f:SetSize(660, 420)   -- the drag, part way
+	-- (1.7.3-beta2) the drag, part way: the outline is sized, not the window (which keeps its size and contents)
+	check(main.outline and main.outline:IsShown() and main.outline.w == 900 and main.outline.h == 700, "the outline starts at the window's size")
+	main.outline:SetSize(660, 420)
 	local points = #f.points
 	-- A scrollbar change mid-drag queues nothing; a refresh mid-drag leaves the size and spot alone.
 	local gh = main.scroll.GetHeight
@@ -6643,7 +6650,7 @@ end)()
 	main:UpdateBarSpace()
 	check(main.barHidden == before, "mid-drag: the scrollbar check waits")
 	n:RefreshViews(true); M.runTimers()
-	check(f:GetWidth() == 660 and f:GetHeight() == 420 and #f.points == points, "mid-drag: a refresh doesn't reset the window's size or spot")
+	check(f:GetWidth() == 900 and f:GetHeight() == 700 and #f.points == points, "mid-drag: the window keeps its size and spot (the outline is what moves), a refresh included")
 	main.scroll.GetHeight = gh
 	-- Refresh requests mid-drag (a tidy-up, a bag update) do no layout; they wait.
 	local rebuilt = 0
@@ -6662,7 +6669,8 @@ end)()
 	main.Layout = realLayout
 	local shown = 0
 	for _, b in ipairs(main.used or {}) do if b:IsShown() and b.hasItem then shown = shown + 1 end end
-	check(not main.sizing and n.db.fixW == 660 and n.db.fixH == 420 and f:GetWidth() == 660, "after the drag: the new size is saved and kept")
+	check(not main.sizing and n.db.fixW == 660 and n.db.fixH == 420 and f:GetWidth() == 660, "after the drag: the window takes the outline's size, saved and kept")
+	check(not main.outline:IsShown(), "and the outline is gone")
 	check(shown == 6, "and the items are laid out")
 end)()
 
@@ -10859,7 +10867,7 @@ end)()
 ;(function()
 	-- 0.15.0 (prod): one clean 0.15.0 changelog section; the sword-and-shield replaces the helmet everywhere.
 	local log = io.open("BagSmith/CHANGELOG.md"):read("*a")
-	check(log:find("^## 1%.7%.2\n") and log:find("\n## 1%.7%.1\n") and log:find("\n## 1%.7%.0\n") and log:find("\n## 1%.6%.3\n") and log:find("\n## 1%.6%.2\n") and log:find("\n## 1%.6%.1\n") and log:find("\n## 1%.6%.0\n") and log:find("\n## 1%.5%.8\n") and log:find("\n## 1%.5%.7\n") and log:find("\n## 1%.5%.6\n") and log:find("\n## 1%.5%.5\n") and log:find("\n## 1%.5%.4\n") and log:find("\n## 1%.5%.3\n") and log:find("\n## 1%.5%.2\n") and log:find("\n## 1%.5%.1\n") and log:find("\n## 1%.5%.0\n") and log:find("\n## 1%.4%.2\n") and log:find("\n## 1%.4%.1\n") and log:find("\n## 1%.4%.0\n") and log:find("\n## 1%.3%.1\n") and log:find("\n## 1%.3%.0\n") and log:find("\n## 1%.2%.0\n") and log:find("\n## 1%.1%.0\n") and log:find("\n## 1%.0%.1\n") and log:find("\n## 1%.0%.0\n") and log:find("\n## 0%.15%.0\n") and not log:find("## 0%.15%.0%-beta") and not log:find("## 0%.15%.0%-rc"), "the changelog leads with 1.7.2 (the release in progress; 1.7.2, by design), then 1.7.1, 1.7.0, 1.6.3, 1.6.2, 1.6.1, 1.6.0, 1.5.8, 1.5.7, 1.5.6, 1.5.5, 1.5.4, 1.5.3, 1.5.2, 1.5.1, 1.5.0, 1.4.2, 1.4.1, 1.4.0, 1.3.1, 1.3.0, 1.2.0, 1.1.0, 1.0.1 and 1.0.0, then one 0.15.0 section (the beta and rc entries folded in)")
+	check(log:find("^## 1%.7%.3\n") and log:find("\n## 1%.7%.2\n") and log:find("\n## 1%.7%.1\n") and log:find("\n## 1%.7%.0\n") and log:find("\n## 1%.6%.3\n") and log:find("\n## 1%.6%.2\n") and log:find("\n## 1%.6%.1\n") and log:find("\n## 1%.6%.0\n") and log:find("\n## 1%.5%.8\n") and log:find("\n## 1%.5%.7\n") and log:find("\n## 1%.5%.6\n") and log:find("\n## 1%.5%.5\n") and log:find("\n## 1%.5%.4\n") and log:find("\n## 1%.5%.3\n") and log:find("\n## 1%.5%.2\n") and log:find("\n## 1%.5%.1\n") and log:find("\n## 1%.5%.0\n") and log:find("\n## 1%.4%.2\n") and log:find("\n## 1%.4%.1\n") and log:find("\n## 1%.4%.0\n") and log:find("\n## 1%.3%.1\n") and log:find("\n## 1%.3%.0\n") and log:find("\n## 1%.2%.0\n") and log:find("\n## 1%.1%.0\n") and log:find("\n## 1%.0%.1\n") and log:find("\n## 1%.0%.0\n") and log:find("\n## 0%.15%.0\n") and not log:find("## 0%.15%.0%-beta") and not log:find("## 0%.15%.0%-rc"), "the changelog leads with 1.7.3 (the release in progress; 1.7.3, by design), then 1.7.2, 1.7.1, 1.7.0, 1.6.3, 1.6.2, 1.6.1, 1.6.0, 1.5.8, 1.5.7, 1.5.6, 1.5.5, 1.5.4, 1.5.3, 1.5.2, 1.5.1, 1.5.0, 1.4.2, 1.4.1, 1.4.0, 1.3.1, 1.3.0, 1.2.0, 1.1.0, 1.0.1 and 1.0.0, then one 0.15.0 section (the beta and rc entries folded in)")
 	local section = log:match("(## 0%.15%.0\n.-)\n## ") or ""
 	local bad = false
 	for _, w in ipairs({ "colour", "favourite", "behaviour", "cancelled", "helmet", "\226\128\148" }) do if section:find(w) then bad = true end end

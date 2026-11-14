@@ -397,11 +397,12 @@ function View:Build()
 	drag:EnableMouse(true)
 	drag:RegisterForDrag("LeftButton")
 	-- (1.7.0-beta2) Lock Windows: no moving (nor resizing, the grip below) while it's on
-	drag:SetScript("OnDragStart", function() if ns:WindowsLocked() then return end; self.dragMoving = true; f:StartMoving() end)
+	drag:SetScript("OnDragStart", function() if ns:WindowsLocked() then return end; self.dragMoving = true; f:StartMoving(); ns.Buttons:WakeModernBorders() end)
 	drag:SetScript("OnDragStop", function()
 		if ns:WindowsLocked() and not self.dragMoving then return end   -- (locked: it never started, so no spot to save)
 		self.dragMoving = nil
 		f:StopMovingOrSizing(); self:SavePosition(); ns:RepositionPanels()
+		ns.Buttons:WakeModernBorders()   -- (1.7.3) the borders settle where the window landed
 	end)
 	self.dragArea = drag
 
@@ -864,13 +865,18 @@ function View:Build()
 	grip.tex = grip:CreateTexture(nil, "ARTWORK")
 	grip.tex:SetAllPoints()
 	grip.tex:SetTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+	-- (1.7.3-beta2, Shweep's choice) Resizing drags an outline, not the window: the window keeps its size and contents
+	-- until the button is let go, then takes the outline's size and lays out once. Resizing the window itself
+	-- re-laid the contents while the size passed through (1.7.3-beta1 did it 20 times a second: it flickered, worst in
+	-- Classic), or left them stale or blank (1.7.2).
 	grip:SetScript("OnMouseDown", function()
 		if ns:WindowsLocked() then self.lockedPress = true; return end   -- (1.7.0-beta2) Lock Windows
-		self.sizing = true; f:StartSizing("BOTTOMRIGHT")
+		self.sizing = true
+		self:StartOutlineResize()
 	end)
 	grip:SetScript("OnMouseUp", function()
 		if self.lockedPress then self.lockedPress = nil; return end
-		f:StopMovingOrSizing()
+		self:EndOutlineResize()
 		self.sizing = false
 		-- Dragging never changes the size mode: in Fit to Items it sets the
 		-- largest size; in Scalable it sets the size. Values are rounded.
@@ -885,14 +891,15 @@ function View:Build()
 		-- Keep the window exactly where the resize left it (the saved spot
 		-- was from before, so re-applying it made the window jump).
 		self:SaveSizedPosition()
+		self:ShowSizeInSettings()   -- (1.7.3-beta6) an open Settings panel shows the size just saved
 		self.refreshWanted = nil
 		self:ApplySize(); self:Refresh(true)
 		-- Once more on the next frame: the client can settle the new size a
 		-- frame after the drag ends, and the layout should use the final one.
-		ns:NextFrame("settle:" .. self.name, function() if f:IsShown() and not self.sizing then self:Refresh(true) end end)
+		ns:NextFrame("settle:" .. self.name, function() self:FinishResizeLayout() end)
+		ns.Buttons:WakeModernBorders()
 	end)
 	self.grip = grip
-	f:HookScript("OnHide", function() self.sizing = false; self.refreshWanted = nil end)   -- a drag cut short never leaves it waiting
 
 	if self.kind == "main" then
 		f:SetScript("OnSizeChanged", function() ns:NextFrame("panels", function() ns:RepositionPanels() end) end)
@@ -923,6 +930,9 @@ function View:Build()
 		if self.ScheduleListPlaced then self:ScheduleListPlaced() end
 	end)
 	f:SetScript("OnHide", function()
+		-- A drag cut short never leaves it waiting, nor its outline on screen. (1.7.3-beta2: this was a HookScript on
+		-- the grip's side, added before this SetScript, which replaced it, so it never ran.)
+		self.sizing = false; self.refreshWanted = nil; self:CancelOutlineResize()
 		if ns.ready then PlaySound(SOUNDKIT.IG_BACKPACK_CLOSE) end
 		if self.isBank and ns.Bank then ns.Bank:OnWindowHidden() end
 		if self.isMain then ns:OnMainHidden() end
@@ -1178,17 +1188,78 @@ function View:ApplySkin()
 end
 
 
+-- Fit to Items grows upwards: the sheet tabs/footer must not move when a
+-- filter changes the height. Keep the horizontal anchor and relative point;
+-- moving only our anchor down needs an offset in the frame's own coordinates
+-- (the same units as GetHeight), even when UIParent has a different scale.
+local function bottomAnchor(point)
+	return point:find("LEFT") and "BOTTOMLEFT" or point:find("RIGHT") and "BOTTOMRIGHT" or "BOTTOM"
+end
+local function bottomPosition(p, height)
+	if p[1]:find("BOTTOM") then return p end
+	local shift = p[1]:find("TOP") and height or height / 2
+	return { bottomAnchor(p[1]), "UIParent", p[3], p[4], p[5] - shift }
+end
+
+-- (1.7.3) Resizing drags the shared outline (Frames/Outline.lua); the window takes its size on release.
+function View:StartOutlineResize()
+	local minW = self.minWidth or View.MinWidthFor(self.isBank)
+	-- (1.7.3-beta6, Shweep) the bags window's size is in Settings: an open panel shows the outline's size as it's dragged
+	local onSize = self.isMain and function(w, h) self:ShowSizeInSettings(w, h) end or nil
+	if not ns.Outline:Start(self.frame, minW, 300, 1400, 1200, onSize) then self.sizing = false; return end
+	self.outline = ns.Outline.frame
+end
+
+-- The window takes the outline's size, its top-left corner staying where it was (as the client's own sizing from
+-- the bottom-right corner did). The caller saves the size and place, then lays out once.
+function View:EndOutlineResize()
+	local f = self.frame
+	local w, h, L, T = ns.Outline:Finish(f)
+	if not w then return end
+	f:ClearAllPoints()
+	f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", L, T)
+	f:SetSize(w, h)
+end
+
+function View:CancelOutlineResize()
+	if not ns.Outline:Active(self.frame) then return end
+	ns.Outline:Cancel(self.frame)
+	self:ShowSizeInSettings()   -- back to the saved size
+end
+
+-- (1.7.3-beta6) The Settings panel's Width and Height (Max Width and Max Height in Fit to Items) for the bags window:
+-- with a size, show it (the drag in progress; nothing is saved); without, show the saved values again.
+function View:ShowSizeInSettings(w, h)
+	local P = ns.SettingsPanel
+	if not (self.isMain and P and P.frame and P.frame:IsShown()) then return end
+	if not w then P:Refresh(); return end
+	local auto = ns.db.sizeMode == "auto"
+	if P.ShowStepValue then
+		P:ShowStepValue(auto and "maxW" or "fixW", math.floor(w + 0.5))
+		P:ShowStepValue(auto and "maxH" or "fixH", math.floor(h + 0.5))
+	end
+end
+
 function View:ApplySize()
-	-- Never while the corner is being dragged: re-applying the saved size and
-	-- spot mid-drag made the window jump back (the drag's end saves both).
-	if self.sizing then return end
+	-- Native dragging owns size and position until the gesture is saved.
+	if self.sizing or self.dragMoving then return end
 	local f, db = self.frame, ns.db
 	f:SetScale(db.scale)
 	if self.isMain then
-		if db.sizeMode == "fixed" then f:SetSize(db.fixW, db.fixH) else f:SetSize(db.maxW, math.min(db.maxH, self.autoHeight or db.maxH)) end
+		if db.sizeMode == "fixed" then f:SetSize(db.fixW, db.fixH) else
+			local height = math.min(db.maxH, self.autoHeight or db.maxH)
+			-- Convert old saved top/center anchors before changing height. On
+			-- first use of a profile, use its full height like a fresh login:
+			-- neither the frame nor autoHeight belongs to that profile yet.
+			local oldHeight = self.sizeProfile == db and f:GetHeight() or 0
+			local p = bottomPosition(db.point, oldHeight and oldHeight > 0 and oldHeight or db.maxH)
+			if p ~= db.point then ns:Set("point", p, true) end
+			f:SetSize(db.maxW, height)
+		end
 		f:ClearAllPoints()
 		local p = db.point
 		f:SetPoint(p[1], UIParent, p[3], p[4], p[5])
+		self.sizeProfile = db
 	elseif self.isBank then
 		f:SetSize(db.bankW, db.bankH)
 		f:ClearAllPoints()
@@ -1224,6 +1295,11 @@ function View:SavePosition()
 	local point, _, rel, x, y = self.frame:GetPoint(1)
 	if not point then return end
 	local p = { point, "UIParent", rel, math.floor(x + 0.5), math.floor(y + 0.5) }
+	if self.isMain and ns.db.sizeMode == "auto" then
+		p = bottomPosition(p, self.frame:GetHeight())
+		self.frame:ClearAllPoints()
+		self.frame:SetPoint(p[1], UIParent, p[3], p[4], p[5])
+	end
 	if self.isMain then ns:Set("point", p, true)
 	elseif self.isBank then ns:Set("bankPoint", p, true)
 	elseif self.kind == "bag" then ns.db.bagPoints[tostring(self.opts.bags[1])] = p end
@@ -1940,6 +2016,7 @@ function View:SaveSizedPosition()
 	local key = self.isMain and "point" or "bankPoint"
 	local saved = ns.db[key]
 	local point = type(saved) == "table" and saved[1] or "BOTTOMRIGHT"
+	if self.isMain and ns.db.sizeMode == "auto" then point = bottomAnchor(point) end
 	local L, R, T, B = f:GetLeft(), f:GetRight(), f:GetTop(), f:GetBottom()
 	if not (L and R and T and B) then return end
 	local s, us = f:GetEffectiveScale(), UIParent:GetEffectiveScale()
