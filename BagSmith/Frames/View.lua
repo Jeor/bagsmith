@@ -1547,6 +1547,10 @@ end
 -- still don't fit fold into a "»" tab whose menu lists them, with New Sheet... at the bottom (the "+" steps aside while
 -- anything is folded). The tab you're on always stays in view: if it would fold, it takes the last place that fits.
 View.TAB_MORE_W = 30
+-- (1.8.0-beta13, Shweep; learned from Guildy) Classic tabs overlap like the game's (14 px, was 2): each tab's frame is
+-- this much wider, half on each side, so labels, the row's length and folding stay exactly as they were; the shaded
+-- ends of the game's tab art tuck under their neighbors. The row's outer ends are trimmed (Classic.TrimTabEnds).
+View.CLASSIC_TAB_EXTRA = 12
 function View:TabPlan(widths, avail, current, endRoom, pencilRoom)
 	-- widths: { id, w } in order; endRoom: what the + and the pencil need after the tabs; pencilRoom: the pencil alone
 	-- (it stays while folding, for the current custom sheet). Returns the ids shown and the ids folded, each in order.
@@ -1659,6 +1663,7 @@ function View:UpdateTabs()
 	if more.classicOn and ns.Classic and ns.Classic.FitTabArt then ns.Classic.FitTabArt(more) end
 
 	local aw, ew = addBtn:GetWidth(), editBtn:GetWidth()
+	if self.classicApplied then aw, ew = 34, 34 end   -- (1.8.0-beta13) their own width, not the wider overlapping frame
 	local isCustom = not ns.TAB_LABEL[self.st.sheet]
 	local avail = self.tabs:GetWidth()
 	local pencil = isCustom and (ew + 2) or 0
@@ -1672,6 +1677,10 @@ function View:UpdateTabs()
 	self.tabFolded = folded
 	local wOf = {}; for _, t in ipairs(widths) do wOf[t.id] = t.w end
 	local step = self.classicApplied and -2 or 2
+	local extra = self.classicApplied and View.CLASSIC_TAB_EXTRA or 0   -- (1.8.0-beta13)
+	local half = extra / 2
+	local base = (self.tabs.GetFrameLevel and self.tabs:GetFrameLevel() or 0) + 1
+	local laid = {}   -- the Classic tab-art buttons in this row, left to right
 	local x, i, row = 0, 0, 0   -- one row (row stays 0: the offsets are written as before, so layouts compare unchanged)
 	for _, id in ipairs(shown) do
 		i = i + 1
@@ -1697,27 +1706,49 @@ function View:UpdateTabs()
 		b.label:SetText(labels[id])
 		b.label:ClearAllPoints(); b.label:SetPoint("CENTER"); b.label:SetWordWrap(false)
 		b.label:SetWidth(w - 12)
-		b:SetWidth(w)
-		b:ClearAllPoints(); b:SetPoint("TOPLEFT", self.tabs, "TOPLEFT", x, -row * rowH)
+		b:SetWidth(w + extra)
+		b:ClearAllPoints(); b:SetPoint("TOPLEFT", self.tabs, "TOPLEFT", x - half, -row * rowH)
 		b:SetActive(self.st.sheet == id)
+		-- (1.8.0-beta13) overlapping: the selected tab draws above its neighbors, as the game's does
+		if extra > 0 and b.SetFrameLevel then b:SetFrameLevel(self.st.sheet == id and base + 2 or base) end
 		b:Show()
+		if b.classicOn then laid[#laid + 1] = b end
 		x = x + w + step
 	end
 	for j = i + 1, #self.tabButtons do self.tabButtons[j]:Hide() end
 	if self.tabs:GetHeight() ~= rowH then self.tabs:SetHeight(rowH) end   -- one row, always (1.6.0-beta5)
 
+	-- (1.8.0-beta13) in Classic the », + and pencil tabs overlap the same way: wider by `extra`, half on each side
+	local function place(btn, at, w)
+		if extra > 0 and btn.classicOn then
+			btn:SetWidth(w + extra)
+			btn:ClearAllPoints(); btn:SetPoint("TOPLEFT", self.tabs, "TOPLEFT", at - half, -row * rowH)
+			if btn.SetFrameLevel then btn:SetFrameLevel(base) end
+			laid[#laid + 1] = btn
+		else
+			btn:ClearAllPoints(); btn:SetPoint("TOPLEFT", self.tabs, "TOPLEFT", at, -row * rowH)
+		end
+	end
+	local moreW, addW, editW = View.TAB_MORE_W, self.classicApplied and 34 or aw, self.classicApplied and 34 or ew
 	if #folded > 0 then
-		more:ClearAllPoints(); more:SetPoint("TOPLEFT", self.tabs, "TOPLEFT", x, -row * rowH)
+		place(more, x, moreW)
 		more:SetActive(false); more:Show()
-		x = x + more:GetWidth() + step
+		x = x + moreW + step
 		addBtn:Hide()
 	else
 		more:Hide()
-		addBtn:ClearAllPoints(); addBtn:SetPoint("TOPLEFT", self.tabs, "TOPLEFT", x + 2, -row * rowH); addBtn:Show()
-		x = x + aw + 4
+		place(addBtn, x + 2, addW); addBtn:Show()
+		x = x + addW + 4
 	end
 	editBtn:SetShown(isCustom)
-	if isCustom then editBtn:ClearAllPoints(); editBtn:SetPoint("TOPLEFT", self.tabs, "TOPLEFT", x, -row * rowH) end
+	if isCustom then place(editBtn, x, editW) end
+	-- (1.8.0-beta13) the row's outer ends have no neighbor to tuck under: their shaded ends are trimmed; every other
+	-- end gets its art back (a tab can move from the end to the middle)
+	if ns.Classic and ns.Classic.TrimTabEnds then
+		for k, btn in ipairs(laid) do
+			ns.Classic.TrimTabEnds(btn, k == 1 and half + 1 or 0, k == #laid and half + 1 or 0)
+		end
+	end
 end
 
 -- (1.8.0-beta5) The Bags button's tooltip: free slots in ordinary bags, then each kind of special bag (its name in its

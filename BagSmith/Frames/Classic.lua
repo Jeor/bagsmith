@@ -130,6 +130,52 @@ function Classic.FitTabArt(btn)
 			if f.coords then local c = f.coords; r:SetTexCoord(c[1], c[5], c[2], c[4]) end
 		end
 	end
+	Classic.ApplyTabTrim(btn)   -- (1.8.0-beta13) a fit resets the art's width: the end trims go back on
+end
+
+-- (1.8.0-beta13, Shweep: shading "coming off of tabs themself"; learned from Guildy's tabs) The game's tab art ends in
+-- soft shaded flares made to tuck under the next tab: the game's tabs (and Guildy's, the real template) overlap about
+-- 14 px. BagSmith's overlapped 2, so the shading showed. Tabs now overlap 14 (View: CLASSIC_TAB_EXTRA), and the row's
+-- two outer ends, which have no neighbor to tuck under, are trimmed: the end pieces ("Left" or "Right" in their key,
+-- the selected and highlight ones too) lose that many pixels on the outer side, their art cropped in proportion.
+-- Widths and coordinates are recorded once, so trims never compound and a tab that stops being an end gets its art back.
+local function endPieces(art, side)
+	local out = {}
+	if type(art) ~= "table" then return out end
+	for k, v in pairs(art) do
+		if type(k) == "string" and k:find(side) and type(v) == "table" and v.SetTexCoord and v.GetWidth then out[#out + 1] = v end
+	end
+	return out
+end
+function Classic.ApplyTabTrim(btn)
+	local art = btn and btn.classic
+	local trim = btn and btn.bsTabTrim
+	if not (art and art.isTab and trim) then return end
+	for side, px in pairs(trim) do
+		for _, r in ipairs(endPieces(art, side)) do
+			if not r.bsTrimBase then
+				local c = { r:GetTexCoord() }
+				r.bsTrimBase = { w = r:GetWidth() or 0, l = c[1], r = c[5] }
+			end
+			local base = r.bsTrimBase
+			if base.w > 0 then
+				local cut = math.max(0, math.min(px, base.w - 1))
+				local c = { r:GetTexCoord() }
+				local top, bottom = c[2] or 0, c[4] or 1   -- (vertical: as FitTabArt left it)
+				local span = (base.r or 1) - (base.l or 0)
+				local l, rr = base.l or 0, base.r or 1
+				if side == "Left" then l = l + span * (cut / base.w) else rr = rr - span * (cut / base.w) end
+				r:SetWidth(base.w - cut)
+				r:SetTexCoord(l, rr, top, bottom)
+			end
+		end
+	end
+end
+-- left, right: pixels to trim from the tab's outer ends (0 puts the art back)
+function Classic.TrimTabEnds(btn, left, right)
+	if not (btn and btn.classic and btn.classic.isTab) then return end
+	btn.bsTabTrim = { Left = left or 0, Right = right or 0 }
+	Classic.ApplyTabTrim(btn)
 end
 -- /bs debug: hovering a tab lists any piece of its art that reaches below the tab.
 function Classic.TabArtReport(btn)
