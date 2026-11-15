@@ -331,7 +331,29 @@ local function itemInfo(id)
 	if type(f) ~= "function" then return nil end
 	return infoResult(pcall(f, id))
 end
-function DE.MatName(id) local name = itemInfo(id); return name or ("item " .. tostring(id)) end
+-- (1.8.0-beta4, Shweep's screenshot: "item 10978" under Likely results, the tooltip right) A material the game hasn't
+-- loaded yet has no name. Its data is asked for once, and when it arrives the open Helper and Exclusion List paint
+-- again (GET_ITEM_INFO_RECEIVED, below); until then the row reads "item <id>".
+DE.waitingNames = {}
+function DE.NoteMissingName(id)
+	if type(id) ~= "number" or DE.waitingNames[id] then return end
+	DE.waitingNames[id] = true
+	if C_Item and type(C_Item.RequestLoadItemDataByID) == "function" then pcall(C_Item.RequestLoadItemDataByID, id) end
+end
+function DE.MatName(id)
+	local name = itemInfo(id)
+	if name then return name end
+	DE.NoteMissingName(id)
+	return "item " .. tostring(id)
+end
+function DE:OnItemInfo(id)
+	if not (id and self.waitingNames[id]) then return end
+	self.waitingNames[id] = nil
+	ns:NextFrame("de:names", function()
+		if self.frame and self.frame:IsShown() then self:Refresh() end
+		if self.neverFrame and self.neverFrame:IsShown() then self:RefreshNeverWindow() end
+	end)
+end
 function DE.Money(v) if ns.Money then local s = ns.Money(v); if s ~= "" then return s end end return (GetCoinTextureString and GetCoinTextureString(v)) or tostring(v) end
 
 -- Per material: the AH price, or nil. The materials' value is nil when any price is missing (and which).
@@ -444,7 +466,11 @@ function DE:Never()
 end
 function DE:NeverList()
 	local out = {}
-	for id in pairs(self:Never()) do out[#out + 1] = { id = id, name = (itemInfo(id)) or ("Item " .. id) } end
+	for id in pairs(self:Never()) do
+		local name = itemInfo(id)
+		if not name then DE.NoteMissingName(id) end
+		out[#out + 1] = { id = id, name = name or ("Item " .. id) }
+	end
 	table.sort(out, function(a, b) return a.name < b.name end)
 	return out
 end
@@ -476,6 +502,7 @@ function DE:NeverWindow()
 	f.scroll = CreateFrame("ScrollFrame", "BagSmithDisenchantNeverScroll", f, "UIPanelScrollFrameTemplate")
 	f.scroll:SetPoint("TOPLEFT", 10, -88); f.scroll:SetPoint("BOTTOMRIGHT", -30, 44)
 	f.child = CreateFrame("Frame", nil, f.scroll); f.child:SetSize(NW - 44, 1); f.scroll:SetScrollChild(f.child)
+	ns.WheelStep(f.scroll, NROW * ns.WHEEL_ROWS)   -- (1.7.5-beta1) the wheel: two rows a notch (Init.lua, ns.WheelStep)
 	f.rows = {}
 	f.empty = f:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.empty:SetPoint("TOPLEFT", 16, -96)
 	f.empty:SetWidth(NW - 32); f.empty:SetJustifyH("LEFT")
@@ -1002,6 +1029,7 @@ function DE:Frame()
 	f.rows = {}
 	f.scroll = CreateFrame("ScrollFrame", "BagSmithDisenchantScroll", f, "UIPanelScrollFrameTemplate")
 	f.child = CreateFrame("Frame", nil, f.scroll); f.child:SetSize(W - 44, 10); f.scroll:SetScrollChild(f.child)
+	ns.WheelStep(f.scroll, ROW * ns.WHEEL_ROWS)   -- (1.7.5-beta1) the wheel: two rows a notch (Init.lua, ns.WheelStep)
 	f.status = f:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.status:SetPoint("BOTTOMLEFT", 12, 36); f.status:SetWidth(W - 24); f.status:SetJustifyH("LEFT"); f.status:SetWordWrap(true)
 	f.close = ns.TextButton(f, "Close", 70, function() DE:Close() end); f.close:SetHeight(22); f.close:SetPoint("BOTTOMRIGHT", -12, 10)
 	-- consider skipped items again: a small undo arrow at the top right, only while something is skipped
@@ -1623,6 +1651,7 @@ end
 -- Events
 ------------------------------------------------------------------------
 ns:OnSignal("ADDON_READY", function()
+	ns:On("GET_ITEM_INFO_RECEIVED", function(id) DE:OnItemInfo(id) end)   -- (1.8.0-beta4) names that were still loading
 	ns:On("UNIT_SPELLCAST_SUCCEEDED", function(unit, _, spellID) DE:OnSpellSucceeded(unit, spellID) end)
 	ns:On("UNIT_SPELLCAST_FAILED", function(unit, _, spellID) DE:OnCastFailed(unit, spellID) end)
 	ns:On("UNIT_SPELLCAST_INTERRUPTED", function(unit, _, spellID) DE:OnCastFailed(unit, spellID) end)

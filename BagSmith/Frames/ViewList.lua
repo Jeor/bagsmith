@@ -929,6 +929,8 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 	local rowH, cell = db.dense and 22 or db.rowHeight, db.iconSize
 	-- (1.8.0) a row holds its text: above 100% Text Size, rows grow to fit it (a larger Row Height still applies)
 	if ns.Fonts then rowH = math.max(rowH, ns.Fonts:RowNeed()) end
+	-- (1.7.5-beta1) a mouse wheel notch: two rows of the list (as tall as the text makes them), or one row of icons (Scroll.lua)
+	self.wheelStep = iconMode and (cell + GAP) or (rowH * ns.WHEEL_ROWS)
 	local y = 0
 
 	-- Live bags: attach proxies to this host so the buttons draw and clip here.
