@@ -34,8 +34,8 @@
 		local F = n.Fonts
 		local S = skin .. ": "
 		local small = _G.BagSmithFont_GameFontHighlightSmall
-		check(F:Name("GameFontHighlightSmall") == "BagSmithFont_GameFontHighlightSmall" and small and small.copied == GameFontHighlightSmall,
-			S .. "the item text's font is BagSmith's copy of the game's")
+		check(F:Name("GameFontHighlightSmall") == "BagSmithFont_GameFontHighlightSmall" and small and small.copied == nil,
+			S .. "the item text's font is BagSmith's own, made from the game's (by design since 1.8.0-beta19: never CopyFontObject)")
 		check(F:Name("NumberFontNormal") == "NumberFontNormal" and F:Name("ChatFontNormal") == "ChatFontNormal", S .. "the icons' number fonts (and anything else) stay the game's")
 		check(small.size == 10 and small.path == FRIZ, S .. "at 100%: the game's size and face")
 		check(F:RowNeed() == 20, S .. "a List row needs 20 px at 100% (under every Row Height, so nothing changes)")

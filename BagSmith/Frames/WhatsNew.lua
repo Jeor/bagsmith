@@ -653,7 +653,11 @@ end
 
 ns:OnSignal("ADDON_READY", function()
 	-- A first install has nothing to compare against: mark this version seen.
-	if BagSmithDB.whatsNewSeen == nil then WN:MarkSeen() end
+	if BagSmithDB.whatsNewSeen == nil then
+		WN:MarkSeen()
+		-- (1.8.0-beta19, after FlareUI) and nothing in Settings is NEW to them either
+		if ns.SettingsPanel and ns.SettingsPanel.MarkAllNewSeen then ns.SettingsPanel:MarkAllNewSeen() end
+	end
 end)
 -- Hooked once the bags window exists.
 ns:On("PLAYER_ENTERING_WORLD", function()

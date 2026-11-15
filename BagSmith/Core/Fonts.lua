@@ -123,12 +123,12 @@ function Fonts:Name(template)
 	local path, size, flags = game:GetFont()
 	if not (path and size) then return template end
 	local f = _G[name] or CreateFont(name)
-	if f.CopyFontObject then pcall(f.CopyFontObject, f, game)
-	else
-		if game.GetTextColor and f.SetTextColor then f:SetTextColor(game:GetTextColor()) end
-		if game.GetShadowColor and f.SetShadowColor then f:SetShadowColor(game:GetShadowColor()) end
-		if game.GetShadowOffset and f.SetShadowOffset then f:SetShadowOffset(game:GetShadowOffset()) end
-	end
+	-- (1.8.0-beta19) Built from scratch, never with CopyFontObject: a copy can share the game's own font underneath, so
+	-- sizing the copy resized the game's text everywhere (FlareUI 6.3 hit it on Forever: buff timers, window titles and
+	-- quest text). Only the face, size, color and shadow are taken.
+	if game.GetTextColor and f.SetTextColor then f:SetTextColor(game:GetTextColor()) end
+	if game.GetShadowColor and f.SetShadowColor then f:SetShadowColor(game:GetShadowColor()) end
+	if game.GetShadowOffset and f.SetShadowOffset then f:SetShadowOffset(game:GetShadowOffset()) end
 	base[template] = { path, size, flags }
 	apply(template)
 	return name

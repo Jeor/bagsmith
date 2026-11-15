@@ -66,6 +66,16 @@ function Panel:IsNew(kind, id)
 	local page = N and N[kind] and id ~= nil and N[kind][id]
 	return page and self:NewPage(page) or false
 end
+-- Listed for this release, seen or not (searching "new" finds these all release long).
+function Panel:InRelease(kind, id)
+	local N = self.NEW
+	return (N and N[kind] and id ~= nil and N[kind][id] and release() == N.release) and true or false
+end
+-- (1.8.0-beta19, after FlareUI) A first install: nothing is new to this player.
+function Panel:MarkAllNewSeen()
+	local N = self.NEW
+	for page in pairs(N and N.pages or {}) do self:MarkPageSeen(page) end
+end
 -- The tags showing while Settings is open: what was seen when it opened.
 function Panel:SnapshotNew()
 	local N, t = self.NEW, {}
@@ -2506,6 +2516,15 @@ function Panel:EmitPending()
 		rowX, rowW = x, w
 	end
 end
+-- (1.8.0-beta19, after FlareUI) Searching "new" finds what this release added: its settings, and its headings' cards.
+for _, name in ipairs({ "Check", "Seg", "Step", "Color", "Dropdown" }) do
+	local textOf = SEARCHED[name]
+	SEARCHED[name] = function(key, ...)
+		local a, b, c = textOf(key, ...)
+		if Panel:InRelease("keys", key) then b = (b or "") .. " new" end
+		return a, b, c
+	end
+end
 for name, textOf in pairs(SEARCHED) do
 	local orig = Panel[name]
 	Panel[name] = function(self, ...)
@@ -2541,7 +2560,7 @@ Panel.Head = function(self, text, info)
 		local plainText = plain(text)
 		local tier
 		if plainText:sub(1, #f.phrase) == f.phrase then tier = 1
-		elseif matches(f.words, text) then tier = 2
+		elseif matches(f.words, text, self:InRelease("heads", text) and "new" or nil) then tier = 2
 		elseif info and matches(f.words, table.concat(info.lines or {}, " "), info.keywords) then tier = 3 end
 		if tier and tier < f.best then f.best = tier end
 		return
@@ -2550,6 +2569,7 @@ Panel.Head = function(self, text, info)
 	f.pendingHead, f.pendingSub, f.lastSkipped, f.pendingCols = text, nil, nil, nil
 	f.pendingHeadInfo = info
 	local words = text
+	if self:InRelease("heads", text) then words = words .. " new" end   -- (beta19)
 	if info then words = words .. " " .. table.concat(info.lines or {}, " ") .. " " .. (info.keywords or "") end
 	f.cardAll = f.pageAll or matches(f.words, words)
 	if f.cardAll then self:EmitPending() end

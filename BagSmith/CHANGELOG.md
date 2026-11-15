@@ -19,7 +19,8 @@ New:
 - Quest items get a gold frame in both looks, whatever Rarity Borders says (Settings > Item Icons, Gold Frame for
   Quest Items, on by default).
 - Settings marks what's new: a small blue NEW beside a page in the list on the left, and beside the new headings and
-  settings on it. A page's marks go once you've opened it, from the next time you open Settings.
+  settings on it. A page's marks go once you've opened it, from the next time you open Settings. A new player sees
+  none (everything is new to them), and searching Settings for "new" lists them all.
 - What's New's directions, like Settings > Style > Size, are links: click one to open Settings right there.
 - /bs cpu: how much time BagSmith takes each frame, measured by the game over a few seconds (scroll or loot meanwhile
   to see what that costs).
@@ -43,6 +44,8 @@ Changed:
 - The Disenchant Helper's summary in chat reads as one sentence, like "1 item disenchanted: Greater Magic Essence x2,
   worth about 7s 60c at current AH prices."
 Fixed:
+- Text Size and Font change only BagSmith's text. BagSmith's fonts are now made from scratch rather than copied from the
+  game's, which could let a change reach the game's own text elsewhere.
 - Classic: short sheet tabs, like Gear, Quest or Junk, no longer show a dark smudge. The game's tab art has two end
   pieces that overlapped on a narrow tab; they now share it.
 - Item icons and their borders line up exactly at any scale, like 90%: no more clipped edges or icons slipping out of
