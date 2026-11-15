@@ -900,6 +900,14 @@ function Own:Apply()
 		for k in pairs(keys) do mine[k] = tbl[k] end
 	end
 end
+-- (beta8) A profile reset or copied over: this character's own copies of its parts go too (the profile's values back
+-- first), so what the character sees is the reset or copied profile. Other characters' copies live in their own
+-- saved data and stay until they log in (a reset profile shares nothing new with them).
+function Own:Forget(name)
+	if self.swap and self.swap.name == name then self:Restore() end
+	local cdb = ns.cdb
+	if cdb and type(cdb.own) == "table" then cdb.own[name] = nil end
+end
 -- What a character keeps for itself is checked as the profile's own settings are: anything else is dropped. Copies
 -- for a profile that no longer exists go.
 local function validateOwn(cdb)
@@ -970,6 +978,7 @@ function Profiles:CopyFrom(name)
 	local src = name and BagSmithDB.profiles[name]
 	if not src then return false, "No profile named " .. tostring(name) .. "." end
 	if name == ns.profileName then return false, "That is already the active profile." end
+	Own:Forget(ns.profileName)   -- (beta8) this character's own copies take the copied profile's too
 	BagSmithDB.profiles[ns.profileName] = copy(src)
 	ns.ui.collapseReset = true   -- the active profile's content is replaced
 	activate()
@@ -989,6 +998,7 @@ function Profiles:Reset(name)
 	name = name or ns.profileName
 	if not BagSmithDB.profiles[name] then return false, "No profile named " .. tostring(name) .. "." end
 	if name == self:Active() then ns.ui.collapseReset = true end   -- the active profile is replaced
+	Own:Forget(name)   -- (beta8) and this character's own copies of its parts start again from the reset profile
 	BagSmithDB.profiles[name] = fixTabs(copy(DEFAULTS))
 	activate()
 	return true

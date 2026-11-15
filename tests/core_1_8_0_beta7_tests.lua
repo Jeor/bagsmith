@@ -189,3 +189,22 @@ end)()
 		"the 1.8 card's Important bullet, in soft red")
 	check((n2.errors or 0) == 0, "no errors")
 end)()
+
+;(function()
+	-- (1.8.0-beta8) Reset and Copy on the profile a character uses replace what it sees, its own copies included
+	package.loaded.mock = nil
+	local M = require("mock")
+	_G.BagSmithCharDB = { version = 1, firstSeen = {} }
+	_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = { favItems = { 6948 } }, Other = { favItems = { 1004, 2589 } } } }
+	local n = M.loadAddon("BagSmith")
+	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
+	check(n.db.shareFavorites == false and n.db.favItems[1] == 6948, "(setup) favorites are his own, from Default's")
+	n.db.favItems[#n.db.favItems + 1] = 765
+	n.Profiles:CopyFrom("Other"); M.runTimers()
+	check(#n.db.favItems == 2 and n.db.favItems[1] == 1004, "Copy: he sees Other's favorites, not his old ones")
+	n.Profiles:Reset(); M.runTimers()
+	check(#n.db.favItems == 0 and n.db.shareFavorites == false, "Reset: he sees a fresh profile's (none)")
+	M.fire("PLAYER_LOGOUT")
+	check(#BagSmithDB.profiles.Default.favItems == 0 and #BagSmithDB.profiles.Other.favItems == 2, "saved: Default reset, Other untouched")
+	check((n.errors or 0) == 0, "no errors")
+end)()
