@@ -30,7 +30,8 @@ Changed:
   as you disenchant.
 - Your free-slot count shows only the slots anything fits in: a quiver or a herb bag's room no longer counts. Hover
   the count to see the free slots in your bags, your reagent bag and each special bag; a small + says there's more
-  room in special bags.
+  room in special bags. The reagent bag's count shows the same when you hover it.
+- Click your gold in the bags window to open or close the currency drawer.
 - Settings > Windows reads more clearly: Main Window and Individual Bag Windows (were Bag Window and Bag Windows), and
   Ignore Clicks While Faded is now Prevent Accidental Clicks in Combat, under its own Combat heading.
 - The Disenchant Helper's summary in chat reads as one sentence, like "1 item disenchanted: Greater Magic Essence x2,

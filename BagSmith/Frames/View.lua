@@ -784,6 +784,21 @@ function View:Build()
 	-- The gold sits 10 px in from the left, closer to the room the count
 	-- buttons keep on the right.
 	self.moneyText:SetPoint("LEFT", MONEY_X, 0)
+	-- (1.8.0-beta12, Shweep) Click your gold to open or close the currency drawer (the main window's; it opens beside it).
+	if self.kind == "main" then
+		local mb = CreateFrame("Button", nil, footer)
+		mb:SetPoint("TOPLEFT", self.moneyText, "TOPLEFT", -4, 4)
+		mb:SetPoint("BOTTOMRIGHT", self.moneyText, "BOTTOMRIGHT", 4, -4)
+		mb:SetScript("OnClick", function() if ns.Drawer then ns.Drawer:Toggle() end end)
+		mb:SetScript("OnEnter", function(b)
+			if not ns.HelpTipsOK() then return end
+			GameTooltip:SetOwner(b, "ANCHOR_TOP"); ns.TipText(GameTooltip, "Your Currencies")
+			ns.TipLine(GameTooltip, "Click to open or close the currency drawer.", 0.8, 0.8, 0.8, true)
+			GameTooltip:Show()
+		end)
+		mb:SetScript("OnLeave", function() GameTooltip:Hide() end)
+		self.moneyButton = mb
+	end
 	-- Leave room for the resize grip in the corner of the main window.
 	local rightEdge = self.big and -18 or -2
 	if self.isBank then
@@ -821,6 +836,8 @@ function View:Build()
 		self.btnBags:SetPoint("RIGHT", footer, "RIGHT", rightEdge, 0)
 		self.freeText = self.btnBags.label   -- the count lives inside the button
 		self.btnBags.tipInfo = function() return self:FreeTip() end   -- (1.8.0-beta5) the free slots by kind of bag
+		-- (1.8.0-beta12, Shweep) the footer's other count button shows the same breakdown
+		if self.btnReagent then self.btnReagent.tipInfo = function() return self:FreeTip() end end
 	else
 		self.freeText = fontString(footer, "GameFontHighlightSmall", "RIGHT")
 		self.freeText:SetPoint("RIGHT", rightEdge, 0)
