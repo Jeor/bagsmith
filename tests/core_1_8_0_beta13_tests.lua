@@ -55,3 +55,42 @@
 	n.Print = oldPrint
 	_G.C_AddOnProfiler = nil
 end)()
+
+;(function()
+	-- (1.8.0-beta15, from Shweep's /bs debug report) a narrow Classic tab: its two ends share it instead of overlapping
+	package.loaded.mock = nil
+	local M = require("mock")
+	_G.BagSmithCharDB = { version = 1, firstSeen = {} }
+	_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = { skin = "classic" } } }
+	local n = M.loadAddon("BagSmith")
+	M.fire("ADDON_LOADED", "BagSmith")
+	-- the report's geometry: left end 35 wide at x -3, right end 37 wide ending 3 past the tab's right edge
+	local function piece(w, point, x)
+		local t = { w = w, c = { 0, 0, 0, 0.778, 1, 0, 1, 0.778 }, pt = { point, nil, point, x, 0 } }
+		function t:GetWidth() return self.w end
+		function t:SetWidth(v) self.w = v end
+		function t:GetTexCoord() return unpack(self.c) end
+		function t:SetTexCoord(l, r, top, bottom) self.c = { l, top, l, bottom, r, top, r, bottom } end
+		function t:GetPoint() return unpack(self.pt) end
+		return t
+	end
+	local function tab(width)
+		local art = { isTab = true, Left = piece(35, "TOPLEFT", -3), Right = piece(37, "TOPRIGHT", 3),
+			LeftActive = piece(35, "TOPLEFT", -1), RightActive = piece(37, "TOPRIGHT", 4) }
+		return { classic = art, GetWidth = function() return width end }
+	end
+	local gear = tab(44)   -- 44 + 3 + 3 = 50 between the outer edges; the ends want 72
+	n.Classic.FitTabEnds(gear)
+	local L, R = gear.classic.Left, gear.classic.Right
+	check(L.w + R.w == 50, "Gear: the two ends fill the tab between their outer edges, no overlap: " .. (L.w + R.w))
+	check(L.w == 24 and R.w == 26, "each its share, as their widths: " .. L.w .. ", " .. R.w)
+	check(L.c[1] == 0 and math.abs(L.c[5] - 24 / 35) < 1e-9 and L.c[4] == 0.778, "the left end keeps its outer (left) edge, cropped from the inside; the height crop kept")
+	check(R.c[5] == 1 and math.abs(R.c[1] - (1 - 26 / 37)) < 1e-9, "the right end keeps its outer (right) edge")
+	check(gear.classic.LeftActive.w + gear.classic.RightActive.w == 44 + 4 + 1, "the selected set too")
+	n.Classic.FitTabEnds(gear); n.Classic.FitTabEnds(gear)
+	check(L.w == 24 and math.abs(L.c[5] - 24 / 35) < 1e-9, "fitting again changes nothing (recorded once)")
+	local wide = tab(120)
+	n.Classic.FitTabEnds(wide)
+	check(wide.classic.Left.w == 35 and wide.classic.Right.w == 37 and wide.classic.Left.c[5] == 1, "a wide tab keeps its ends whole")
+	check((n.errors or 0) == 0, "no errors")
+end)()

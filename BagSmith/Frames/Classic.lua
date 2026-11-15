@@ -131,6 +131,56 @@ function Classic.FitTabArt(btn)
 		end
 	end
 	Classic.ApplyTabTrim(btn)   -- (1.8.0-beta13) a fit resets the art's width: the end trims go back on
+	Classic.FitTabEnds(btn)     -- (1.8.0-beta15) and the ends share a narrow tab
+end
+
+-- (1.8.0-beta15, from Shweep's /bs debug report on beta14) The shading on the tabs themselves. Forever's tab art is
+-- three pieces, atlases uiframe-tab-left (35 px), uiframe-tab-right (37 px) and a middle that stretches: the game's
+-- own tabs are always at least both ends wide (the text plus the ends). BagSmith's are compact (the text plus a little),
+-- so on a narrow tab the two ends overlapped (on Gear, 22 px: the left end at -3 to 32, the right at 10 to 47, the
+-- middle 0) and their soft inner shading was drawn twice: the dark smudge. When the ends don't fit, each gets its
+-- share of the tab instead, keeping its outer edge, its art cropped from the inner side; nothing overlaps. The
+-- normal, selected, highlight and (older template) disabled sets alike. Widths and coordinates are recorded once.
+local END_SETS = { { "Left", "Right" }, { "LeftActive", "RightActive" }, { "LeftHighlight", "RightHighlight" }, { "LeftDisabled", "RightDisabled" } }
+local function endBase(p)
+	if not p.bsEnd then
+		local c = { p:GetTexCoord() }
+		p.bsEnd = { w = p:GetWidth() or 0, l = c[1] or 0, r = c[5] or 1 }
+	end
+	return p.bsEnd
+end
+local function setEnd(p, w2, keepLeft)
+	local b = p.bsEnd
+	local c = { p:GetTexCoord() }
+	local top, bottom = c[2] or 0, c[4] or 1   -- (vertical: as FitTabArt left it)
+	local l, r = b.l, b.r
+	if b.w > 0 and w2 < b.w then
+		local span = b.r - b.l
+		if keepLeft then r = b.l + span * (w2 / b.w) else l = b.r - span * (w2 / b.w) end
+	end
+	p:SetWidth(math.max(0.01, w2))
+	p:SetTexCoord(l, r, top, bottom)
+end
+function Classic.FitTabEnds(btn)
+	local art = btn and btn.classic
+	if not (art and art.isTab) then return end
+	local bw = btn.GetWidth and btn:GetWidth() or 0
+	if bw <= 0 then return end
+	for _, set in ipairs(END_SETS) do
+		local L, R = art[set[1]], art[set[2]]
+		if type(L) == "table" and type(R) == "table" and L.GetPoint and R.GetPoint and L.SetTexCoord and R.SetTexCoord and L.GetWidth and R.GetWidth then
+			local lb, rb = endBase(L), endBase(R)
+			local _, _, _, lx = L:GetPoint(1)
+			local _, _, _, rx = R:GetPoint(1)
+			local total = bw + (tonumber(rx) or 0) - (tonumber(lx) or 0)   -- from the left end's outer edge to the right end's
+			local lw, rw = lb.w, rb.w
+			if lw + rw > total and lw + rw > 0 and total > 0 then
+				lw = math.floor(total * lb.w / (lb.w + rb.w) + 0.5)
+				rw = math.max(0, total - lw)
+			end
+			setEnd(L, lw, true); setEnd(R, rw, false)
+		end
+	end
 end
 
 -- (1.8.0-beta13, Shweep: shading "coming off of tabs themself"; learned from Guildy's tabs) The game's tab art ends in

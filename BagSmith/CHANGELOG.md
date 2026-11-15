@@ -40,6 +40,8 @@ Changed:
 - The Disenchant Helper's summary in chat reads as one sentence, like "1 item disenchanted: Greater Magic Essence x2,
   worth about 7s 60c at current AH prices."
 Fixed:
+- Classic: short sheet tabs, like Gear, Quest or Junk, no longer show a dark smudge. The game's tab art has two end
+  pieces that overlapped on a narrow tab; they now share it.
 - Item icons and their borders line up exactly at any scale, like 90%: no more clipped edges or icons slipping out of
   their frames. In Classic, icons fill their slots like the game's own bags, with a silver outline for everyday items,
   and the corner marks sit inside the frame. Thanks to Jeor.

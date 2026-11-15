@@ -1709,6 +1709,7 @@ function View:UpdateTabs()
 		b.label:ClearAllPoints(); b.label:SetPoint("CENTER"); b.label:SetWordWrap(false)
 		b.label:SetWidth(w - 12)
 		b:SetWidth(w + extra)
+		if b.classicOn and ns.Classic and ns.Classic.FitTabEnds then ns.Classic.FitTabEnds(b) end   -- (1.8.0-beta15)
 		b:ClearAllPoints(); b:SetPoint("TOPLEFT", self.tabs, "TOPLEFT", x - half, -row * rowH)
 		b:SetActive(self.st.sheet == id)
 		-- (1.8.0-beta13) overlapping: the selected tab draws above its neighbors, as the game's does
@@ -1722,6 +1723,7 @@ function View:UpdateTabs()
 
 	-- (1.8.0-beta13) in Classic the », + and pencil tabs overlap the same way: wider by `extra`, half on each side
 	local function place(btn, at, w)
+		if btn.classicOn and ns.Classic and ns.Classic.FitTabEnds then ns.Classic.FitTabEnds(btn) end   -- (1.8.0-beta15)
 		if extra > 0 and btn.classicOn then
 			btn:SetWidth(w + extra)
 			btn:ClearAllPoints(); btn:SetPoint("TOPLEFT", self.tabs, "TOPLEFT", at - half, -row * rowH)
