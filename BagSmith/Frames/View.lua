@@ -154,11 +154,18 @@ local function textButton(parent, text, width, onClick, template, name)
 	b.label:SetText(text)
 	if onClick then b:SetScript("OnClick", onClick) end
 	b:SetScript("OnEnter", function(self)
-		if self.tip and ns.HelpTipsOK() then
-			GameTooltip:SetOwner(self, "ANCHOR_TOP"); ns.TipText(GameTooltip, self.tip)
-			-- (1.5.8) an optional second line, as icon buttons have (a function, so it can describe the moment)
-			local sub = type(self.tipSub) == "function" and self.tipSub(self) or self.tipSub
-			if sub then ns.TipLine(GameTooltip, sub, 0.8, 0.8, 0.8, true) end
+		local help = self.tip and ns.HelpTipsOK()
+		-- (1.8.0-beta5) information, not help: shown even with Show Help Tips off (the free-slot breakdown)
+		local info = self.tipInfo and ns.TooltipsOK() and self.tipInfo(self)
+		if help or info then
+			GameTooltip:SetOwner(self, "ANCHOR_TOP")
+			if help then
+				ns.TipText(GameTooltip, self.tip)
+				-- (1.5.8) an optional second line, as icon buttons have (a function, so it can describe the moment)
+				local sub = type(self.tipSub) == "function" and self.tipSub(self) or self.tipSub
+				if sub then ns.TipLine(GameTooltip, sub, 0.8, 0.8, 0.8, true) end
+			end
+			if info then info(GameTooltip, help) end
 			GameTooltip:Show()
 		end
 	end)
@@ -813,6 +820,7 @@ function View:Build()
 	if self.btnBags then
 		self.btnBags:SetPoint("RIGHT", footer, "RIGHT", rightEdge, 0)
 		self.freeText = self.btnBags.label   -- the count lives inside the button
+		self.btnBags.tipInfo = function() return self:FreeTip() end   -- (1.8.0-beta5) the free slots by kind of bag
 	else
 		self.freeText = fontString(footer, "GameFontHighlightSmall", "RIGHT")
 		self.freeText:SetPoint("RIGHT", rightEdge, 0)
@@ -1695,6 +1703,26 @@ function View:UpdateTabs()
 	if isCustom then editBtn:ClearAllPoints(); editBtn:SetPoint("TOPLEFT", self.tabs, "TOPLEFT", x, -row * rowH) end
 end
 
+-- (1.8.0-beta5) The Bags button's tooltip: free slots in ordinary bags, then each kind of special bag (its name in its
+-- glow color), when there are special bags. Nil otherwise: the button keeps its plain help tip.
+function View:FreeTip()
+	local special = self.freeSpecial
+	if not (special and next(special)) then return nil end
+	local g = self.freeGeneral or { 0, 0 }
+	return function(tt, help)
+		if help then tt:AddLine(" ") end
+		if help then tt:AddLine("Free slots", 1, 0.82, 0) else ns.TipText(tt, "Free slots", 1, 0.82, 0) end
+		tt:AddDoubleLine("Bags (anything fits)", ("%d / %d"):format(g[1], g[2]), 1, 1, 1, 1, 1, 1)
+		for _, k in ipairs(ns:BagKindsSorted()) do   -- (beta7 feedback) alphabetical, as in Settings
+			local v = special[k.key]
+			if v then
+				local r, gg, b = ns:BagKindColor(k.key)
+				tt:AddDoubleLine(ns:BagKindName(k.key), ("%d / %d"):format(v.free, v.total), r, gg, b, 1, 1, 1)
+			end
+		end
+	end
+end
+
 function View:UpdateFooter(bagInfo)
 	-- Footer-only updates (money, currency) pass no bag details: reuse the last
 	-- full refresh's, so saved free-slot counts don't drop to 0/0.
@@ -1704,25 +1732,43 @@ function View:UpdateFooter(bagInfo)
 	local gold = owner and (BagSmithDB.cache[owner] and BagSmithDB.cache[owner].gold or 0) or GetMoney()
 	self.moneyText:SetText(GetMoneyString(gold or 0, true))
 
-	-- Free slots
-	local free, total, rfree, rtotal
+	-- Free slots. (1.8.0-beta5) Special bags (a quiver, a herb bag, ...) count apart: the number is the slots anything
+	-- fits in, and the Bags button's tooltip lists the rest by kind. Saved data (another character, the bank away from
+	-- it) carries each bag's kind from 1.8.0 on; older saves count every bag as general until that character logs in.
+	local free, total, rfree, rtotal, special = 0, 0, 0, 0, nil
+	local function addSpecial(kind, f, t)
+		special = special or {}
+		local k = special[kind] or { free = 0, total = 0 }
+		k.free, k.total = k.free + (f or 0), k.total + (t or 0)
+		special[kind] = k
+	end
 	if owner then
-		free, total, rfree, rtotal = 0, 0, 0, 0
 		for bag, info in pairs(bagInfo or {}) do
 			if info.reagent then rfree, rtotal = rfree + (info.free or 0), rtotal + (info.size or 0)
+			elseif bag ~= ns.KEYRING and info.kind and ns.BAG_KIND[info.kind] then addSpecial(info.kind, info.free, info.size)
 			elseif bag ~= ns.KEYRING then free, total = free + (info.free or 0), total + (info.size or 0) end
 		end
 	elseif (self.isMain and self.st.sheet == "Bank") or (self.isBank and not ns.atBank) then
-		free, total, rfree, rtotal = 0, 0, 0, 0
-		for _, info in pairs(bagInfo or {}) do free, total = free + (info.free or 0), total + (info.size or 0) end
+		for _, info in pairs(bagInfo or {}) do
+			if info.kind and ns.BAG_KIND[info.kind] then addSpecial(info.kind, info.free, info.size)
+			else free, total = free + (info.free or 0), total + (info.size or 0) end
+		end
 	else
-		free, total, rfree, rtotal = ns:FreeSlots(self.kind == "main" and self.st.sheet ~= "Bank" and ns.BAGS or self:Bags())
+		free, total, rfree, rtotal, special = ns:FreeSlots(self.kind == "main" and self.st.sheet ~= "Bank" and ns.BAGS or self:Bags())
 	end
 	if (self.isMain and self.st.sheet == "Bank") or self.isBank then rtotal = 0 end
-	-- A window showing only the reagent bag reports the reagent slots.
-	if total == 0 and rtotal > 0 then free, total = rfree, rtotal end
+	self.freeSpecial = special
+	-- A window showing only the reagent bag reports the reagent slots; one showing only special bags, theirs.
+	if total == 0 and rtotal > 0 then free, total = rfree, rtotal
+	elseif total == 0 and special then
+		for _, k in pairs(special) do free, total = free + k.free, total + k.total end
+		special, self.freeSpecial = nil, nil
+	end
+	self.freeGeneral = { free, total }
 	local txt = ("%d / %d"):format(free, total)
 	if free <= 0 then txt = "|cfff09595" .. txt .. "|r" elseif free <= 4 then txt = "|cfffac775" .. txt .. "|r" end
+	-- a quiet "+": there's more room in special bags (the tooltip says where)
+	if special and not self.titleCount then txt = txt .. " |cff9d9d9d+|r" end
 	if self.titleCount then
 		self.titleCount:SetText(txt)
 		self.titleCount:SetTextColor(Skins:Color("muted"))

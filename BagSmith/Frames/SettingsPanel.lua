@@ -22,7 +22,8 @@ end
 -- Layout cursor helpers. Everything is rebuilt on Refresh so the panel is
 -- always in sync with the profile; widgets are pooled by type.
 ------------------------------------------------------------------------
-local NAV_W, WIN_W, WIN_H = 170, 680, 560
+-- (1.8.0-beta6, Shweep) the page side 15% wider: 510 px beside the page list, now 587 (the window 680 to 757)
+local NAV_W, WIN_W, WIN_H = 170, 757, 560
 local SEARCH_W = 200   -- NAV_W fits the longest page name, "Automations & Actions"
 -- A third field names the page an entry sits under: it's listed (indented)
 -- only while that page or one of its sub-pages is open.
@@ -159,7 +160,7 @@ function Panel:Create()
 	child:SetSize(1, 1)
 	scroll:SetScrollChild(child)
 	f.child, self.scroll = child, scroll
-	self.pools = { cornerCards = {}, head = {}, check = {}, seg = {}, step = {}, cycle = {}, list = {}, text = {}, edit = {}, btn = {}, color = {}, profiles = {}, cmd = {}, bind = {}, about = {}, csec = {}, csechead = {}, moved = {}, gset = {}, ptitle = {}, listhead = {}, card = {}, sep = {}, plug = {}, pnotice = {}, feat = {}, sub = {} }   -- (1.6.0) sub: sub-headings inside a card
+	self.pools = { cornerCards = {}, head = {}, check = {}, seg = {}, step = {}, dropdown = {}, list = {}, text = {}, edit = {}, btn = {}, color = {}, profiles = {}, cmd = {}, bind = {}, about = {}, csec = {}, csechead = {}, moved = {}, gset = {}, ptitle = {}, listhead = {}, card = {}, sep = {}, plug = {}, pnotice = {}, feat = {}, sub = {} }   -- (1.6.0) sub: sub-headings inside a card
 	self.page = self.page or "general"
 	table.insert(UISpecialFrames, "BagSmithSettings")
 	ns:CombatWindow(f)   -- (1.5.6) fades in combat like the bags window
@@ -271,7 +272,9 @@ end
 function Panel:ApplyPosition()
 	local f, p = self.frame, ns.db.settingsPoint
 	f:ClearAllPoints(); f:SetPoint(p[1], UIParent, p[3], p[4], p[5])
-	f:SetScale(ns.db.scale)
+	-- (1.8.0-beta6, Shweep) Settings keeps its own size: BagSmith's Scale shrinks the bags, bank and helpers, never the
+	-- window you change it in (it stays clamped to the screen)
+	f:SetScale(1)
 end
 
 function Panel:ShowPage(page)
@@ -633,43 +636,63 @@ function Panel:Step(key, label, step, fmt, help, info)
 	self.y = self.y + s:GetHeight()
 end
 
--- (1.8.0) A choice from a list too long for segments (Font): the current one's name between two arrows, which step
--- through the list (and round). choices: { { key = , label = , path = } }; a path shows that name in its own face.
-function Panel:Cycle(key, label, choices, help)
-	local s = acquire(self, "cycle", function(p)
+-- (1.8.0-beta2, Shweep: "Font selection needs to be a dropdown") A choice from a list too long for segments: a button
+-- showing the current choice with a down chevron; it opens BagSmith's menu (ns.ShowMenu) under it, the current choice
+-- ticked; a pick applies at once. choices: { { key = , label = , path = } }; a path shows that name in its own face.
+function Panel:Dropdown(key, label, choices, help)
+	local DROP_W = 180
+	local s = acquire(self, "dropdown", function(p)
 		local w = CreateFrame("Frame", nil, p); w:SetSize(ROW_W, LINE)
 		w.text = fs(w); w.help = fs(w)
-		w.value = fs(w, "GameFontHighlight", "CENTER")
-		local function step(b, d)
-			local pr = b:GetParent()
-			local list = pr.choices or {}
-			if #list < 2 then return end
-			local i = ((pr.index or 1) - 1 + d) % #list + 1
-			ns:Set(pr.key, list[i].key)
+		w.btn = ns.TextButton(w, "", DROP_W, function(btn)
+			local pr = btn:GetParent()
+			local items = {}
+			-- (1.8.0-beta2, Shweep) a group: a long list scrolls inside the menu, the current one in view
+			for _, c in ipairs(pr.choices or {}) do
+				items[#items + 1] = { text = c.label, checked = c.key == ns.db[pr.key], font = c.path, group = true, onClick = function() ns:Set(pr.key, c.key) end }
+			end
+			ns.ShowMenu(items, btn)
+		end)
+		w.btn:SetHeight(22)
+		w.btn.label:ClearAllPoints(); w.btn.label:SetPoint("LEFT", 8, 0); w.btn.label:SetPoint("RIGHT", -24, 0)
+		w.btn.label:SetJustifyH("LEFT"); w.btn.label:SetWordWrap(false)
+		-- (1.8.0-beta2, Shweep: "like our alt selector") the character picker's look: Modern, the chevron as the picker
+		-- has it; Classic, the game's dropdown art behind it (Classic.DropdownArt) instead of a red button
+		w.btn.chev = w.btn:CreateTexture(nil, "OVERLAY")
+		w.btn.chev:SetTexture("Interface\\AddOns\\BagSmith\\Media\\ui-chev-down.tga")
+		w.btn.chev:SetSize(11, 11); w.btn.chev:SetPoint("RIGHT", -6, 0); w.btn.chev:SetVertexColor(0.62, 0.6, 0.55)
+		local baseActive = w.btn.SetActive
+		function w.btn:SetActive(on)
+			if self.ddOn then
+				self.active = on
+				self:SetBackdropColor(0, 0, 0, 0); self:SetBackdropBorderColor(0, 0, 0, 0)
+				self.label:SetTextColor(1, 1, 1)
+				return
+			end
+			baseActive(self, on)
 		end
-		w.prev = ns.IconButton(w, "Interface\\AddOns\\BagSmith\\Media\\ui-chev-right.tga", "Previous", function(b) step(b, -1) end)
-		w.prev.tex:SetTexCoord(1, 0, 0, 1)   -- (the right chevron, mirrored)
-		w.next = ns.IconButton(w, "Interface\\AddOns\\BagSmith\\Media\\ui-chev-right.tga", "Next", function(b) step(b, 1) end)
-		w.prev:SetSize(22, 22); w.next:SetSize(22, 22)
+		function w.btn:SetClassic(on)
+			-- (a red button made before this took over: put away, the label back on the button)
+			if self.classic then self.classic:Hide(); self.classicOn = false; self.label:SetParent(self) end
+			if on and self.ddArt == nil then self.ddArt = ns.Classic and ns.Classic.DropdownArt and ns.Classic.DropdownArt(self) or false end
+			self.ddOn = (on and self.ddArt) and true or false
+			if self.ddArt then self.ddArt:SetShown(self.ddOn) end
+			self.chev:SetShown(not self.ddOn)
+			self:SetActive(self.active)
+		end
+		w.btn:SetClassic(ns.Classic and ns.Classic.IsOn and ns.Classic.IsOn() or false)
 		return w
 	end)
 	s.key, s.choices = key, choices
-	local cur = ns.db[key]
-	s.index = 1
-	for i, c in ipairs(choices) do if c.key == cur then s.index = i end end
-	local VALUE_W = 160
-	local cy = layoutRow(s, label, help, 22 + 6 + VALUE_W + 6 + 22, 22)
-	s.next:ClearAllPoints(); s.next:SetPoint("TOPRIGHT", s, "TOPRIGHT", 0, cy)
-	s.value:ClearAllPoints(); s.value:SetPoint("RIGHT", s.next, "LEFT", -6, 0); s.value:SetWidth(VALUE_W)
-	s.prev:ClearAllPoints(); s.prev:SetPoint("RIGHT", s.value, "LEFT", -6, 0)
-	local c = choices[s.index]
-	s.value:SetText(c and c.label or ""); s.value:SetTextColor(Skins:Color("text"))
-	if s.value.SetFont and GameFontHighlight and GameFontHighlight.GetFont then
-		local path, size, flags = GameFontHighlight:GetFont()
-		if path then pcall(s.value.SetFont, s.value, (c and c.path) or path, size, flags or "") end
-	end
-	local many = #choices > 1
-	s.prev:SetShown(many); s.next:SetShown(many)
+	local cur
+	for _, c in ipairs(choices) do if c.key == ns.db[key] then cur = c end end
+	cur = cur or choices[1]
+	local cy = layoutRow(s, label, help, DROP_W, 22)
+	s.btn:ClearAllPoints(); s.btn:SetPoint("TOPRIGHT", s, "TOPRIGHT", 0, cy)
+	s.btn:SetActive(false)
+	s.btn.label:SetText(cur and cur.label or "")
+	s.btn.chev:SetVertexColor(Skins:Color("text"))
+	ns.MenuFace(s.btn.label, cur and cur.path, "GameFontHighlightSmall")   -- (Game Font: the button's own face again)
 	self.y = self.y + s:GetHeight()
 end
 
@@ -1294,13 +1317,18 @@ pages.profile = function(self, db)
 	self:Text("A profile is a saved set of settings. Every character uses Default unless you pick another.")
 	self:Text("This character uses: " .. ns.profileName)
 	self:Edit("Create Profile", function(name) local ok, err = ns.Profiles:Use(name); if not ok then ns:Print(err) end end)
-	self:Head("Share")
-	self:Text("A profile code holds all of a profile's settings, including saved sheets. Share yours, or import one to add it as a new profile.")
-	self:Button("Share This Profile", function() ns.ShareWindow("share") end, 160)
-	self:Button("Import Profile", function() ns.ShareWindow("import") end, 160)
+	-- (beta7 feedback, Shweep) All Profiles near the top: choosing and managing profiles is what this page is for
 	self:Head("All Profiles")
 	self:Text("Assign gives this character that profile's settings. Copy brings another profile's settings into the one this character uses. Deleting a profile moves anyone using it back to Default.")
 	self:Profiles()
+	-- (1.8.0-beta7, Shweep) what every character using this profile shares; unchecked, each keeps its own
+	self:Head("Shared Between Characters")   -- (beta7 feedback, Shweep: plainer)
+	self:Text("Characters on this profile share everything checked below. Uncheck something to let each character keep its own.")
+	for _, part in ipairs(ns.PROFILE_PARTS) do self:Check("share" .. part.key, part.label, part.help) end
+	self:Head("Profile Codes")   -- (1.8.0-beta8, Shweep) was "Share", too close to "Shared Between Characters"
+	self:Text("A profile code holds all of a profile's settings, including saved sheets. Share yours, or import one to add it as a new profile.")
+	self:Button("Share This Profile", function() ns.ShareWindow("share") end, 160)
+	self:Button("Import Profile", function() ns.ShareWindow("import") end, 160)
 end
 
 -- General: how BagSmith opens, which of Blizzard's windows it stands in for, and its notices.
@@ -1348,15 +1376,15 @@ pages.look = function(self, db)
 	self:Color("accent", "Accent Color", "Highlights, selected buttons and section titles")
 	self:Check("rtext", "Color Item Names by Rarity")
 	self:Head("Size")
-	self:Step("scale", "Scale", 0.05, "%d%%")
+	self:Step("scale", "Scale", 0.05, "%d%%", "The size of your bags, bank and helpers. Settings keeps its own size.")
 	self:Step("rowHeight", "Row Height (List View)", 2, "%d")
 	self:Check("dense", "Compact Rows", "Shorter rows in List view")
 	-- (1.8.0, Shweep's plan of 10 Nov) the item windows' text: bags, bank, bag windows, the Loot and Disenchant Helpers
-	self:Step("textScale", "Text Size", 0.1, "%d%%", "How big the item text is in your bags, bank and bag windows and the Loot and Disenchant Helpers.")
+	self:Step("textScale", "Text Size", 0.1, "%d%%", "How big the item text is in your bags, bank and individual bag windows and the Loot and Disenchant Helpers.")
 	do
 		local choices = ns.Fonts and ns.Fonts:Choices() or { { key = "", label = "Game Font" } }
 		for _, c in ipairs(choices) do c.path = ns.Fonts and ns.Fonts:PathOf(c.key) end
-		self:Cycle("fontName", "Font", choices, #choices > 1 and "The same item text, in a font another addon shares." or "Fonts other addons share appear here when one of them is loaded.")
+		self:Dropdown("fontName", "Font", choices, "The same item text in another font: BagSmith's own, the game's, or one another addon shares.")
 	end
 	self:Head("Layout")
 	self:Check("splitView", "Split View (Icons View)", "Shows sections side by side in two columns. Works with By Section or By Bag when the window is wide enough.")
@@ -1390,6 +1418,25 @@ pages.icons = function(self, db)
 	end
 	self:Check("iconItemLevel", "Item Level (ilvl)", "Shows the item level on weapons and armor in Icons view. Choose its corner under Icon Corners.")
 	self:Indented(function() self:Color("iconItemLevelColor", "Item Level Color", "The color of the item level") end)
+	-- (1.8.0-beta5) Special bags: an inner glow per kind of bag, each off until turned on, in a color of your choice
+	self:Head("Special Bag Slot Indicators")   -- (beta7 feedback, Shweep) was "Special Bags"
+	-- (beta5 feedback, Shweep) each kind's options sit under it and name it: its items too (on by default), its color
+	for _, k in ipairs(ns:BagKindsSorted()) do   -- (beta7 feedback, Shweep) alphabetical
+		local name = ns:BagKindName(k.key)
+		local lower = name:lower()
+		-- (beta9, Shweep) an indicator, as a soft inner glow or as the slot's frame color; "indicator", not "mark" (Marks
+		-- is the green dot and item level, and Mark as Junk)
+		self:Check("glow_" .. k.key, ("%s Indicator"):format(name), ("Shows which slots are in your %s, so you can tell them apart at a glance."):format(lower))
+		if db["glow_" .. k.key] then
+			self:Indented(function()
+				self:Seg("glowStyle_" .. k.key, ("%s Indicator Style"):format(name), { { "glow", "Inner Glow" }, { "frame", "Frame Color" } },
+					db["glowStyle_" .. k.key] == "frame" and "The slot's frame takes this color instead of the item's rarity color." or "A soft glow inside each slot.")
+				self:Check("glowItems_" .. k.key, ("Show on %s Items Too"):format(name), ("The items in your %s show it too, not only its empty slots."):format(lower))
+				self:Color("glowColor_" .. k.key, ("%s Indicator Color"):format(name), ("The indicator's color in your %s"):format(lower))
+				self:Step("glowAlpha_" .. k.key, ("%s Indicator Opacity"):format(name), 0.05, "%d%%", ("How strong the indicator is in your %s."):format(lower))
+			end)
+		end
+	end
 	self:IconCorners()
 end
 
@@ -1538,7 +1585,7 @@ pages.keys = function(self, db)
 end
 
 pages.window = function(self, db)
-	self:Head("Bag Window")
+	self:Head("Main Window")   -- (1.8.0-beta5, Shweep) was "Bag Window", too close to the individual bag windows' heading
 	self:Seg("view", "Start In", { { "list", "List" }, { "icons", "Icons" } })
 	self:Seg("sizeMode", "Window Size", { { "auto", "Fit to Items" }, { "fixed", "Scalable" } },
 		db.sizeMode == "auto" and "Shrinks to fit your items, up to the max size below. Dragging the corner sets the max size." or "Stays the size you set. Drag the corner to resize it.")
@@ -1548,29 +1595,32 @@ pages.window = function(self, db)
 		self:Step("fixW", "Width", 20, "%d"); self:Step("fixH", "Height", 20, "%d")
 	end
 	-- (1.7.0-beta2, Shweep)
-	self:Check("lockWindows", "Lock Windows", "Your bags, bank and bag windows and the Loot and Disenchant Helpers can't be moved or resized.")
+	self:Check("lockWindows", "Lock Windows", "Your bags, bank and individual bag windows and the Loot and Disenchant Helpers can't be moved or resized.")
 	-- (1.6.0) one Opacity card, in three parts (Shweep): what's always see-through, what dims while moving, what dims in
 	-- combat. Background Opacity alone touches only the frame; moving and combat fade whole windows.
 	self:Head("Opacity")
 	self:Sub("Always")
-	self:Step("bgOpacity", "Background Opacity", 0.05, "%d%%", "How see-through the bag windows' frame and background are. Your items and text stay solid.")
+	self:Step("bgOpacity", "Background Opacity", 0.05, "%d%%", "How see-through the frame and background of your bags, bank and individual bag windows are. Your items and text stay solid.")
 	self:Indented(function()
 		self:Check("bgWhole", "Whole Window", "Fade your items, text and buttons too. Moving and combat never make it brighter than this.")
 	end)
 	self:Sub("While Moving")
-	self:Check("fadeMoving", "Fade While Moving", "Dims the bag windows while your character is moving.")
+	self:Check("fadeMoving", "Fade While Moving", "Dims your bags, bank and individual bag windows while your character is moving.")
 	self:Indented(function() self:Step("movingAlpha", "Opacity While Moving", 0.05, "%d%%") end)
 	self:Sub("In Combat")
 	self:Check("combatFade", "Fade in Combat", "Dims every BagSmith window during combat, including the helpers.")
 	self:Indented(function() self:Step("combatAlpha", "Opacity in Combat", 0.05, "%d%%") end)
-	self:Check("combatLock", "Ignore Clicks While Faded", "In combat, clicks pass through faded windows, so you can't use an item by accident.")
-	self:Head("Bag Windows")
+	-- (1.8.0-beta5, Shweep) out of Opacity, with a plainer name (was "Ignore Clicks While Faded"); it still works with the
+	-- combat fade (Window.lua: ApplyCombatFade), as before
+	self:Head("Combat")
+	self:Check("combatLock", "Prevent Accidental Clicks in Combat", "While your BagSmith windows are faded in combat (Fade in Combat, under Opacity), clicks on them go to the game instead, so you can't use an item by accident.")
+	self:Head("Individual Bag Windows")   -- (1.8.0-beta5, Shweep) was "Bag Windows": each bag in its own small window
 	self:Seg("__openWindows", "When the Main Window Opens",
 		{ { "main", "Open Main Window Only" }, { "all", "Auto-Open All Bags" }, { "reagent", "Auto-Open Reagent Bag" } },
-		"The footer buttons open or close bag windows anytime.", true)
-	self:Step("bagCols", "Icons per Row in Bag Windows", 1, "%d")
-	self:Step("bagScale", "Bag Window Scale", 0.05, "%d%%", "On top of Scale in Style. 100% matches the main window.")
-	self:Step("bagMaxH", "Bag Window Max Height", 20, "%d", "Taller bags scroll.")
+		"The footer buttons open or close individual bag windows anytime.", true)
+	self:Step("bagCols", "Icons per Row in Individual Bag Windows", 1, "%d")
+	self:Step("bagScale", "Individual Bag Window Scale", 0.05, "%d%%", "On top of Scale in Style. 100% matches the main window.")
+	self:Step("bagMaxH", "Individual Bag Window Max Height", 20, "%d", "Taller bags scroll.")
 	self:Head("Currency Drawer")
 	self:Seg("side", "Opens to the", { { "left", "Left" }, { "right", "Right" } }, "Switches sides when there isn't room.")
 end
@@ -2284,7 +2334,7 @@ local SEARCHED = {
 		return label, extra
 	end,
 	Color = function(_, label, help) return label, help end,
-	Cycle = function(_, label, choices, help)   -- (1.8.0)
+	Dropdown = function(_, label, choices, help)   -- (1.8.0)
 		local t = {}
 		for _, c in ipairs(type(choices) == "table" and choices or {}) do t[#t + 1] = c.label end
 		return label, (help or "") .. " " .. table.concat(t, " ") .. " typeface text size"

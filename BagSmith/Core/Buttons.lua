@@ -95,6 +95,7 @@ function Buttons:RealignModernBorders()
 		if not b.IsVisible or b:IsVisible() then
 			self:UpdateIconGeometry(b)
 			self:UpdateClassicBorderGeometry(b)
+			self:UpdateBagGlowGeometry(b)
 			if b.modernBorderActive then self:UpdateModernBorderGeometry(b) end
 		end
 	end
@@ -292,14 +293,43 @@ function Buttons:UpdateModernBorderGeometry(b)
 	placeBorderEdge(b.modernBorder[4], b.icon, x0 + w - pixel, y0 + pixel, pixel, h - 2 * pixel)
 end
 
-function Buttons:DrawModernBorder(b, r, g, bl)
+function Buttons:DrawModernBorder(b, r, g, bl, a)
 	b.modernBorderActive = true
 	bordered[b] = true
 	self:UpdateModernBorderGeometry(b)
 	self:WakeModernBorders()
 	for _, edge in ipairs(b.modernBorder) do
-		edge:SetVertexColor(r, g, bl, 0.95)
+		edge:SetVertexColor(r, g, bl, a or 0.95)
 		edge:Show()
+	end
+end
+
+-- (1.8.0-beta9, Shweep) A special bag's slot indicator, when this slot shows one: its kind and style ("glow", a soft
+-- glow inside the icon; "frame", the slot's frame in the kind's color instead of the rarity color). Icon cells of live
+-- bags only; an item shows it only with that kind's "Show on ... Items Too" (on by default).
+function Buttons:Indicator(b, rec)
+	local db = ns.db
+	if not db or b.mode ~= "cell" then return nil end
+	rec = rec or b.rec
+	if rec and (rec.cached or rec.display) then return nil end
+	local bag = (rec and rec.bag) or b.smithBag or b.bag
+	local info = type(bag) == "number" and ns.bagInfo[bag]
+	local kind = info and info.kind
+	if not (kind and db["glow_" .. kind]) then return nil end
+	local empty = not (b.hasItem and rec and not rec.empty)
+	if not empty and not db["glowItems_" .. kind] then return nil end
+	return kind, db["glowStyle_" .. kind] == "frame" and "frame" or "glow"
+end
+-- The frame style: the kind's color and opacity in the slot's frame (Modern's drawn border, Classic's rarity frame).
+local function drawIndicatorFrame(self, b, kind)
+	local r, g, bl = ns:BagKindColor(kind)
+	local a = tonumber(ns.db["glowAlpha_" .. kind]) or 1
+	if (ns.db.skin or "modern") == "modern" then
+		self:DrawModernBorder(b, r, g, bl, a)
+	else
+		self:UpdateClassicBorderGeometry(b)
+		b.qFrame:SetVertexColor(r, g, bl, a)
+		b.qFrame:Show(); b.qRing:Hide()
 	end
 end
 
@@ -311,10 +341,18 @@ function Buttons:ApplyQuality(b, rec)
 	for _, edge in ipairs(b.modernBorder or {}) do edge:Hide() end
 	if b.IconBorder then b.IconBorder:Hide() end
 	if not b.qRing then return end
-	-- No item, no frame: empty slots and blank rows keep their own look.
+	local kind, style = self:Indicator(b, rec)
+	-- No item, no frame: empty slots and blank rows keep their own look (a special bag's Frame Color indicator aside).
 	if not rec then
 		b.qRing:Hide(); b.qFrame:Hide()
 		if (ns.db and ns.db.skin or "modern") == "modern" then self:ApplyFrame(b) end
+		if style == "frame" then drawIndicatorFrame(self, b, kind) end
+		return
+	end
+	if style == "frame" then
+		b.qNeutral = false
+		if (ns.db and ns.db.skin or "modern") == "modern" then b.qRing:Hide(); b.qFrame:Hide(); b.frameEdge:Hide(); b.frameBG:Hide() end   -- as an item's rarity frame does
+		drawIndicatorFrame(self, b, kind)
 		return
 	end
 	local q = rec.quality or 1
@@ -667,6 +705,51 @@ function Buttons:RefreshItemLevels()
 	for _, b in ipairs(self.recent) do each(b) end
 end
 ns:OnSignal("SETTINGS_CHANGED", function(key) if key == nil or key == "iconItemLevel" or key == "iconItemLevelColor" then Buttons:RefreshItemLevels() end end)
+
+-- (1.8.0-beta5, a player's request via Shweep) Special bags' inner glow: a soft edge inside an icon cell in a special
+-- bag (a quiver, a herb bag, ...: Init.lua, ns.BAG_KINDS), in that kind's color. Each kind is off until turned on
+-- (Settings > Item Icons > Special Bags); with its items too unless that kind's "Glow on ... Items Too" is off. Live bags only: another character's
+-- saved bags and list rows have none. A plain texture, so it changes in combat too.
+Buttons.GLOW_ART = "Interface\\AddOns\\BagSmith\\Media\\ui-glow-inner.tga"
+-- Keep glow geometry in step with the same effective-scale changes as borders.
+function Buttons:UpdateBagGlowGeometry(b)
+	if not (b.bagGlow and b.glowKind) then return end
+	local area, inset = b.icon or b, pixelSize(b)
+	if b.glowArea == area and b.glowInset == inset then return end
+	b.bagGlow:ClearAllPoints()
+	b.bagGlow:SetPoint("TOPLEFT", area, "TOPLEFT", inset, -inset)
+	b.bagGlow:SetPoint("BOTTOMRIGHT", area, "BOTTOMRIGHT", -inset, inset)
+	b.glowArea, b.glowInset = area, inset
+end
+function Buttons:BagGlow(b, rec)
+	local db = ns.db
+	local kind, style = self:Indicator(b, rec)
+	local on = style == "glow"   -- (beta9) the Frame Color style is drawn by ApplyQuality instead
+	if on and not b.bagGlow then
+		b.bagGlow = b:CreateTexture(nil, "OVERLAY", nil, -8)   -- under the rarity border, the count and the corner marks
+		b.bagGlow:SetTexture(Buttons.GLOW_ART)
+	end
+
+	if b.bagGlow then
+		if on then
+			local r, g, bl = ns:BagKindColor(kind)
+			b.bagGlow:SetVertexColor(r, g, bl, tonumber(db["glowAlpha_" .. kind]) or 1)   -- (beta6 feedback) its opacity
+		end
+		b.bagGlow:SetShown(on)
+	end
+	b.glowKind = on and kind or nil
+	self:UpdateBagGlowGeometry(b)
+end
+function Buttons:RefreshGlows()
+	local function each(b)
+		if b.qRing then self:ApplyQuality(b, b.hasItem and b.rec or nil) end   -- (beta9) the Frame Color style
+		self:BagGlow(b, b.rec)
+	end
+	for _, b in ipairs(self.all) do each(b) end
+	for _, pool in pairs(self.mirrors) do for _, b in pairs(pool) do each(b) end end
+	for _, b in ipairs(self.recent) do each(b) end
+end
+ns:OnSignal("SETTINGS_CHANGED", function(key) if key == nil or (type(key) == "string" and key:find("^glow")) then Buttons:RefreshGlows() end end)
 
 -- Faint alternating row background, list mode only.
 function Buttons:SetStripe(b, on)
@@ -1183,7 +1266,7 @@ end
 function Buttons:TemplateLeftovers(b)
 	local known = {}
 	for _, k in ipairs({ "icon", "Count", "frameBG", "frameEdge", "qRing", "qFrame", "defaultFrame", "slotRing", "slotBG", "newDot", "junkCoin",
-		"ilvlText", "pawnArrow", "linkMark", "linkCount", "stripe" }) do if b[k] then known[b[k]] = true end end
+		"ilvlText", "pawnArrow", "linkMark", "linkCount", "stripe", "bagGlow" }) do if b[k] then known[b[k]] = true end end
 	for _, k in ipairs(COL_KEYS) do if b[k] then known[b[k]] = true end end
 	for _, sep in ipairs(b.seps or {}) do known[sep] = true end
 	if b.GetHighlightTexture then local h = b:GetHighlightTexture(); if h then known[h] = true end end
@@ -1435,6 +1518,7 @@ function Buttons:Fill(b, rec, opts)
 	if ns.Pawn then ns.Pawn:Decorate(b, rec) end
 	b.inFill = nil
 	if ns.Corners then ns.Corners:Apply(b, true) end   -- (1.5.0) icon corners: which mark shows where
+	self:BagGlow(b, rec)   -- (1.8.0-beta5)
 	self:ApplyIconCrop(b)
 end
 
@@ -1516,6 +1600,7 @@ function Buttons:Blank(b, rec)
 	b.newDot:Hide()
 	b:SetAlpha(1)
 	if b.kebab and not InCombatLockdown() then b.kebab:Hide() end
+	Buttons:BagGlow(b, rec)   -- (1.8.0-beta5) an empty slot in a special bag
 end
 
 -- Hide every frame we own (out of combat only).

@@ -466,6 +466,37 @@ function Classic.SyncDropdown(view)
 	local art = view and view.classicDropdown
 	if art and view.charBtn then art:SetShown((view.classicApplied and view.charBtn:IsShown()) and true or false) end
 end
+-- (1.8.0-beta2) The game's dropdown look for any button (the Settings Font dropdown, Shweep: "like our alt
+-- selector"): the template's art behind the button, its arrow nudged as the picker's is. Nil when the client has none.
+function Classic.DropdownArt(btn)
+	local parent = btn and btn:GetParent()
+	if not parent then return nil end
+	local art
+	for _, d in ipairs(DROPDOWNS) do
+		for _, kind in ipairs(d[2]) do
+			local ok, f = pcall(CreateFrame, kind, nil, parent, d[1])
+			if ok and f then art = f; break end
+		end
+		if art then break end
+	end
+	if not art then return nil end
+	art:ClearAllPoints(); art:SetAllPoints(btn)
+	if art.SetFrameLevel and btn.GetFrameLevel then art:SetFrameLevel(math.max(0, btn:GetFrameLevel() - 1)) end
+	if art.EnableMouse then art:EnableMouse(false) end
+	if art.Text and art.Text.SetText then art.Text:SetText("") end
+	if art.Button and art.Button.EnableMouse then art.Button:EnableMouse(false) end
+	local arrow = art.Arrow or art.Button
+	if arrow and arrow.GetPoint and arrow.SetPoint then
+		local p = { arrow:GetPoint(1) }
+		if p[1] then
+			if type(p[2]) == "number" then p = { p[1], art, p[1], p[2], p[3] } end
+			arrow:ClearAllPoints()
+			arrow:SetPoint(p[1], p[2] or art, p[3] or p[1], (p[4] or 0) + DROPDOWN_ARROW_NUDGE, (p[5] or 0) + DROPDOWN_ARROW_LIFT)
+		end
+	end
+	art:Hide()
+	return art
+end
 local function dropdownArt(view, on)
 	local btn = view.charBtn
 	if not btn then return end

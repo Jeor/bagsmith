@@ -21,10 +21,11 @@
 	local size = n.db.iconSize or 37
 	check(w().iconsLabel.text == "Icons view" and w().listLabel.text == "List view" and w().preview:GetWidth() == size and math.abs((w().preview.scale or 1) * size - 56) < 0.01, "two previews at the top: your icon at your Icon Size, magnified to about 56 px, and a List view row")
 	check(w().listQty.text == "20" and w().listName.text == "Sample" and w().previewList:IsShown(), "the List view row has its Qty column, icon and name")
-	-- the groups: below the previews, full width, inside the page's 416 px
+	-- the groups: below the previews, full width, inside the page's 493 px (416 before 1.8.0-beta6)
 	local g = w().groups.top_left
 	local gp = g.points[1]
-	check(gp[4] == 0 and -gp[5] >= 84 and g:GetWidth() == w():GetWidth() and w():GetWidth() <= 416, "the corner groups sit below the previews, full width, inside 416 px")
+	-- (1.8.0-beta6, by design) the Settings page is 15% wider: rows are 493 px (416 before)
+	check(gp[4] == 0 and -gp[5] >= 84 and g:GetWidth() == w():GetWidth() and w():GetWidth() <= 493, "the corner groups sit below the previews, full width, inside 493 px")
 	check(g.title.text == "Top Left" and g.dot:IsShown(), "each group is labelled, with a small corner glyph")
 	-- a long name fits whole in its dropdown
 	local long

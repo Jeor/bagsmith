@@ -1,16 +1,47 @@
 ## 1.8.0
 
 New:
-- Text Size (Settings > Style, under Size): make the item text in your bags, bank and bag windows and the Loot and
-  Disenchant Helpers bigger or smaller, from 80% to 150%. List rows grow to fit bigger text.
-- Font (beside it): show that text in a font another addon shares, or the game's own.
+- Text Size (Settings > Style, under Size): make the item text in your bags, bank and individual bag windows and the
+  Loot and Disenchant Helpers bigger or smaller, from 80% to 150%. List rows grow to fit bigger text.
+- Font (beside it, a dropdown): show that text in one of three fonts that now come with BagSmith (Noto Sans, Roboto
+  Condensed and Inter), one of the game's own, or one another addon shares. BagSmith's fonts also appear in your other
+  addons' font lists.
 - The Disenchant Helper learns new disenchant materials: anything a disenchant gives that it didn't know is remembered
   for this character and counted from then on.
 - Gear the Disenchant Helper has no table for (above item level 99) learns from your own disenchants: it says "Still
   learning" until it has 20 results for that range, then shows your own.
+- Special bags (quivers, ammo pouches, soul bags, herb, enchanting, engineering, mining, leatherworking and cooking
+  bags, tackle boxes, trinket bags and reagent bags): turn on an indicator for each kind to tell its slots apart at a
+  glance, as a soft glow inside the slot or as the slot's frame in that color instead of the rarity color (Settings >
+  Item Icons > Special Bag Slot Indicators). Every indicator is off until you turn it on; each has its own color and
+  opacity, and shows on that bag's items too unless you turn that off.
+- Profiles: choose what the characters using a profile share (Settings > Profile, Shared Between Characters): Favorites,
+  Custom Sections, Pinned Sections, Section Order and Hidden Sections, Custom Currencies, Pinned Currencies and Custom
+  Sheets. Unchecked, each character keeps its own.
+Important:
+- Each character now keeps its own favorites, pinned sections, custom currencies and pinned currencies. Yours carried
+  over, so nothing is lost, but changes you make now stay with that character. Want them shared again? Check them in
+  Settings > Profile.
 Changed:
+- Your free-slot count shows only the slots anything fits in: a quiver or a herb bag's room no longer counts. A small
+  + says there's more room in special bags, and hovering the count lists it for each kind of bag.
+- Settings > Windows reads more clearly: Main Window and Individual Bag Windows (were Bag Window and Bag Windows), and
+  Ignore Clicks While Faded is now Prevent Accidental Clicks in Combat, under its own Combat heading.
 - The Disenchant Helper's summary in chat reads as one sentence, like "1 item disenchanted: Greater Magic Essence x2,
   worth about 7s 60c at current AH prices."
+Fixed:
+- The Disenchant Helper's Likely results name every material, like Small Glimmering Shard, instead of "item 10978"
+  when the game hadn't loaded it yet: the name appears as soon as the game has it.
+
+## 1.7.5
+
+Fixed:
+- The mouse wheel scrolls at an easy pace in every BagSmith list again: two rows a notch in a list, one row of icons
+  in the icon view. It used to jump half a window at a time, skipping past items.
+- On WoW Forever, your keys are back with your bags, in their own Keys section and behind the bag bar's Keys slot.
+  They had been showing up in the bank instead, with the keyring's 32 slots counted as bank space. Keys already saved
+  as bank items are cleared from each character's saved bank, and come back with that character's bags the next time
+  you log in to it.
 
 ## 1.7.4
 

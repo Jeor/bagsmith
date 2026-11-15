@@ -24,6 +24,16 @@ ns.WhatsNew = WN
 -- Newest first. Only notable releases get an entry; keep a handful of short
 -- bullets that say what it is and where to turn it on.
 WN.ENTRIES = {
+	-- (1.8.0-beta2) the 1.8 card: Shweep approved the draft (15 Nov) with BagSmith's own fonts added
+	{ v = "1.8.0", heading = "BagSmith 1.8", items = {
+		-- (1.8.0-beta8, Shweep: friendlier wording for all four)
+		"|cfffac775Text Your Way:|r make the text in your bags, bank and helpers bigger or smaller, and pick a font you like. BagSmith now comes with three fonts of its own (Noto Sans, Roboto Condensed and Inter), and you'll find them in your other addons too. Try it in Settings > Style.",
+		"|cfffac775A Disenchant Helper That Learns:|r the first time a disenchant gives you something it hasn't seen, it remembers it. For higher-level gear, it learns from your own results as you go.",
+		"|cfffac775Special Bags:|r your free-slot count now shows the space anything can go in. Hover it to see what's left in your quiver, herb bag, soul bag and more. Want them to stand out? Give each kind of bag its own color, as a soft glow or a colored frame, in Settings > Item Icons.",
+		"|cfffac775Profiles, Your Way:|r like one profile on all your characters, but want each to keep its own favorites, currencies or sheets? Just uncheck them in Settings > Profile.",
+		-- (1.8.0-beta8, Shweep) in soft red, so nobody misses it
+		"|cfff09595Important:|r each character now keeps its own favorites, pinned sections, custom currencies and pinned currencies. Yours carried over, so nothing is lost, but changes you make now stay with that character. Want them shared again? Check them in Settings > Profile.",
+	} },
 	-- (1.7.0-beta6) the 1.7 card; (1.7.0-beta12) its text approved by Shweep (12 Nov)
 	-- (1.7.0-beta8, the beta7 audit's F2; Shweep's choice) the quest promise says what it can't see, as the (i) does
 	{ v = "1.7.0", heading = "BagSmith 1.7", items = {

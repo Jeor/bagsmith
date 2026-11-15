@@ -39,7 +39,8 @@
 		check(styleHeads == "Skin > Colors > Size > Layout", skin .. ": Style keeps the window: " .. styleHeads)
 		check(not styleKeys.border and not styleKeys.iconSize and not styleKeys.dimJunk and not styleKeys.newdot and not styleKeys.iconItemLevel and styleKeys.scale and styleKeys.rowHeight and styleKeys.splitView, skin .. ": the item-picture settings left Style; scale, rows and layout stayed")
 		local iconHeads, iconKeys, iconText = page("icons")
-		check(iconHeads == "Appearance > Marks > Icon Corners", skin .. ": Item Icons: " .. iconHeads)
+		-- (1.8.0-beta5, by design) Special Bag Slot Indicators (the glow per kind of bag; beta7: renamed) joins before Icon Corners
+		check(iconHeads == "Appearance > Marks > Special Bag Slot Indicators > Icon Corners", skin .. ": Item Icons: " .. iconHeads)
 		check(iconKeys.border and iconKeys.iconSize and iconKeys.dimJunk and iconKeys.newdot and iconKeys.iconItemLevel, skin .. ": Rarity Borders, Icon Size, Dim Junk, Green Dot and Item Level are on Item Icons")
 		check(n.db.border == "unc" and n.db.iconSize == 40 and n.db.dimJunk == false and n.db.iconItemLevel == true, skin .. ": moving them changed no value")
 		-- the words

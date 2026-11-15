@@ -25,11 +25,10 @@
 		_G.BagSmithCharDB = { version = 1, firstSeen = {} }
 		_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = { skin = skin, view = "list", rowHeight = 20 } } }
 		local n = M.loadAddon("BagSmith")
-		-- a shared-media library another addon loaded, with two fonts
-		local LSM = LibStub:NewLibrary("LibSharedMedia-3.0", 1) or LibStub("LibSharedMedia-3.0")
-		LSM.fonts = { ["Nice Serif"] = "Interface\\AddOns\\Other\\nice.ttf", ["Plain Sans"] = "Interface\\AddOns\\Other\\plain.ttf" }
-		function LSM:List(kind) local t = {}; for k in pairs(self.fonts) do t[#t + 1] = k end; table.sort(t); return t end
-		function LSM:Fetch(kind, key, noDefault) return self.fonts[key] end
+		-- (1.8.0-beta2) LibSharedMedia is bundled; another addon shares two fonts through it
+		local LSM = LibStub("LibSharedMedia-3.0")
+		LSM:Register("font", "Nice Serif", "Interface\\AddOns\\Other\\nice.ttf")
+		LSM:Register("font", "Plain Sans", "Interface\\AddOns\\Other\\plain.ttf")
 		M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
 		ToggleAllBags(); M.runTimers()
 		local F = n.Fonts
@@ -63,21 +62,83 @@
 		check(small.path == FRIZ, S .. "a font that isn't shared any more: the game's face")
 		n:Set("fontName", ""); M.runTimers()
 		check(small.path == FRIZ, S .. "Game Font: the game's face")
-		-- Settings: Style > Size has Text Size and Font, the fonts listed by name
+		-- (1.8.0-beta2) BagSmith's own fonts are shared through LibSharedMedia
+		check(LSM:Fetch("font", "Noto Sans", true) == "Interface\\AddOns\\BagSmith\\Media\\Fonts\\NotoSans-Regular.ttf"
+			and LSM:Fetch("font", "Roboto Condensed", true) and LSM:Fetch("font", "Inter", true), S .. "BagSmith shares its three fonts through LibSharedMedia")
+		local choices = F:Choices()
+		local names = {}
+		for _, c in ipairs(choices) do names[c.label] = true end
+		check(choices[1].label == "Game Font" and names["Noto Sans"] and names["Roboto Condensed"] and names["Inter"] and names["Nice Serif"] and names["Friz Quadrata TT"],
+			S .. "Font offers the game's, BagSmith's three, the game's own faces and other addons' (" .. #choices .. ")")
+		-- Settings: Style > Size has Text Size and a Font dropdown
 		local P = n.SettingsPanel
 		P:Show(); P:ShowPage("look"); M.runTimers()
-		local stepRow, cycleRow
+		local stepRow, dropRow
 		for _, w in ipairs(P.pools.step) do if w:IsShown() and w.key == "textScale" then stepRow = w end end
-		for _, w in ipairs(P.pools.cycle) do if w:IsShown() and w.key == "fontName" then cycleRow = w end end
+		for _, w in ipairs(P.pools.dropdown) do if w:IsShown() and w.key == "fontName" then dropRow = w end end
 		check(stepRow and stepRow.value.text == "100" and stepRow.text.text == "Text Size", S .. "Style > Size: Text Size, 100%")
-		check(cycleRow and cycleRow.text.text == "Font" and cycleRow.value.text == "Game Font" and #cycleRow.choices == 3, S .. "and Font: Game Font, then the two shared fonts")
-		cycleRow.next:GetScript("OnClick")(cycleRow.next); M.runTimers()
-		check(n.db.fontName == "Nice Serif", S .. "the next arrow picks the next font (" .. tostring(n.db.fontName) .. ")")
-		for _, w in ipairs(P.pools.cycle) do if w:IsShown() and w.key == "fontName" then cycleRow = w end end
-		cycleRow.prev:GetScript("OnClick")(cycleRow.prev); cycleRow.prev:GetScript("OnClick")(cycleRow.prev); M.runTimers()
-		check(n.db.fontName == "Plain Sans", S .. "the previous arrow goes back, round the list (" .. tostring(n.db.fontName) .. ")")
-		n:Set("fontName", "")
+		check(dropRow and dropRow.text.text == "Font" and dropRow.btn.label.text == "Game Font", S .. "and a Font dropdown showing Game Font")
+		-- (1.8.0-beta2, Shweep: "like our alt selector") Modern: the picker's chevron; Classic: the game's dropdown art
+		if skin == "classic" then
+			check(dropRow.btn.ddArt and dropRow.btn.ddArt:IsShown() and not dropRow.btn.chev:IsShown() and not (dropRow.btn.classic and dropRow.btn.classic:IsShown()),
+				S .. "Classic: the game's dropdown art, not a red button")
+		else
+			check(dropRow.btn.chev:IsShown() and not (dropRow.btn.ddArt and dropRow.btn.ddArt:IsShown()), S .. "Modern: the picker's chevron")
+		end
+		-- the button's label records the face it's set to (the mock's text has none)
+		local lbl = dropRow.btn.label
+		function lbl:SetFont(p, sz, fl) self.fpath, self.fsize = p, sz end
+		function lbl:GetFont() return self.fpath or FRIZ, self.fsize or 10, "" end
+		dropRow.btn:GetScript("OnClick")(dropRow.btn); M.runTimers()
+		local menu = n.menuFrame
+		local rows, nice, ticked = 0, nil, nil
+		for _, r in ipairs(menu and menu.rows or {}) do
+			if r:IsShown() and r.text.text and r.text.text ~= "" then rows = rows + 1 end
+			if r:IsShown() and r.text.text == "Nice Serif" then nice = r end
+			if r:IsShown() and r.check:IsShown() then ticked = r.text.text end
+		end
+		check(menu and menu:IsShown() and rows >= 3 and ticked == "Game Font", S .. "clicking it opens the menu, Game Font ticked (" .. rows .. " rows)")
+		check(menu.listMax ~= nil and rows <= 15, S .. "a long list scrolls inside the menu instead of running off the screen (" .. rows .. " rows shown of " .. #F:Choices() .. ")")
+		check(nice, S .. "other addons' fonts are in it")
+		nice:GetScript("OnClick")(nice); M.runTimers()
+		check(n.db.fontName == "Nice Serif" and not menu:IsShown(), S .. "picking one sets it and closes the menu")
+		for _, w in ipairs(P.pools.dropdown) do if w:IsShown() and w.key == "fontName" then dropRow = w end end
+		check(dropRow.btn.label.text == "Nice Serif" and dropRow.btn.label.fpath == "Interface\\AddOns\\Other\\nice.ttf", S .. "the dropdown shows the font now in use, in its face")
+		n:Set("fontName", ""); M.runTimers()
+		for _, w in ipairs(P.pools.dropdown) do if w:IsShown() and w.key == "fontName" then dropRow = w end end
+		check(dropRow.btn.label.text == "Game Font" and dropRow.btn.label.fpath == FRIZ, S .. "back to Game Font: the button's face goes back too (beta2's bug: " .. tostring(dropRow.btn.label.fpath) .. ")")
 		P:Hide()
+		-- a font the client can't load isn't offered
+		F.UsableCache = nil
+		local probeFail = "Interface\\AddOns\\Other\\broken.ttf"
+		LSM:Register("font", "Broken Font", probeFail)
+		local realUsable = F.Usable
+		F.Usable = function(self, path) if path == probeFail then return false end return realUsable(self, path) end
+		local hasBroken = false
+		for _, c in ipairs(F:Choices()) do if c.label == "Broken Font" then hasBroken = true end end
+		check(not hasBroken, S .. "a font the client can't load isn't offered")
+		n:Set("fontName", "Broken Font"); M.runTimers()
+		check(small.path == FRIZ, S .. "and if it's the one saved, the game's face is used")
+		n:Set("fontName", "")
+		F.Usable = realUsable
+		-- the Disenchant Helper's item panel (it holds the secure button): grows with the text, never in combat
+		do
+			local DE = n.Disenchant
+			local set = {}
+			local f = { cur = { h = 84, GetHeight = function(self) return self.h end, SetHeight = function(self, v) set[#set + 1] = v; self.h = v end } }
+			n:Set("textScale", 1.5)
+			local realICL = InCombatLockdown
+			_G.InCombatLockdown = function() return true end
+			DE.ApplyTextSize(f)
+			check(#set == 0 and f.cur.h == 84, S .. "in combat the Disenchant Helper's item panel isn't resized (a protected frame)")
+			_G.InCombatLockdown = function() return false end
+			DE.ApplyTextSize(f)
+			check(#set == 1 and f.cur.h == 126, S .. "out of combat it grows with the text: 84 to 126 px at 150%")
+			DE.ApplyTextSize(f)
+			check(#set == 1, S .. "and isn't set again when it's already right")
+			_G.InCombatLockdown = realICL
+			n:Set("textScale", 1)
+		end
 		-- a profile without the settings: the copies follow it
 		n:Set("textScale", 1.2); M.runTimers()
 		check(small.size == 12, S .. "120%: 12 px")
@@ -95,5 +156,5 @@
 	local ok = pcall(function() ToggleAllBags(); M.runTimers() end)
 	check(ok and n.Fonts:Name("GameFontHighlightSmall") == "GameFontHighlightSmall", "without font objects: the game's templates, no error")
 	local ch = n.Fonts:Choices()
-	check(#ch == 1 and ch[1].label == "Game Font", "without a shared-media library: Font offers the game's only")
+	check(ch[1].label == "Game Font" and #ch >= 4, "Font still offers the game's and BagSmith's own (" .. #ch .. ")")
 end)()
