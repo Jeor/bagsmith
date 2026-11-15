@@ -335,9 +335,14 @@ function Buttons:ApplyQuality(b, rec)
 		-- Ordinary items retain the untinted Classic outline. It is separate
 		-- from the slot background so the icon cannot cover it.
 		if not quest and (q < 2 or not colored) then
-			b.qFrame:Hide(); b.qRing:Hide()
-			if b.defaultFrame then b.defaultFrame:Show() end
-			return
+			if classicCell then
+				b.qFrame:Hide(); b.qRing:Hide()
+				if b.defaultFrame then b.defaultFrame:Show() end
+				return
+			end
+			-- The textured frame loses thin edges when reduced to list size.
+			-- Use the same physical-pixel ring as rarity/quest rows, untinted.
+			r, g, bl = 0.72, 0.72, 0.72
 		end
 		if quest then r, g, bl = 1, 0.82, 0 end
 	end

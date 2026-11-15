@@ -32,7 +32,7 @@ end
 local function integer(n) return math.abs(n-math.floor(n+0.5))<0.000001 end
 for _, screenH in ipairs({1080,1440,2160}) do
  PixelUtil={GetPixelToUIUnitFactor=function() return 768/screenH end}
- for _,scale in ipairs({0.3,0.48,0.64,0.8,1,1.1,1.25,1.5}) do
+ for _,scale in ipairs({0.3,0.48,0.64,0.8,.9,1,1.1,1.25,1.5}) do
   for _,skin in ipairs({'classic','modern'}) do
    for _,mode in ipairs({'cell','row'}) do
     ns.db.skin=skin
@@ -75,6 +75,13 @@ for _, screenH in ipairs({1080,1440,2160}) do
       assert(math.abs(ns.Buttons:IconPx(b)-expected)<0.00001,'Report actual logical icon size for each skin')
      elseif skin=='classic' then
       assert(math.abs(b.qRing.points[1][4]+pixel)<0.000001,'Classic row ring must be one physical pixel')
+     end
+     if skin=='classic' and mode=='row' then
+      ns.Buttons:ApplyQuality(b,{quality=1})
+      assert(b.qRing.shown and not b.defaultFrame.shown,'Neutral rows use the solid ring at every scale')
+      local rx,ry,rw,rh=b.qRing:GetRect()
+      assert(math.abs((x-rx)/pixel-1)<.000001 and math.abs((y-ry)/pixel-1)<.000001,'Left and bottom neutral edges remain one physical pixel')
+      assert(math.abs((rx+rw-x-w)/pixel-1)<.000001 and math.abs((ry+rh-y-h)/pixel-1)<.000001,'Right and top neutral edges remain one physical pixel')
      end
      local anchors=b.icon.points
      ns.Buttons:RealignModernBorders()
