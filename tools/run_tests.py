@@ -42,6 +42,9 @@ QUICK.append("tests/core_1_8_0_beta6_tests.lua")
 QUICK.append("tests/core_1_8_0_beta7_tests.lua")
 QUICK.append("tests/core_1_8_0_beta9_tests.lua")
 QUICK.extend(['tests/core_modern_border_tests.lua', 'tests/core_modern_crop_tests.lua', 'tests/core_modern_texture_tests.lua'])
+QUICK.append("tests/core_classic_border_tests.lua")
+QUICK.append("tests/core_icon_pixels_tests.lua")
+QUICK.append("tests/core_icon_clip_tests.lua")
 
 def run_file(path, prelude=True, quiet=False):
     """Run one Lua set. (1.5.0-beta5, audit F6) The core suite ends with os.exit(code): that call now reports its

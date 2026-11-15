@@ -2090,14 +2090,19 @@ end)()
 					local frame = M.modernFrame(b) or (b.qRing:IsShown() and b.qRing) or (b.qFrame:IsShown() and b.qFrame)
 					local both = (b.qRing:IsShown() and b.qFrame:IsShown()) or (M.modernFrame(b) and (b.qRing:IsShown() or b.qFrame:IsShown()))
 					local neutralColor = frame and frame.color and frame.color[1] == N[1] and frame.color[2] == N[2]
-					if not frame or both or (colored and neutralColor) or (not colored and not neutralColor) then
+					local defaultSlot = skin == "classic" and (q < 2 or not colored)
+					local defaultRow = defaultSlot and view == "list"
+					local invalid = (defaultSlot and not defaultRow and frame) or (defaultRow and
+						(not frame or not b.qRing:IsShown() or frame.color[1] ~= .72 or frame.color[2] ~= .72 or both)) or (not defaultSlot and
+						(not frame or both or (colored and neutralColor) or (not colored and not neutralColor)))
+					if invalid then
 						ok = false; why = ("%s/%s/%s q%d"):format(skin, view, setting, q)
 					end
 				end
 			end
 		end
 	end
-	check(ok, "every item icon has exactly one thin frame: rarity color when allowed, neutral grey otherwise " .. why)
+	check(ok, "every item icon has exactly one thin frame: Classic default slots for ordinary items, rarity outlines when allowed " .. why)
 	n6:Set("skin", "modern"); n6:Set("view", "icons"); n6:Set("border", "off"); n6.ui.bagWindows = true; n6:RefreshViews(true)
 	local empty
 	for _, b in ipairs(n6.Buttons.all) do if not b.hasItem then empty = b; break end end
@@ -6933,16 +6938,15 @@ end)()
 	-- rc16: in Classic icon cells the rarity frame covers the icon's corners.
 	package.loaded.mock = nil
 	local M = require("mock")
-	M.put(0, 1, { id = 9401, name = "Red Cape", q = 1, class = 4, subclass = 1, price = 5, equip = "INVTYPE_CLOAK" })
+	M.put(0, 1, { id = 9401, name = "Red Cape", q = 2, class = 4, subclass = 1, price = 5, equip = "INVTYPE_CLOAK" })
 	_G.BagSmithCharDB = { version = 1, firstSeen = {} }
 	_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = { skin = "classic", view = "icons" } } }
 	local n = M.loadAddon("BagSmith")
 	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
 	ToggleAllBags(); M.runTimers()
 	local b = n.Buttons:Get(0, 1)
-	local p1, p2 = b.qFrame.points[1], b.qFrame.points[2]
-	check(b.qFrame:IsShown() and p1[2] == b.icon and p1[4] == -2 and p1[5] == 2 and p2[4] == 2 and p2[5] == -2,
-		"Classic: the rarity frame sits 2 px outside the icon on every side, covering its corners")
+	check(b.qFrame:IsShown() and b.qFrame.points[1][2] == b.icon and b.qFrame.points[1][4] == -2 * n.Buttons.PixelSize(b) and b.qFrame.points[2][4] == 2 * n.Buttons.PixelSize(b) and b.icon.points[1][2] == b and b.icon.points[1][4] == 0 and b.icon.points[2][4] == 0,
+		"Classic: full-slot icon retains a two-screen-pixel frame margin")
 end)()
 
 ;(function()

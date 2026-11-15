@@ -1,5 +1,5 @@
 ;(function()
-	-- 1.0.2: the item level on icons, Icons view only, gear only, off by default, under every overlay
+	-- 1.0.2: the item level on icons, Icons view only, gear only, off by default, above item borders
 	package.loaded.mock = nil
 	local M = require("mock")
 	M.put(0, 1, { id = 7001, name = "Sturdy Boots", q = 2, count = 1, class = 4, subclass = 1, price = 5, ilvl = 23, equip = "INVTYPE_FEET" })
@@ -21,7 +21,9 @@
 	check(boots.mode == "cell" and shown(1) == "23", "in Icons view with the setting on, gear shows its level")
 	local t = boots.ilvlText
 	local layer, sub = t:GetDrawLayer()
-	check(layer == "ARTWORK" and sub == 1 and t.points[1][1] == "TOPRIGHT" and t.points[1][2] == boots.icon and t.points[1][4] == 0 and t.points[1][5] == 0, "the level is drawn on ARTWORK just above the icon, flush in the top-right corner (1.5.0-beta6)")
+	check(layer == "OVERLAY" and sub == 3 and t.points[1][1] == "TOPRIGHT" and t.points[1][2] == boots.icon and t.points[1][4] == 0 and t.points[1][5] == 0, "the level is drawn above borders without moving from the top-right corner")
+	local countLayer, countSub = boots.Count:GetDrawLayer()
+	check(countLayer == "OVERLAY" and countSub == 3, "stack count renders above the border")
 	local coinPoints = boots.junkCoin.points
 	check(coinPoints == nil or coinPoints[1] == nil or coinPoints[1][1] == "TOPLEFT", "the junk coin keeps the top-left corner: the two never meet")
 	check(shown(2) == nil and shown(3) == nil and shown(4) == nil, "a potion, cloth and a level-1 trinket show nothing, whatever equip slot the client reports")

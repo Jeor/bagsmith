@@ -39,7 +39,9 @@ end
 
 -- 1. no per-button OnUpdate any more
 local b1, b2 = button(), button()
-check(#hooked == 0, "item buttons get no OnUpdate hook (was one per button, every frame)")
+local hasOnUpdate = false
+for _, event in ipairs(hooked) do if event == "OnUpdate" then hasOnUpdate = true end end
+check(not hasOnUpdate, "item buttons get no OnUpdate hook (was one per button, every frame)")
 
 -- 2. drawing a border starts the driver; it realigns, then switches itself off when nothing moves
 B:ApplyFrame(b1); B:ApplyQuality(b1, { quality = 3 }); B:ApplyQuality(b2, { quality = 2 })

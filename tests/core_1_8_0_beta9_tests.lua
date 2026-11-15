@@ -43,6 +43,26 @@
 		n:Set("glow_herb", false); M.runTimers()
 		check(frameColor(cell(2)) == nil, S .. "the indicator off: an empty slot has no frame again")
 		check(n:Set("glowStyle_herb", "sparkles") == false and n.db.glowStyle_herb == "frame", S .. "only Inner Glow or Frame Color")
+		-- Integration: special-bag frames share the adaptive pixel geometry,
+		-- and inner glow keeps its one-pixel inset after an effective-scale change.
+		n:Set("glow_herb", true); n:Set("glowItems_herb", true)
+		for _, scale in ipairs({ .3, .64, .9, 1, 1.5 }) do
+			for _, slot in ipairs({ 1, 2 }) do
+				local b = cell(slot)
+				b.GetEffectiveScale = function() return scale end
+				n:Set("glowStyle_herb", "frame"); n.Buttons:RefreshGlows()
+				if skin == "classic" then
+					check(b.qFrame.points[1][4] == -b.classicBorderOutset and b.qFrame.points[2][4] == b.classicBorderOutset,
+						S .. "bag frame shares adaptive bounds at " .. scale)
+				end
+				n:Set("glowStyle_herb", "glow"); n.Buttons:RefreshGlows()
+				b.GetEffectiveScale = function() return scale * .9 end
+				n.Buttons:RealignModernBorders()
+				local pixel = n.Buttons.PixelSize(b)
+				check(math.abs(b.bagGlow.points[1][4] - pixel) < 1e-9 and math.abs(b.bagGlow.points[2][4] + pixel) < 1e-9,
+					S .. "inner glow follows effective scale without refilling the item")
+			end
+		end
 		check((n.errors or 0) == 0, S .. "no errors")
 	end
 end)()
