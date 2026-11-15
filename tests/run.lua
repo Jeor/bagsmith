@@ -2090,7 +2090,7 @@ end)()
 					local frame = M.modernFrame(b) or (b.qRing:IsShown() and b.qRing) or (b.qFrame:IsShown() and b.qFrame)
 					local both = (b.qRing:IsShown() and b.qFrame:IsShown()) or (M.modernFrame(b) and (b.qRing:IsShown() or b.qFrame:IsShown()))
 					local neutralColor = frame and frame.color and frame.color[1] == N[1] and frame.color[2] == N[2]
-					local defaultSlot = skin == "classic" and view == "icons" and (q < 2 or not colored)
+					local defaultSlot = skin == "classic" and (q < 2 or not colored)
 					local invalid = defaultSlot and frame or (not defaultSlot and
 						(not frame or both or (colored and neutralColor) or (not colored and not neutralColor)))
 					if invalid then

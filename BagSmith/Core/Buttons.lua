@@ -246,10 +246,7 @@ function Buttons:ApplyQuality(b, rec)
 	b.qNeutral = not colored
 	local icon = b.icon
 	local classicCell = (ns.db and ns.db.skin or "modern") == "classic" and b.mode == "cell"
-	if (ns.db and ns.db.skin or "modern") == "modern" then
-		b.qRing:Hide(); b.qFrame:Hide(); b.frameEdge:Hide(); b.frameBG:Hide()
-		self:DrawModernBorder(b, r, g, bl)
-	elseif classicCell then
+	if (ns.db and ns.db.skin or "modern") == "classic" then
 		-- Match Classify.lua: the container quest flag is not set for every quest item.
 		local questClass = ns.ITEM_CLASS and ns.ITEM_CLASS.Questitem or 12
 		local quest = rec.isQuest or rec.classID == questClass or rec.bindType == 4
@@ -258,16 +255,21 @@ function Buttons:ApplyQuality(b, rec)
 			b.qFrame:Hide(); b.qRing:Hide()
 			return
 		end
+		if quest then r, g, bl = 1, 0.82, 0 end
+	end
+	if (ns.db and ns.db.skin or "modern") == "modern" then
+		b.qRing:Hide(); b.qFrame:Hide(); b.frameEdge:Hide(); b.frameBG:Hide()
+		self:DrawModernBorder(b, r, g, bl)
+	elseif classicCell then
 		-- WhiteIconFrame is the clipped, silver bag outline. The template's
 		-- initial IconBorder can instead contain a dark inset frame.
 		b.qFrame:ClearAllPoints()
 		b.qFrame:SetPoint("TOPLEFT", icon, "TOPLEFT", -2, 2)
 		b.qFrame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 2, -2)
-		if quest then r, g, bl = 1, 0.82, 0 end
 		b.qFrame:SetVertexColor(r, g, bl, 1)
 		b.qFrame:Show(); b.qRing:Hide()
 	else
-		-- Classic rows retain the original ring.
+		-- Classic rows use a compact ring with the same quest/rarity rules.
 		b.qRing:ClearAllPoints()
 		b.qRing:SetPoint("TOPLEFT", icon, "TOPLEFT", -1, 1); b.qRing:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 1, -1)
 		b.qRing:SetVertexColor(r, g, bl, 0.95)
