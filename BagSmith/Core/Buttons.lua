@@ -204,6 +204,14 @@ function Buttons.AddFrame(b)
 	b.qFrame:SetTexture("Interface\\Common\\WhiteIconFrame")
 	if b.qFrame.SetRoundLayoutToNearestPixel then b.qFrame:SetRoundLayoutToNearestPixel(false) end
 	b.qFrame:Hide()
+	-- The neutral item outline must be above the picture, independently of
+	-- the empty-slot background. Full-size icons otherwise cover its rim.
+	b.defaultFrame = b:CreateTexture(nil, "OVERLAY", nil, 2)
+	b.defaultFrame:SetTexture("Interface\\Common\\WhiteIconFrame")
+	b.defaultFrame:SetVertexColor(1, 1, 1, 1)
+	b.defaultFrame:SetAllPoints(b.icon)
+	if b.defaultFrame.SetRoundLayoutToNearestPixel then b.defaultFrame:SetRoundLayoutToNearestPixel(false) end
+	b.defaultFrame:Hide()
 	b.modernBorder = {}
 	for i = 1, 4 do
 		local edge = b:CreateTexture(nil, "OVERLAY", nil, -1)
@@ -275,6 +283,7 @@ end
 
 function Buttons:ApplyQuality(b, rec)
 	self:UpdateIconGeometry(b)
+	if b.defaultFrame then b.defaultFrame:Hide() end
 	b.modernBorderActive = nil
 	for _, edge in ipairs(b.modernBorder or {}) do edge:Hide() end
 	if b.IconBorder then b.IconBorder:Hide() end
@@ -300,9 +309,11 @@ function Buttons:ApplyQuality(b, rec)
 		-- Match Classify.lua: the container quest flag is not set for every quest item.
 		local questClass = ns.ITEM_CLASS and ns.ITEM_CLASS.Questitem or 12
 		local quest = rec.isQuest or rec.classID == questClass or rec.bindType == 4
-		-- Ordinary items keep the default slot artwork without an added outline.
+		-- Ordinary items retain the untinted Classic outline. It is separate
+		-- from the slot background so the icon cannot cover it.
 		if not quest and (q < 2 or not colored) then
 			b.qFrame:Hide(); b.qRing:Hide()
+			if b.defaultFrame then b.defaultFrame:Show() end
 			return
 		end
 		if quest then r, g, bl = 1, 0.82, 0 end
@@ -1146,7 +1157,7 @@ end
 -- visible on it (BagSmith draws its own frame; anything listed here is the game's art showing through).
 function Buttons:TemplateLeftovers(b)
 	local known = {}
-	for _, k in ipairs({ "icon", "Count", "frameBG", "frameEdge", "qRing", "qFrame", "slotRing", "slotBG", "newDot", "junkCoin",
+	for _, k in ipairs({ "icon", "Count", "frameBG", "frameEdge", "qRing", "qFrame", "defaultFrame", "slotRing", "slotBG", "newDot", "junkCoin",
 		"ilvlText", "pawnArrow", "linkMark", "linkCount", "stripe" }) do if b[k] then known[b[k]] = true end end
 	for _, k in ipairs(COL_KEYS) do if b[k] then known[b[k]] = true end end
 	for _, sep in ipairs(b.seps or {}) do known[sep] = true end

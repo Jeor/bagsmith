@@ -1,4 +1,4 @@
--- Classic adds borders only for uncommon or better items and quest items.
+-- Classic keeps an untinted default frame; only uncommon+ and quests get color.
 local ns = { db = { skin = "classic", border = "all" }, OnSignal = function() end }
 C_Item = { GetItemQualityColor = function(q) return q == 2 and 0 or 1, 1, q == 2 and 0 or 1 end }
 assert(loadfile("BagSmith/Core/Buttons.lua"))("BagSmith", ns)
@@ -23,8 +23,9 @@ local function texture()
 end
 local function button(source)
 	local b = { mode = "cell", icon = texture(), IconBorder = source,
-		CreateTexture = function() return texture() end, GetEffectiveScale = function() return 1 end }
+		CreateTexture = function(_, name, layer, template, sub) local t = texture(); t.layer, t.sub = layer, sub; return t end, GetEffectiveScale = function() return 1 end }
 	B.AddFrame(b)
+	check(b.defaultFrame and b.defaultFrame.allPoints == b.icon and b.defaultFrame.layer == "OVERLAY" and b.defaultFrame.sub == 2, "default frame follows the picture above artwork but below number sublayer 3")
 	return b
 end
 for _, setting in ipairs({ "all", "unc", "off" }) do
@@ -33,11 +34,13 @@ for _, setting in ipairs({ "all", "unc", "off" }) do
 		ns.db.skin, ns.db.border = "classic", setting
 		for _, quality in ipairs({ 0, 1 }) do
 			B:ApplyQuality(b, { quality = quality })
-			check(not b.qFrame.shown and not b.qRing.shown, "poor/common items retain default slot border")
+			check(not b.qFrame.shown and not b.qRing.shown, "poor/common items have no rarity tint")
+			check(b.defaultFrame and b.defaultFrame.shown and b.defaultFrame.color[1] == 1 and b.defaultFrame.color[2] == 1 and b.defaultFrame.color[3] == 1, "poor/common items retain a visible untinted default frame")
 		end
 		for quality = 2, 5 do
 			B:ApplyQuality(b, { quality = quality })
 			check(b.qFrame.shown == (setting ~= "off"), "green and above respect rarity setting")
+			check(b.defaultFrame and b.defaultFrame.shown == (setting == "off"), "disabled rarity coloring falls back to default frame")
 		end
 		for _, rec in ipairs({
 			{ quality = 1, classID = 12 }, { quality = 1, bindType = 4 },
@@ -45,6 +48,7 @@ for _, setting in ipairs({ "all", "unc", "off" }) do
 		}) do
 			B:ApplyQuality(b, rec)
 			check(b.qFrame.shown and b.qFrame.color[1] == 1 and b.qFrame.color[2] == .82 and b.qFrame.color[3] == 0, "quest class/binding/flag all receive gold")
+			check(b.defaultFrame and not b.defaultFrame.shown, "quest frame replaces default frame without doubling")
 		end
 		B:ApplyQuality(b, { quality = 1, cat = "Quest" })
 		check(not b.qFrame.shown, "moving an ordinary item to Quest does not change its border")
@@ -55,13 +59,16 @@ for _, setting in ipairs({ "all", "unc", "off" }) do
 		check(not b.qFrame.shown, "reusing quest cell removes added border")
 		B:ApplyQuality(b, nil)
 		check(not b.qFrame.shown, "empty cells hide item frame")
+		check(b.defaultFrame and not b.defaultFrame.shown, "empty cells hide default item outline")
 		ns.db.skin = "modern"; B:ApplyQuality(b, { quality = 1, isQuest = true })
 		check(not b.qFrame.shown and b.modernBorder[1].shown, "Modern retains its pixel outline")
+		check(b.defaultFrame and not b.defaultFrame.shown, "default Classic frame cannot leak into Modern")
 		check(b.modernBorder[1].color[1] == (setting == "all" and 1 or B.NEUTRAL_FRAME[1]), "Modern neutral colors unchanged")
 		ns.db.skin = "classic"; B:ApplyQuality(b, { quality = 1 })
 		check(not b.qFrame.shown and not b.modernBorder[1].shown, "skin switch restores default Classic common slot")
 		b.mode = "row"; B:ApplyQuality(b, { quality = 1 })
 		check(not b.qRing.shown and not b.qFrame.shown, "common list rows keep default border")
+		check(b.defaultFrame and b.defaultFrame.shown, "common list icons have a visible default frame")
 		for _, rec in ipairs({ { quality = 1, isQuest = true }, { quality = 1, classID = 12 }, { quality = 1, bindType = 4 } }) do
 			B:ApplyQuality(b, rec)
 			check(b.qRing.shown and not b.qFrame.shown and b.qRing.color[1] == 1 and b.qRing.color[2] == .82 and b.qRing.color[3] == 0, "Classic list quest ring is gold for all quest criteria")
