@@ -487,6 +487,23 @@ ns.PROFILE_PARTS = {
 -- the profile shares them; the rest are shared. A profile saved before 1.8 has no choice saved, so it takes these: on
 -- each character's first login, its own copy starts from the profile's (nothing is lost; What's New says so).
 for _, part in ipairs(ns.PROFILE_PARTS) do DEFAULTS["share" .. part.key] = part.shared ~= false end
+-- (1.8.0-beta16, the beta15 audit's F1) A profile's identity, apart from its name: a character's own copies are kept
+-- under it, so a deleted profile's copies never come back when its name is reused (also for a character that logs in
+-- later). Given at login to a profile that has none (profileIdLegacy: it existed before ids, so copies kept under its
+-- name move to it once), and anew whenever a profile's content is replaced (new, imported, reset, copied over).
+DEFAULTS.profileId = ""
+DEFAULTS.profileIdLegacy = false
+validators.profileId = function(v) if type(v) == "string" and #v <= 40 and v:match("^p[%d%.]+$") then return v end end
+local idCount = 0
+local function newProfileId(taken)
+	local id
+	repeat
+		idCount = idCount + 1
+		id = ("p%d.%d.%d"):format(time and time() or 0, idCount, math.random and math.random(1, 999999) or idCount)
+	until not (taken and taken[id])
+	return id
+end
+ns.NewProfileId = newProfileId
 
 local copy = ns.Copy
 validators.bankCols = validators.cols
@@ -854,6 +871,17 @@ local function loadDB(saved)
 		local v, r = validateProfile(saved); db.profiles[DEFAULT_PROFILE] = v; repaired = repaired or r
 	end
 	if not db.profiles[DEFAULT_PROFILE] then db.profiles[DEFAULT_PROFILE] = fixTabs(copy(DEFAULTS)) end
+	-- (1.8.0-beta16) every profile has its own id; one without (saved before ids) gets one, marked as inherited; a
+	-- duplicate (copied saved data) gets a new one
+	local taken, names = {}, {}
+	for name in pairs(db.profiles) do names[#names + 1] = name end
+	table.sort(names)
+	for _, name in ipairs(names) do
+		local prof = db.profiles[name]
+		if prof.profileId == "" then prof.profileId = newProfileId(taken); prof.profileIdLegacy = true
+		elseif taken[prof.profileId] then prof.profileId = newProfileId(taken); prof.profileIdLegacy = false end
+		taken[prof.profileId] = true
+	end
 	return db, repaired
 end
 function Profiles:Active()
@@ -875,7 +903,7 @@ end
 -- rest of BagSmith reads and writes them as before; the profile's own values wait aside and go back before the game
 -- writes the saved data (PLAYER_LOGOUT, which /reload sends too), before another profile is used, and when a part is
 -- shared again. A character's copy is kept when a part is shared again, so it comes back if that part is unshared later.
-local Own = { swap = nil }   -- swap = { tbl = the profile's table, name = its name, keys = { [key] = the profile's value } }
+local Own = { swap = nil }   -- swap = { tbl = the profile's table, id = its profileId, keys = { [key] = the profile's value } }
 ns.OwnParts = Own
 local function partKeys()
 	local set = {}
@@ -887,7 +915,7 @@ function Own:Restore()
 	if not sw then return end
 	self.swap = nil
 	local cdb = ns.cdb
-	local mine = cdb and cdb.own and cdb.own[sw.name]
+	local mine = cdb and cdb.own and cdb.own[sw.id]
 	for k, profileValue in pairs(sw.keys) do
 		if mine then mine[k] = sw.tbl[k] end   -- the character's copy, as it is now
 		sw.tbl[k] = profileValue
@@ -895,8 +923,10 @@ function Own:Restore()
 end
 function Own:Apply()
 	self:Restore()
-	local tbl, name, cdb = ns.db, ns.profileName, ns.cdb
-	if not (tbl and name and cdb) then return end
+	local tbl, cdb = ns.db, ns.cdb
+	if not (tbl and cdb) then return end
+	if type(tbl.profileId) ~= "string" or tbl.profileId == "" then tbl.profileId = newProfileId() end   -- (beta16)
+	local name = tbl.profileId   -- (beta16) the copies are kept under the profile's id, not its name
 	local keys
 	for _, part in ipairs(ns.PROFILE_PARTS) do
 		if tbl["share" .. part.key] == false then
@@ -912,7 +942,7 @@ function Own:Apply()
 		end
 	end
 	if keys then
-		self.swap = { tbl = tbl, name = name, keys = keys }
+		self.swap = { tbl = tbl, id = name, keys = keys }
 		fixTabs(tbl)   -- this character's sheets and tabs agree (it may replace a list: the copies follow)
 		local mine = cdb.own[name]
 		for k in pairs(keys) do mine[k] = tbl[k] end
@@ -922,9 +952,12 @@ end
 -- first), so what the character sees is the reset or copied profile. Other characters' copies live in their own
 -- saved data and stay until they log in (a reset profile shares nothing new with them).
 function Own:Forget(name)
-	if self.swap and self.swap.name == name then self:Restore() end
+	local prof = BagSmithDB and BagSmithDB.profiles and BagSmithDB.profiles[name]
+	local id = prof and prof.profileId
+	if not id or id == "" then return end
+	if self.swap and self.swap.id == id then self:Restore() end
 	local cdb = ns.cdb
-	if cdb and type(cdb.own) == "table" then cdb.own[name] = nil end
+	if cdb and type(cdb.own) == "table" then cdb.own[id] = nil end
 end
 -- What a character keeps for itself is checked as the profile's own settings are: anything else is dropped. Copies
 -- for a profile that no longer exists go.
@@ -932,8 +965,18 @@ local function validateOwn(cdb)
 	local allowed = partKeys()
 	local own = type(cdb.own) == "table" and cdb.own or {}
 	local out = {}
+	-- (beta16) kept under profile ids; a beta's copies kept under a profile's name move to its id, only when that
+	-- profile is the same one (it got its id at login, inherited): never to a new profile that reuses the name
+	local ids = {}
+	for _, prof in pairs(BagSmithDB.profiles) do if prof.profileId ~= "" then ids[prof.profileId] = true end end
+	local moved = {}
+	for key, t in pairs(own) do
+		local prof = type(key) == "string" and not ids[key] and BagSmithDB.profiles[key]
+		if prof and prof.profileIdLegacy and type(t) == "table" and own[prof.profileId] == nil then moved[prof.profileId] = t end
+	end
+	for id, t in pairs(moved) do own[id] = t end
 	for name, t in pairs(own) do
-		if type(name) == "string" and type(t) == "table" and BagSmithDB.profiles[name] then
+		if type(name) == "string" and type(t) == "table" and ids[name] then
 			local keep = {}
 			for k, v in pairs(t) do
 				if allowed[k] then
@@ -970,6 +1013,7 @@ function Profiles:Use(name)
 	if not BagSmithDB.profiles[name] then
 		local fresh = fixTabs(copy(ns.db))
 		fresh.debug = false   -- a tester's debug setting never carries into a new profile
+		fresh.profileId, fresh.profileIdLegacy = newProfileId(), false   -- (beta16) a new profile is a new identity
 		BagSmithDB.profiles[name] = fresh
 	end
 	BagSmithDB.chars[ns:CharKey()] = name ~= DEFAULT_PROFILE and name or nil
@@ -988,6 +1032,7 @@ function Profiles:Import(name, data)
 	end
 	local v = validateProfile(data)
 	v.debug = false
+	v.profileId, v.profileIdLegacy = newProfileId(), false   -- (beta16) never another profile's identity
 	BagSmithDB.profiles[name] = fixTabs(v)
 	return name
 end
@@ -998,6 +1043,8 @@ function Profiles:CopyFrom(name)
 	if name == ns.profileName then return false, "That is already the active profile." end
 	Own:Forget(ns.profileName)   -- (beta8) this character's own copies take the copied profile's too
 	BagSmithDB.profiles[ns.profileName] = copy(src)
+	-- (beta16) replaced content is a new identity: every character's own copies start again from it
+	BagSmithDB.profiles[ns.profileName].profileId, BagSmithDB.profiles[ns.profileName].profileIdLegacy = newProfileId(), false
 	ns.ui.collapseReset = true   -- the active profile's content is replaced
 	activate()
 	return true
@@ -1007,6 +1054,7 @@ function Profiles:Delete(name)
 	if not name or not BagSmithDB.profiles[name] then return false, "No profile named " .. tostring(name) .. "." end
 	if name == DEFAULT_PROFILE then return false, "The Default profile cannot be deleted." end
 	if name == self:Active() then ns.ui.collapseReset = true end   -- this character falls back to Default
+	Own:Forget(name)   -- (beta16) this character's copies of it go; other characters' go at their next login
 	BagSmithDB.profiles[name] = nil
 	for char, prof in pairs(BagSmithDB.chars) do if prof == name then BagSmithDB.chars[char] = nil end end
 	activate()
@@ -1018,6 +1066,7 @@ function Profiles:Reset(name)
 	if name == self:Active() then ns.ui.collapseReset = true end   -- the active profile is replaced
 	Own:Forget(name)   -- (beta8) and this character's own copies of its parts start again from the reset profile
 	BagSmithDB.profiles[name] = fixTabs(copy(DEFAULTS))
+	BagSmithDB.profiles[name].profileId = newProfileId()   -- (beta16) a new identity: other characters' copies don't attach
 	activate()
 	return true
 end

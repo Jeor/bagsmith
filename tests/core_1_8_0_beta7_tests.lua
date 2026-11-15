@@ -19,6 +19,8 @@
 
 	-- (beta8, by design) Favorites, Pinned Sections, Custom Currencies and Pinned Currencies are per character by default;
 	-- this profile shares currencies and favorites on purpose, to follow one part from shared to unshared
+	-- (1.8.0-beta16, by design, audit F1) a character's copies are kept under the profile's id, not its name
+	local function ownOf(cdb, db) return cdb.own[db.profiles.Default.profileId] end
 	local saved = { version = 2, chars = {}, cache = {}, profiles = { Default = { customCurrencies = { 20558 }, favItems = { 6948 }, shareCurrencies = true, shareFavorites = true } } }
 	local n, M = boot("Aldren Thorne", saved)
 	check(#n.PROFILE_PARTS == 7 and n.db.shareCurrencies == true and n.db.shareFavorites == true, "seven parts; this profile shares currencies and favorites")
@@ -26,12 +28,12 @@
 
 	-- Aldren keeps his own currencies
 	n:Set("shareCurrencies", false); M.runTimers()
-	check(n.db.customCurrencies[1] == 20558 and n.cdb.own.Default.customCurrencies[1] == 20558, "unshared: his own copy starts as the profile's")
+	check(n.db.customCurrencies[1] == 20558 and ownOf(n.cdb, BagSmithDB).customCurrencies[1] == 20558, "unshared: his own copy starts as the profile's")
 	table.insert(n.db.customCurrencies, 6948)
 	n.db.favItems[#n.db.favItems + 1] = 1004   -- favorites are still shared
 	local db, cdbA = logout(M)
 	check(#db.profiles.Default.customCurrencies == 1 and db.profiles.Default.customCurrencies[1] == 20558, "saved: the profile's currencies untouched")
-	check(#cdbA.own.Default.customCurrencies == 2 and cdbA.own.Default.customCurrencies[2] == 6948, "saved: his own copy has the new one")
+	check(#ownOf(cdbA, db).customCurrencies == 2 and ownOf(cdbA, db).customCurrencies[2] == 6948, "saved: his own copy has the new one")
 	check(#db.profiles.Default.favItems == 2, "a shared part saves into the profile as before")
 	check(db.profiles.Default.shareCurrencies == false, "the choice belongs to the profile")
 
@@ -40,7 +42,7 @@
 	check(#n2.db.customCurrencies == 1 and n2.db.customCurrencies[1] == 20558, "Brannoc starts from the profile's currencies, not Aldren's")
 	n2.db.customCurrencies[#n2.db.customCurrencies + 1] = 4306
 	local db2, cdbB = logout(M2)
-	check(#db2.profiles.Default.customCurrencies == 1 and cdbB.own.Default.customCurrencies[2] == 4306, "his change stays his own too")
+	check(#db2.profiles.Default.customCurrencies == 1 and ownOf(cdbB, db2).customCurrencies[2] == 4306, "his change stays his own too")
 	check(#n2.db.favItems == 2, "and both see the shared favorites")
 
 	-- Aldren again: his copy is back
@@ -48,7 +50,7 @@
 	check(#n.db.customCurrencies == 2 and n.db.customCurrencies[2] == 6948, "Aldren logs in to his own currencies")
 	-- shared again: the profile's; his copy kept for later
 	n:Set("shareCurrencies", true); M.runTimers()
-	check(#n.db.customCurrencies == 1 and #n.cdb.own.Default.customCurrencies == 2, "shared again: the profile's currencies; his copy kept")
+	check(#n.db.customCurrencies == 1 and #ownOf(n.cdb, BagSmithDB).customCurrencies == 2, "shared again: the profile's currencies; his copy kept")
 	n:Set("shareCurrencies", false); M.runTimers()
 	check(#n.db.customCurrencies == 2, "unshared again: his own copy comes back")
 
@@ -62,17 +64,17 @@
 
 	-- sheets travel with their tabs
 	n:Set("shareSheets", false); M.runTimers()
-	check(n.db.sheets == n.cdb.own.Default.sheets and n.db.tabOrder == n.cdb.own.Default.tabOrder, "Custom Sheets: the sheets and the tab order are his together")
+	check(n.db.sheets == ownOf(n.cdb, BagSmithDB).sheets and n.db.tabOrder == ownOf(n.cdb, BagSmithDB).tabOrder, "Custom Sheets: the sheets and the tab order are his together")
 	check((n.errors or 0) == 0, "no errors")
 
 	-- damaged saved copies are dropped; copies for a profile that's gone too
 	local bad = deep(cdbA)
-	bad.own.Default.customCurrencies = "lots"
-	bad.own.Default.notAPart = { 1 }
+	ownOf(bad, db2).customCurrencies = "lots"
+	ownOf(bad, db2).notAPart = { 1 }
 	bad.own.Gone = { favItems = { 1 } }
 	n, M = boot("Aldren Thorne", deep(db2), bad)
-	check(n.cdb.own.Default.notAPart == nil and n.cdb.own.Gone == nil, "an unknown key and a deleted profile's copies are dropped")
-	check(#n.db.customCurrencies == 1 and #n.cdb.own.Default.customCurrencies == 1, "a damaged copy is dropped: he starts again from the profile's")
+	check(ownOf(n.cdb, BagSmithDB).notAPart == nil and n.cdb.own.Gone == nil, "an unknown key and a deleted profile's copies are dropped")
+	check(#n.db.customCurrencies == 1 and #ownOf(n.cdb, BagSmithDB).customCurrencies == 1, "a damaged copy is dropped: he starts again from the profile's")
 
 	-- the Settings page
 	n.SettingsPanel:Show(); n.SettingsPanel:ShowPage("profile"); M.runTimers()

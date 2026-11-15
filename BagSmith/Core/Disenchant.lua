@@ -871,10 +871,30 @@ local function fishing()
 	local ok, v = pcall(IsFishingLoot)
 	return ok and v == true
 end
+-- (1.8.0-beta16, the beta15 audit's A1) Every source the game lists for the slot (GetLootSourceInfo returns pairs:
+-- guid, quantity, guid, quantity, ...) must be an item; one creature or object among them and the slot isn't the cast's.
+-- Whether the source is the very item disenchanted (the cast's GUID) is reported with /bs debug, not yet required:
+-- Forever may name the loot source differently from C_Item.GetItemGUID, and requiring it unseen could stop all learning.
+local function sourcesOf(i)
+	local ok, list = pcall(function() return { GetLootSourceInfo(i) } end)
+	if not ok or type(list) ~= "table" then return nil end
+	local out = {}
+	for k = 1, #list, 2 do out[#out + 1] = list[k] end
+	return out
+end
+DE.SourcesOf = sourcesOf
 local function slotIsCast(i, id)
 	if type(GetLootSourceInfo) ~= "function" then return false end
-	local ok, guid = pcall(GetLootSourceInfo, i)
-	if not (ok and type(guid) == "string" and guid:find("^Item%-")) then return false end
+	local sources = sourcesOf(i)
+	if not (sources and #sources > 0) then return false end
+	for _, guid in ipairs(sources) do
+		if not (type(guid) == "string" and guid:find("^Item%-")) then return false end
+	end
+	local c = DE.castOpen
+	local own = c and c.entry and c.entry.rec and c.entry.rec.guid
+	if own and ns.db and ns.db.debug then
+		ns:Debug("Disenchant Helper: loot slot %d's source %s the disenchanted item (%s; item %s)", i, sources[1] == own and "is" or "is NOT", tostring(sources[1]), tostring(own))
+	end
 	if id then
 		local classID = classOf(id)
 		if classID and DE.IsGear({ classID = classID }) then return false end
@@ -1163,7 +1183,11 @@ function DE.ApplyTextSize(f)
 	-- the panel holds the secure button (a protected frame): its height changes out of combat only, and only when it
 	-- must; the layout after combat (DE:SkinNow, DE:Refresh) sets it then
 	local h = F and F:Grow(84) or 84
-	if not InCombatLockdown() and math.abs((f.cur:GetHeight() or 0) - h) > 0.5 then f.cur:SetHeight(h) end
+	if math.abs((f.cur:GetHeight() or 0) - h) > 0.5 then
+		-- (1.8.0-beta16, the beta15 audit's F2) in combat the change waits, and is made when combat ends: the layout
+		-- runs again then, with the latest size (nothing else redid it, so the panel kept its old height)
+		if InCombatLockdown() then DE.layoutAfterCombat = true else f.cur:SetHeight(h) end
+	end
 	local path, flags = F and F:Face("GameFontHighlightSmall")
 	local px = F and F:Px(10) or 10
 	for _, t in ipairs({ f.cur.likely, f.cur.basis }) do
@@ -1702,6 +1726,12 @@ ns:OnSignal("ADDON_READY", function()
 		end
 	end)
 	ns:On("PLAYER_REGEN_ENABLED", function() DE:SkinNow() end)   -- (1.6.0-beta7, R2) before the refresh below
+	-- (1.8.0-beta16, audit F2) a Text Size change made in combat: the panel and the list below it laid out once, now
+	ns:On("PLAYER_REGEN_ENABLED", function()
+		if not DE.layoutAfterCombat then return end
+		DE.layoutAfterCombat = nil
+		if DE.frame then DE:Layout() end
+	end)
 	ns:On("PLAYER_REGEN_ENABLED", function() if DE.refreshPending or DE.armPending ~= nil or DE.current ~= nil or (DE.frame and DE.frame:IsShown()) then DE:Refresh() end end)
 end)
 -- (1.5.7, C1) Turned off, by its setting or by switching to a profile where it's off (that signal has no key): the

@@ -164,7 +164,7 @@ function Share:Export(name)
 	local prof = BagSmithDB and BagSmithDB.profiles and BagSmithDB.profiles[name]
 	if not prof then return nil, "No profile named " .. tostring(name) .. "." end
 	local copy = {}
-	for k, v in pairs(prof) do if k ~= "debug" then copy[k] = v end end   -- a tester's debug switch never travels
+	for k, v in pairs(prof) do if k ~= "debug" and k ~= "profileId" and k ~= "profileIdLegacy" then copy[k] = v end end   -- a tester's debug switch never travels; (1.8.0-beta16) nor a profile's identity
 	local out = {}
 	local ok, err = pcall(serialize, copy, out, 0)
 	if not ok then return nil, "Couldn't make a code for this profile (" .. tostring(err) .. ")." end
