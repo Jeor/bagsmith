@@ -30,6 +30,9 @@ Changed:
 - The Disenchant Helper's summary in chat reads as one sentence, like "1 item disenchanted: Greater Magic Essence x2,
   worth about 7s 60c at current AH prices."
 Fixed:
+- Item icons and their borders line up exactly at any scale, like 90%: no more clipped edges or icons slipping out of
+  their frames. In Classic, icons fill their slots like the game's own bags, with a silver outline for everyday items
+  and gold for quest items, and the corner marks sit inside the frame. Thanks to Jeor.
 - The Disenchant Helper's Likely results name every material, like Small Glimmering Shard, instead of "item 10978"
   when the game hadn't loaded it yet: the name appears as soon as the game has it.
 

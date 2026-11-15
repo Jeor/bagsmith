@@ -440,9 +440,15 @@ local function place(b, id, w, widget, corner, mode, px)
 		local cap = math.floor(icon / 2)   -- half the icon: inside its quarter
 		if cap > 0 and (widget:GetWidth() or 0) > cap then widget:SetSize(cap, cap) end
 	end
+	-- (1.8.0-beta10, Shweep's screenshot after Jeor's PR #9) In Classic icon cells the icon fills the slot and
+	-- Blizzard's frame art runs inside its edge, so a mark at the corner sat on the frame (the item level "23" on its
+	-- top edge). Every mark moves in by the frame's rim there: 8% of the icon, as the art scales (3 px at 37 px).
+	local rim = 0
+	if mode == "cell" and ns.db and ns.db.skin == "classic" then rim = math.floor((px or iconPx(b)) * 0.08 + 0.5) end
 	if w.builtin then
 		local inset = (mode == "row" and w.insetRow) or w.inset
-		widget:SetPoint(POINT[corner], b.icon or b, POINT[corner], inset[1] == 0 and 0 or sx * inset[1], inset[2] == 0 and 0 or sy * inset[2])
+		local ix, iy = inset[1] + rim, inset[2] + rim
+		widget:SetPoint(POINT[corner], b.icon or b, POINT[corner], ix == 0 and 0 or sx * ix, iy == 0 and 0 or sy * iy)
 	else
 		-- (1.5.0-beta4) another addon's widget keeps its own size, as in other bag addons: many size themselves from
 		-- the slot and their own settings. It's scaled with the icon only if it asks (sizeFont or bagsmithScale).
@@ -462,7 +468,7 @@ local function place(b, id, w, widget, corner, mode, px)
 			end
 		end
 		local pad = tonumber(widget.padding) or 1
-		widget:SetPoint(POINT[corner], b.icon or b, POINT[corner], sx * 2 * pad / s, sy * 2 * pad / s)
+		widget:SetPoint(POINT[corner], b.icon or b, POINT[corner], sx * (2 * pad + rim) / s, sy * (2 * pad + rim) / s)
 	end
 end
 
