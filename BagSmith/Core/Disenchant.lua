@@ -206,13 +206,15 @@ local function classOf(id)
 	return tonumber(classID), tonumber(subClassID)
 end
 DE.ClassOf = classOf
--- (1.8.0) Whether the game calls the item an enchanting reagent, by its own named item classes (never by their numbers,
--- which this client might number its own way). A client that can't say answers no.
+-- (1.8.0) Whether the game calls the item an enchanting reagent: Trade Goods, Enchanting. By the client's own names when
+-- it has them, else by the numbers Shweep's test showed on Forever (15 Nov: Greater Magic Essence is class 7, subclass
+-- 12; Enum.ItemClass.Tradegoods is 7 there, Enum.ItemTradeGoodsSubclass.Enchanting is missing). An item whose class
+-- can't be read answers no.
+DE.TRADE_GOODS, DE.ENCHANTING_SUBCLASS = 7, 12
 function DE.EnchantingReagent(id)
-	local E = type(Enum) == "table" and Enum or nil
-	local tradeGoods = E and type(E.ItemClass) == "table" and E.ItemClass.Tradegoods
-	local enchanting = E and type(E.ItemTradeGoodsSubclass) == "table" and E.ItemTradeGoodsSubclass.Enchanting
-	if type(tradeGoods) ~= "number" or type(enchanting) ~= "number" then return false end
+	local E = type(Enum) == "table" and Enum or {}
+	local tradeGoods = type(E.ItemClass) == "table" and tonumber(E.ItemClass.Tradegoods) or DE.TRADE_GOODS
+	local enchanting = type(E.ItemTradeGoodsSubclass) == "table" and tonumber(E.ItemTradeGoodsSubclass.Enchanting) or DE.ENCHANTING_SUBCLASS
 	local classID, subClassID = classOf(id)
 	return classID ~= nil and classID == tradeGoods and subClassID == enchanting
 end
@@ -234,9 +236,11 @@ end
 -- exceeds the first (the loot chat and the loot window describe the same materials).
 -- (1.8.0) "window" is the cast's own loot window (DE:OnLootOpened sets aside one that can't be): whatever it holds is
 -- the cast's, and a material the table doesn't list is learned. Every other report must be DE:Attributable.
-function DE:Tally(c, id, count, source)
+function DE:Tally(c, id, count, source, learn)
 	if not (c and id) then return false end
-	if source == "window" then self:LearnMaterial(id)
+	-- (1.8.0) learn: only from the cast's own window (DE:OnLootOpened); a window that can't be shown to be the cast's
+	-- teaches nothing, and its materials pass DE:Attributable there first
+	if source == "window" then if learn then self:LearnMaterial(id) end
 	elseif not self:Attributable(c, id) then return false end
 	count = tonumber(count) or 1
 	-- the chat reports receipts, which add up (two lines of 1 and 2 are 3); the loot window reports a snapshot of
@@ -814,52 +818,44 @@ function DE:OnSpellSucceeded(unit, spellID)
 	self.session.done = self.session.done + 1
 end
 -- The loot window, for players with auto-loot off: its slots are the same materials, tallied once per cast.
--- (1.8.0) The window that opens right after the cast is the cast's own, so everything in it counts, materials the table
--- doesn't list included (and those are learned). Unless the game says it can't be a disenchant: fishing loot, coin, loot
--- from a creature or an object, or a weapon or armor (a disenchant gives none of those). Then only what the loot chat
--- would count from it counts (DE:Attributable), as before. What the client can't say doesn't count against the window.
-local NOT_A_DISENCHANT = { Creature = true, GameObject = true, Vehicle = true, Pet = true, Corpse = true }
+-- (1.8.0) A window shown to be the cast's own counts whatever it holds, and a material the table doesn't list is learned.
+-- Shown, not assumed: every slot's source is the disenchanted item (GetLootSourceInfo answers "Item-..."; Shweep's tests
+-- on Forever, 15 Nov, with auto-loot on and off: a disenchant's window says "Item-...", a creature's "Creature-..." with a
+-- coin slot), it isn't fishing loot, and it holds no weapon or armor (a disenchant gives none). A source that can't be
+-- read isn't the item's. Any other window counts only what the loot chat would (DE:Attributable) and teaches nothing.
 local function fishing()
 	if type(IsFishingLoot) ~= "function" then return false end
 	local ok, v = pcall(IsFishingLoot)
 	return ok and v == true
 end
-local function slotRulesOut(i, id)
-	local money = (type(LOOT_SLOT_MONEY) == "number" and LOOT_SLOT_MONEY)
-		or (type(Enum) == "table" and type(Enum.LootSlotType) == "table" and Enum.LootSlotType.Money)
-	if type(money) == "number" and type(GetLootSlotType) == "function" then
-		local ok, kind = pcall(GetLootSlotType, i)
-		if ok and kind == money then return true end
-	end
-	if type(GetLootSourceInfo) == "function" then
-		local ok, guid = pcall(GetLootSourceInfo, i)
-		local kind = ok and type(guid) == "string" and guid:match("^(%a+)%-")
-		if kind and NOT_A_DISENCHANT[kind] then return true end
-	end
+local function slotIsCast(i, id)
+	if type(GetLootSourceInfo) ~= "function" then return false end
+	local ok, guid = pcall(GetLootSourceInfo, i)
+	if not (ok and type(guid) == "string" and guid:find("^Item%-")) then return false end
 	if id then
 		local classID = classOf(id)
-		if classID and DE.IsGear({ classID = classID }) then return true end
+		if classID and DE.IsGear({ classID = classID }) then return false end
 	end
-	return false
+	return true
 end
-DE.SlotRulesOut = slotRulesOut
+DE.SlotIsCast = slotIsCast
 function DE:OnLootOpened()
 	local c = self.castOpen
 	if not c or (GetTime() - c.at) > self.LOOT_WINDOW then return end
 	local n = (GetNumLootItems and GetNumLootItems()) or 0
 	local sums = {}   -- a material in two slots is one count
-	local castOwn = not fishing()
+	local castOwn = n > 0 and not fishing()
 	for i = 1, n do
 		local link = GetLootSlotLink and GetLootSlotLink(i)
 		local id = type(link) == "string" and tonumber(link:match("item:(%d+)")) or nil
 		local qty
 		if GetLootSlotInfo then local _, _, q = GetLootSlotInfo(i); qty = q end
 		if id then sums[id] = (sums[id] or 0) + (tonumber(qty) or 1) end
-		if castOwn and slotRulesOut(i, id) then castOwn = false end
+		if castOwn and not slotIsCast(i, id) then castOwn = false end
 	end
 	for id, total in pairs(sums) do
-		-- (a window that can't be the cast's: only the materials the chat would count, and nothing is learned from it)
-		if castOwn or (self:IsMaterial(id) and self:Attributable(c, id)) then self:Tally(c, id, total, "window") end
+		if castOwn then self:Tally(c, id, total, "window", true)
+		elseif self:IsMaterial(id) and self:Attributable(c, id) then self:Tally(c, id, total, "window", false) end
 	end
 end
 -- The loot window closing ends the cast's attribution: nothing after it is the cast's.
@@ -1319,9 +1315,12 @@ function DE:SessionSummary()
 		local p = ns.AH and ns.AH:Available() and ns.AH:Price({ itemID = m.id, link = "item:" .. m.id })
 		if p then value = value + p * m.count else priced = false end
 	end
-	if #names > 0 then parts[#parts + 1] = table.concat(names, ", ") end
-	if #names > 0 and priced and value > 0 then parts[#parts + 1] = ("worth about %s at current AH prices"):format(self.Money(value)) end
-	return table.concat(parts, ". ") .. "."
+	-- (1.8.0) one sentence: "1 item disenchanted: Greater Magic Essence x2, worth about 7s 60c at current AH prices."
+	-- (it was "...x2. worth about...")
+	local text = parts[1]
+	if #names > 0 then text = text .. ": " .. table.concat(names, ", ") end
+	if #names > 0 and priced and value > 0 then text = text .. (", worth about %s at current AH prices"):format(self.Money(value)) end
+	return text .. "."
 end
 -- The empty state's words: why there is nothing, and what can bring something back.
 function DE:EmptyWords()

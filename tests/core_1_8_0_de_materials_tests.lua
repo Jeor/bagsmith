@@ -27,7 +27,8 @@
 		_G.GetNumLootItems = function() return #lootNow end
 		_G.GetLootSlotLink = function(i) return lootNow[i] and ("|Hitem:" .. lootNow[i][1] .. ":0|h[m]|h") end
 		_G.GetLootSlotInfo = function(i) return nil, "m", lootNow[i] and lootNow[i][2] or 1 end
-		_G.GetLootSlotType, _G.GetLootSourceInfo, _G.IsFishingLoot, _G.LOOT_SLOT_MONEY = nil, nil, nil, nil
+		_G.GetLootSlotType, _G.IsFishingLoot, _G.LOOT_SLOT_MONEY = nil, nil, nil
+		_G.GetLootSourceInfo = function() return "Item-6796-0-4000000046B6BAE0" end   -- (1.8.0-beta1) as on Forever: a disenchant's window says its source is the item
 		_G.GetItemInfoInstant = nil
 		_G.Auctionator = nil
 		clock = 1000; _G.GetTime = function() return clock end
@@ -117,18 +118,25 @@
 		check(DE:Log()["2:3:a"].mats[NEW2] == nil and not DE:LearnedMaterials()[NEW2], label .. ": the unknown item is not recorded or learned")
 		check(DE:Log()["2:3:a"].mats[10940] == before + 2, label .. ": a shipped material the bracket gives still counts, as before")
 		M.fire("LOOT_CLOSED")
-		_G.GetLootSlotType, _G.GetLootSourceInfo, _G.IsFishingLoot, _G.LOOT_SLOT_MONEY = nil, nil, nil, nil
+		_G.GetLootSlotType, _G.IsFishingLoot, _G.LOOT_SLOT_MONEY = nil, nil, nil
+		_G.GetLootSourceInfo = function() return "Item-6796-0-4000000046B6BAE0" end   -- (1.8.0-beta1) as on Forever: a disenchant's window says its source is the item
 		C_Item.GetItemInfoInstant = M.realInstant
 	end
 	M.realInstant = C_Item.GetItemInfoInstant
 	windowCase("fishing loot", function() _G.IsFishingLoot = function() return true end end)
-	windowCase("a window with coin", function()
+	windowCase("a window with coin (a creature's, as on Forever)", function()
 		_G.LOOT_SLOT_MONEY = 2; lootNow[3] = { 0, 0 }
 		_G.GetLootSlotType = function(i) return i == 3 and 2 or 1 end
+		_G.GetLootSourceInfo = function() return "Creature-0-7074-0-3-504-6F30326B88" end
 		_G.GetLootSlotLink = function(i) return i < 3 and lootNow[i] and ("|Hitem:" .. lootNow[i][1] .. ":0|h[m]|h") or nil end
 	end)
 	_G.GetLootSlotLink = function(i) return lootNow[i] and ("|Hitem:" .. lootNow[i][1] .. ":0|h[m]|h") end
 	windowCase("loot from a creature", function() _G.GetLootSourceInfo = function() return "Creature-0-1-2-3-4-5" end end)
+	-- (1.8.0-beta1) shown, not assumed: a source that can't be read isn't the item's
+	windowCase("a source that can't be read", function() _G.GetLootSourceInfo = function() return nil end end)
+	windowCase("a source that errors", function() _G.GetLootSourceInfo = function() error("no source") end end)
+	windowCase("a client without GetLootSourceInfo", function() _G.GetLootSourceInfo = nil end)
+	windowCase("one slot from the item, one from a creature", function() _G.GetLootSourceInfo = function(i) return i == 1 and "Item-0-1-2" or "Creature-0-1-2-3-4-5" end end)
 	windowCase("a window holding armor", function()
 		lootNow[3] = { 7777, 1 }
 		C_Item.GetItemInfoInstant = function(id) if id == 7777 then return id, "Armor", "Cloth", "INVTYPE_CHEST", 1, 4, 1 end return M.realInstant(id) end
@@ -141,23 +149,29 @@
 	_G.LOOT_SLOT_MONEY = 2; _G.GetLootSlotType = function() error("no slot types") end
 	C_Item.GetItemInfoInstant = function() error("no instant info") end
 	local ok, err = pcall(M.fire, "LOOT_OPENED")
-	_G.GetLootSlotType, _G.GetLootSourceInfo, _G.IsFishingLoot, _G.LOOT_SLOT_MONEY = nil, nil, nil, nil
+	_G.GetLootSlotType, _G.IsFishingLoot, _G.LOOT_SLOT_MONEY = nil, nil, nil
+	_G.GetLootSourceInfo = function() return "Item-6796-0-4000000046B6BAE0" end   -- (1.8.0-beta1) as on Forever: a disenchant's window says its source is the item
 	C_Item.GetItemInfoInstant = M.realInstant
 	check(ok and DE:Log()["2:3:a"].mats[NEW2] == 2 and DE:LearnedMaterials()[NEW2] == true, "loot from an item, with the other reads throwing: counted and learned, no error (" .. tostring(err) .. ")")
 	M.fire("LOOT_CLOSED")
 
-	-- ---- an enchanting reagent by the game's own item class counts by chat; without the class names, it doesn't
+	-- ---- an enchanting reagent by the game's item class counts by chat (1.8.0-beta1: by the client's names when it has
+	-- them, else Trade Goods 7, Enchanting 12, as Shweep's test showed on Forever, where only Enum.ItemClass.Tradegoods exists)
 	local REAGENT = 90007
 	C_Item.GetItemInfoInstant = function(id) if id == REAGENT then return id, "Trade Goods", "Enchanting", "", 1, 7, 12 end return M.realInstant(id) end
 	c = cast(M, DE, 7001)
+	_G.Enum.ItemClass = { Tradegoods = 7 }; _G.Enum.ItemTradeGoodsSubclass = nil   -- (Forever)
 	M.fire("CHAT_MSG_LOOT", chat(REAGENT, 1))
-	check(DE:Log()["2:3:a"].mats[REAGENT] == nil, "a client without the item class names: an unknown reagent by chat is not counted (unknown is a no)")
-	_G.Enum.ItemClass = { Tradegoods = 7 }; _G.Enum.ItemTradeGoodsSubclass = { Enchanting = 12 }
-	M.fire("CHAT_MSG_LOOT", chat(REAGENT, 1))
-	check(DE:Log()["2:3:a"].mats[REAGENT] == 1 and not DE:LearnedMaterials()[REAGENT], "with them, the game's enchanting reagent by chat is counted (and not stored: only the cast's window teaches)")
-	_G.Enum.ItemTradeGoodsSubclass = { Enchanting = 99 }
+	check(DE:Log()["2:3:a"].mats[REAGENT] == 1 and not DE:LearnedMaterials()[REAGENT], "as on Forever (no Enchanting name): 7/12 is an enchanting reagent, counted by chat (and not stored: only the cast's window teaches)")
 	M.fire("CHAT_MSG_LOOT", chat(CLOTH, 1))
 	check(DE:Log()["2:3:a"].mats[CLOTH] == nil, "(a trade good of another kind is not)")
+	_G.Enum.ItemClass = { Tradegoods = 7 }; _G.Enum.ItemTradeGoodsSubclass = { Enchanting = 99 }
+	M.fire("CHAT_MSG_LOOT", chat(REAGENT, 1))
+	check(DE:Log()["2:3:a"].mats[REAGENT] == 1, "a client whose own names number Enchanting otherwise: its names win (not counted again)")
+	C_Item.GetItemInfoInstant = function(id) if id == REAGENT then return nil end return M.realInstant(id) end
+	_G.Enum.ItemTradeGoodsSubclass = nil
+	M.fire("CHAT_MSG_LOOT", chat(REAGENT, 1))
+	check(DE:Log()["2:3:a"].mats[REAGENT] == 1, "an item whose class can't be read: not a reagent (unknown is a no)")
 	M.fire("LOOT_CLOSED")
 	_G.Enum.ItemClass, _G.Enum.ItemTradeGoodsSubclass = nil, nil
 	C_Item.GetItemInfoInstant = M.realInstant
