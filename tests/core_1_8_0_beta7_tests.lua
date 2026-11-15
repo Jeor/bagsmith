@@ -131,7 +131,8 @@ end)()
 	local shown = {}
 	for _, r in ipairs(rows) do shown[#shown + 1] = r.t end
 	check(head, "the heading reads Special Bag Slot Indicators")
-	check(shown[1] == "Glow in Ammo Pouch Slots" and shown[12] == "Glow in Trinket Bag Slots", "Settings lists them in that order: " .. table.concat(shown, " | "))
+	-- (beta9, by design) "indicator" wording
+	check(shown[1] == "Ammo Pouch Indicator" and shown[12] == "Trinket Bag Indicator", "Settings lists them in that order: " .. table.concat(shown, " | "))
 	P:Hide()
 end)()
 

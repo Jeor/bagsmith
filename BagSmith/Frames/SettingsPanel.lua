@@ -1424,12 +1424,16 @@ pages.icons = function(self, db)
 	for _, k in ipairs(ns:BagKindsSorted()) do   -- (beta7 feedback, Shweep) alphabetical
 		local name = ns:BagKindName(k.key)
 		local lower = name:lower()
-		self:Check("glow_" .. k.key, ("Glow in %s Slots"):format(name), ("A soft glow inside the slots of your %s, so you can tell them apart at a glance."):format(lower))
+		-- (beta9, Shweep) an indicator, as a soft inner glow or as the slot's frame color; "indicator", not "mark" (Marks
+		-- is the green dot and item level, and Mark as Junk)
+		self:Check("glow_" .. k.key, ("%s Indicator"):format(name), ("Shows which slots are in your %s, so you can tell them apart at a glance."):format(lower))
 		if db["glow_" .. k.key] then
 			self:Indented(function()
-				self:Check("glowItems_" .. k.key, ("Glow on %s Items Too"):format(name), ("The items in your %s glow too, not only its empty slots."):format(lower))
-				self:Color("glowColor_" .. k.key, ("%s Glow Color"):format(name), ("The glow's color in your %s"):format(lower))
-				self:Step("glowAlpha_" .. k.key, ("%s Glow Opacity"):format(name), 0.05, "%d%%", ("How strong the glow is in your %s."):format(lower))
+				self:Seg("glowStyle_" .. k.key, ("%s Indicator Style"):format(name), { { "glow", "Inner Glow" }, { "frame", "Frame Color" } },
+					db["glowStyle_" .. k.key] == "frame" and "The slot's frame takes this color instead of the item's rarity color." or "A soft glow inside each slot.")
+				self:Check("glowItems_" .. k.key, ("Show on %s Items Too"):format(name), ("The items in your %s show it too, not only its empty slots."):format(lower))
+				self:Color("glowColor_" .. k.key, ("%s Indicator Color"):format(name), ("The indicator's color in your %s"):format(lower))
+				self:Step("glowAlpha_" .. k.key, ("%s Indicator Opacity"):format(name), 0.05, "%d%%", ("How strong the indicator is in your %s."):format(lower))
 			end)
 		end
 	end

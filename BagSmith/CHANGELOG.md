@@ -11,10 +11,10 @@ New:
 - Gear the Disenchant Helper has no table for (above item level 99) learns from your own disenchants: it says "Still
   learning" until it has 20 results for that range, then shows your own.
 - Special bags (quivers, ammo pouches, soul bags, herb, enchanting, engineering, mining, leatherworking and cooking
-  bags, tackle boxes, trinket bags and reagent bags): each kind can glow softly inside its slots, in a color you
-  choose (Settings > Item Icons > Special Bag Slot Indicators). Every glow is off until you turn it on; each kind's
-  items glow too unless you turn that off, and each has its own color and opacity. The glow sits inside the icon, not
-  over the slot's frame.
+  bags, tackle boxes, trinket bags and reagent bags): turn on an indicator for each kind to tell its slots apart at a
+  glance, as a soft glow inside the slot or as the slot's frame in that color instead of the rarity color (Settings >
+  Item Icons > Special Bag Slot Indicators). Every indicator is off until you turn it on; each has its own color and
+  opacity, and shows on that bag's items too unless you turn that off.
 - Profiles: choose what the characters using a profile share (Settings > Profile, Shared Between Characters): Favorites,
   Custom Sections, Pinned Sections, Section Order and Hidden Sections, Custom Currencies, Pinned Currencies and Custom
   Sheets. Unchecked, each character keeps its own.

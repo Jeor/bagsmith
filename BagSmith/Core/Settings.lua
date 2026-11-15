@@ -464,6 +464,8 @@ for _, k in ipairs(ns.BAG_KINDS or {}) do
 	DEFAULTS["glowItems_" .. k.key] = true   -- (beta5 feedback, Shweep) its items glow too, unless turned off
 	DEFAULTS["glowAlpha_" .. k.key] = 1      -- (beta6 feedback, Shweep) and its own opacity, 10% to 100%
 	validators["glowAlpha_" .. k.key] = num(0.1, 1)
+	DEFAULTS["glowStyle_" .. k.key] = "glow"   -- (beta9, Shweep) "glow" (Inner Glow) or "frame" (Frame Color)
+	validators["glowStyle_" .. k.key] = oneOf("glow", "frame")
 end
 -- (1.8.0-beta7, Shweep) What every character using a profile shares, part by part (share<Part>: true shared, false
 -- each character keeps its own copy, BagSmithCharDB.own[profile][key]; defaults below). The keys

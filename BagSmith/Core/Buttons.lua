@@ -213,14 +213,44 @@ function Buttons:UpdateModernBorderGeometry(b)
 	placeBorderEdge(b.modernBorder[4], b.icon, x0 + w - pixel, y0 + pixel, pixel, h - 2 * pixel)
 end
 
-function Buttons:DrawModernBorder(b, r, g, bl)
+function Buttons:DrawModernBorder(b, r, g, bl, a)
 	b.modernBorderActive = true
 	bordered[b] = true
 	self:UpdateModernBorderGeometry(b)
 	self:WakeModernBorders()
 	for _, edge in ipairs(b.modernBorder) do
-		edge:SetVertexColor(r, g, bl, 0.95)
+		edge:SetVertexColor(r, g, bl, a or 0.95)
 		edge:Show()
+	end
+end
+
+-- (1.8.0-beta9, Shweep) A special bag's slot indicator, when this slot shows one: its kind and style ("glow", a soft
+-- glow inside the icon; "frame", the slot's frame in the kind's color instead of the rarity color). Icon cells of live
+-- bags only; an item shows it only with that kind's "Show on ... Items Too" (on by default).
+function Buttons:Indicator(b, rec)
+	local db = ns.db
+	if not db or b.mode ~= "cell" then return nil end
+	rec = rec or b.rec
+	if rec and (rec.cached or rec.display) then return nil end
+	local bag = (rec and rec.bag) or b.smithBag or b.bag
+	local info = type(bag) == "number" and ns.bagInfo[bag]
+	local kind = info and info.kind
+	if not (kind and db["glow_" .. kind]) then return nil end
+	local empty = not (b.hasItem and rec and not rec.empty)
+	if not empty and not db["glowItems_" .. kind] then return nil end
+	return kind, db["glowStyle_" .. kind] == "frame" and "frame" or "glow"
+end
+-- The frame style: the kind's color and opacity in the slot's frame (Modern's drawn border, Classic's rarity frame).
+local function drawIndicatorFrame(self, b, kind)
+	local r, g, bl = ns:BagKindColor(kind)
+	local a = tonumber(ns.db["glowAlpha_" .. kind]) or 1
+	if (ns.db.skin or "modern") == "modern" then
+		self:DrawModernBorder(b, r, g, bl, a)
+	else
+		b.qFrame:ClearAllPoints()
+		b.qFrame:SetPoint("TOPLEFT", b.icon, "TOPLEFT", -2, 2); b.qFrame:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", 2, -2)
+		b.qFrame:SetVertexColor(r, g, bl, a)
+		b.qFrame:Show(); b.qRing:Hide()
 	end
 end
 
@@ -229,10 +259,18 @@ function Buttons:ApplyQuality(b, rec)
 	for _, edge in ipairs(b.modernBorder or {}) do edge:Hide() end
 	if b.IconBorder then b.IconBorder:Hide() end
 	if not b.qRing then return end
-	-- No item, no frame: empty slots and blank rows keep their own look.
+	local kind, style = self:Indicator(b, rec)
+	-- No item, no frame: empty slots and blank rows keep their own look (a special bag's Frame Color indicator aside).
 	if not rec then
 		b.qRing:Hide(); b.qFrame:Hide()
 		if (ns.db and ns.db.skin or "modern") == "modern" then self:ApplyFrame(b) end
+		if style == "frame" then drawIndicatorFrame(self, b, kind) end
+		return
+	end
+	if style == "frame" then
+		b.qNeutral = false
+		if (ns.db and ns.db.skin or "modern") == "modern" then b.qRing:Hide(); b.qFrame:Hide(); b.frameEdge:Hide(); b.frameBG:Hide() end   -- as an item's rarity frame does
+		drawIndicatorFrame(self, b, kind)
 		return
 	end
 	local q = rec.quality or 1
@@ -557,12 +595,8 @@ ns:OnSignal("SETTINGS_CHANGED", function(key) if key == nil or key == "iconItemL
 Buttons.GLOW_ART = "Interface\\AddOns\\BagSmith\\Media\\ui-glow-inner.tga"
 function Buttons:BagGlow(b, rec)
 	local db = ns.db
-	local bag = (rec and rec.bag) or b.smithBag or b.bag
-	local live = not (rec and (rec.cached or rec.display))
-	local info = live and type(bag) == "number" and ns.bagInfo[bag]
-	local kind = b.mode == "cell" and info and info.kind
-	local empty = not (b.hasItem and rec and not rec.empty)
-	local on = kind and db and db["glow_" .. kind] and (empty or db["glowItems_" .. kind]) and true or false
+	local kind, style = self:Indicator(b, rec)
+	local on = style == "glow"   -- (beta9) the Frame Color style is drawn by ApplyQuality instead
 	if on and not b.bagGlow then
 		b.bagGlow = b:CreateTexture(nil, "OVERLAY", nil, -8)   -- under the rarity border, the count and the corner marks
 		b.bagGlow:SetTexture(Buttons.GLOW_ART)
@@ -586,7 +620,10 @@ function Buttons:BagGlow(b, rec)
 	b.glowKind = on and kind or nil
 end
 function Buttons:RefreshGlows()
-	local function each(b) self:BagGlow(b, b.rec) end
+	local function each(b)
+		if b.qRing then self:ApplyQuality(b, b.hasItem and b.rec or nil) end   -- (beta9) the Frame Color style
+		self:BagGlow(b, b.rec)
+	end
 	for _, b in ipairs(self.all) do each(b) end
 	for _, pool in pairs(self.mirrors) do for _, b in pairs(pool) do each(b) end end
 	for _, b in ipairs(self.recent) do each(b) end

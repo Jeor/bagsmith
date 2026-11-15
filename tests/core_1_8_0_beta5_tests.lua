@@ -123,8 +123,9 @@ end)()
 	local itemsRow, colorRow
 	for _, w in ipairs(n.SettingsPanel.pools.check or {}) do if w:IsShown() and w.key == "glowItems_herb" then itemsRow = w end end
 	for _, w in ipairs(n.SettingsPanel.pools.color or {}) do if w:IsShown() and w.key == "glowColor_herb" then colorRow = w end end
-	check(itemsRow and itemsRow.text.text == "Glow on Herb Bag Items Too", "its items switch names the kind: " .. tostring(itemsRow and itemsRow.text.text))
-	check(colorRow and colorRow.text.text == "Herb Bag Glow Color", "and so does its color: " .. tostring(colorRow and colorRow.text.text))
+	-- (beta9, by design) "indicator" wording (Shweep: an inner glow or a frame color)
+	check(itemsRow and itemsRow.text.text == "Show on Herb Bag Items Too", "its items switch names the kind: " .. tostring(itemsRow and itemsRow.text.text))
+	check(colorRow and colorRow.text.text == "Herb Bag Indicator Color", "and so does its color: " .. tostring(colorRow and colorRow.text.text))
 	local others = 0
 	for _, w in ipairs(n.SettingsPanel.pools.check or {}) do if w:IsShown() and w.key and w.key:find("^glowItems_") then others = others + 1 end end
 	check(others == 2, "only the kinds turned on (herb, and soul from this profile) show their options: " .. others)
