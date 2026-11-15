@@ -321,7 +321,7 @@ end
 
 -- (1.8.0-beta9, Shweep) A special bag's slot indicator, when this slot shows one: its kind and style ("glow", a soft
 -- glow inside the icon; "frame", the slot's frame in the kind's color instead of the rarity color). Icon cells of live
--- bags only; an item shows it only with that kind's "Show on ... Items Too" (on by default).
+-- bags only; empty and filled slots each have their own choice (beta11: Inner Glow, Frame Color or Off).
 function Buttons:Indicator(b, rec)
 	local db = ns.db
 	if not db or b.mode ~= "cell" then return nil end
@@ -332,8 +332,10 @@ function Buttons:Indicator(b, rec)
 	local kind = info and info.kind
 	if not (kind and db["glow_" .. kind]) then return nil end
 	local empty = not (b.hasItem and rec and not rec.empty)
-	if not empty and not db["glowItems_" .. kind] then return nil end
-	return kind, db["glowStyle_" .. kind] == "frame" and "frame" or "glow"
+	-- (beta10 feedback, Shweep) empty and filled slots each choose: Inner Glow, Frame Color or Off
+	local style = db[(empty and "glowEmpty_" or "glowFilled_") .. kind]
+	if style ~= "glow" and style ~= "frame" then return nil end
+	return kind, style
 end
 -- The frame style: the kind's color and opacity in the slot's frame (Modern's drawn border, Classic's rarity frame).
 local function drawIndicatorFrame(self, b, kind)
@@ -381,10 +383,13 @@ function Buttons:ApplyQuality(b, rec)
 	b.qNeutral = not colored
 	local icon = b.icon
 	local classicCell = (ns.db and ns.db.skin or "modern") == "classic" and b.mode == "cell"
+	-- Match Classify.lua: the container quest flag is not set for every quest item.
+	-- (1.8.0-beta11, Shweep) the gold quest frame in both skins, whatever Rarity Borders says; its own setting
+	-- (Gold Frame for Quest Items, on by default) turns it off
+	local questClass = ns.ITEM_CLASS and ns.ITEM_CLASS.Questitem or 12
+	local quest = (ns.db == nil or ns.db.questFrame ~= false) and (rec.isQuest or rec.classID == questClass or rec.bindType == 4) and true or false
+	if quest and (ns.db and ns.db.skin or "modern") == "modern" then r, g, bl = 1, 0.82, 0; b.qNeutral = false end
 	if (ns.db and ns.db.skin or "modern") == "classic" then
-		-- Match Classify.lua: the container quest flag is not set for every quest item.
-		local questClass = ns.ITEM_CLASS and ns.ITEM_CLASS.Questitem or 12
-		local quest = rec.isQuest or rec.classID == questClass or rec.bindType == 4
 		-- Ordinary items retain the untinted Classic outline. It is separate
 		-- from the slot background so the icon cannot cover it.
 		if not quest and (q < 2 or not colored) then
@@ -710,7 +715,7 @@ function Buttons:RefreshSkin()
 	for _, pool in pairs(self.mirrors) do for _, b in pairs(pool) do each(b) end end
 	for _, b in ipairs(self.recent) do each(b) end
 end
-ns:OnSignal("SETTINGS_CHANGED", function(key) if key == nil or key == "skin" or key == "border" then Buttons:RefreshSkin() end end)
+ns:OnSignal("SETTINGS_CHANGED", function(key) if key == nil or key == "skin" or key == "border" or key == "questFrame" then Buttons:RefreshSkin() end end)
 -- The item-level setting redraws every placed button's level text in place (no layout pass needed).
 function Buttons:RefreshItemLevels()
 	local function each(b) self:ItemLevel(b, b.hasItem and b.rec or nil) end

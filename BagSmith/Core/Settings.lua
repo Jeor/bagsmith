@@ -172,6 +172,7 @@ local DEFAULTS = {
 	iconSize = 37, rowHeight = 26,
 	iconItemLevel = false,        -- Icons view: the item level in the icon's top-right corner, for weapons and armor (1.0.2)
 	iconItemLevelColor = "3598db", -- hex; its own color so it reads apart from the stack count
+	questFrame = true,         -- (1.8.0-beta11, Shweep) a gold frame on quest items, both skins
 	point = { "BOTTOMRIGHT", "UIParent", "BOTTOMRIGHT", -80, 140 },
 	bankPoint = { "TOPLEFT", "UIParent", "TOPLEFT", 40, -120 },
 	bankW = 620, bankH = 520,
@@ -461,11 +462,14 @@ for _, k in ipairs(ns.BAG_KINDS or {}) do
 	DEFAULTS["glow_" .. k.key] = false
 	DEFAULTS["glowColor_" .. k.key] = k.color
 	validators["glowColor_" .. k.key] = validators.accent
-	DEFAULTS["glowItems_" .. k.key] = true   -- (beta5 feedback, Shweep) its items glow too, unless turned off
 	DEFAULTS["glowAlpha_" .. k.key] = 1      -- (beta6 feedback, Shweep) and its own opacity, 10% to 100%
 	validators["glowAlpha_" .. k.key] = num(0.1, 1)
-	DEFAULTS["glowStyle_" .. k.key] = "glow"   -- (beta9, Shweep) "glow" (Inner Glow) or "frame" (Frame Color)
-	validators["glowStyle_" .. k.key] = oneOf("glow", "frame")
+	-- (beta10 feedback, Shweep) empty and filled slots each: "glow" (Inner Glow), "frame" (Frame Color) or "off"
+	-- (replacing beta9's one style and beta5's items switch; a beta profile's choices carry over, validateProfile)
+	DEFAULTS["glowEmpty_" .. k.key] = "glow"
+	DEFAULTS["glowFilled_" .. k.key] = "glow"
+	validators["glowEmpty_" .. k.key] = oneOf("glow", "frame", "off")
+	validators["glowFilled_" .. k.key] = oneOf("glow", "frame", "off")
 end
 -- (1.8.0-beta7, Shweep) What every character using a profile shares, part by part (share<Part>: true shared, false
 -- each character keeps its own copy, BagSmithCharDB.own[profile][key]; defaults below). The keys
@@ -729,6 +733,18 @@ local function validateProfile(saved)
 			if i and g and i == g + 1 then table.remove(tabs, i); beforeBank(tabs) end
 		end
 		saved.gearSetsPlaced = true
+	end
+	-- (1.8.0-beta11) A beta profile's indicator choices carry over: beta9's style for empty slots, and for filled
+	-- slots too unless beta5's items switch was off.
+	if type(saved) == "table" then
+		for _, k in ipairs(ns.BAG_KINDS or {}) do
+			local style, items = saved["glowStyle_" .. k.key], saved["glowItems_" .. k.key]
+			if saved["glowEmpty_" .. k.key] == nil and (style ~= nil or items ~= nil) then
+				style = (style == "frame") and "frame" or "glow"
+				saved["glowEmpty_" .. k.key] = style
+				saved["glowFilled_" .. k.key] = items == false and "off" or style
+			end
+		end
 	end
 	local out, repaired = validate(saved, DEFAULTS)
 	-- A sheet's custom-section categories are checked against THIS profile's

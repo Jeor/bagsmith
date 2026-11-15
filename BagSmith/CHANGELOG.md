@@ -14,7 +14,9 @@ New:
   bags, tackle boxes, trinket bags and reagent bags): turn on an indicator for each kind to tell its slots apart at a
   glance, as a soft glow inside the slot or as the slot's frame in that color instead of the rarity color (Settings >
   Item Icons > Special Bag Slot Indicators). Every indicator is off until you turn it on; each has its own color and
-  opacity, and shows on that bag's items too unless you turn that off.
+  opacity, and its empty and filled slots each choose Inner Glow, Frame Color or Off.
+- Quest items get a gold frame in both looks, whatever Rarity Borders says (Settings > Item Icons, Gold Frame for
+  Quest Items, on by default).
 - Profiles: choose what the characters using a profile share (Settings > Profile, Shared Between Characters): Favorites,
   Custom Sections, Pinned Sections, Section Order and Hidden Sections, Custom Currencies, Pinned Currencies and Custom
   Sheets. Unchecked, each character keeps its own.
@@ -26,16 +28,17 @@ Changed:
 - The Disenchant Helper's estimate for blue items up to level 25 follows what they give on WoW Forever: sometimes dust
   or an essence, not always a shard. It's an early estimate from a few results and says so; your own results take over
   as you disenchant.
-- Your free-slot count shows only the slots anything fits in: a quiver or a herb bag's room no longer counts. A small
-  + says there's more room in special bags, and hovering the count lists it for each kind of bag.
+- Your free-slot count shows only the slots anything fits in: a quiver or a herb bag's room no longer counts. Hover
+  the count to see the free slots in your bags, your reagent bag and each special bag; a small + says there's more
+  room in special bags.
 - Settings > Windows reads more clearly: Main Window and Individual Bag Windows (were Bag Window and Bag Windows), and
   Ignore Clicks While Faded is now Prevent Accidental Clicks in Combat, under its own Combat heading.
 - The Disenchant Helper's summary in chat reads as one sentence, like "1 item disenchanted: Greater Magic Essence x2,
   worth about 7s 60c at current AH prices."
 Fixed:
 - Item icons and their borders line up exactly at any scale, like 90%: no more clipped edges or icons slipping out of
-  their frames. In Classic, icons fill their slots like the game's own bags, with a silver outline for everyday items
-  and gold for quest items, and the corner marks sit inside the frame. Thanks to Jeor.
+  their frames. In Classic, icons fill their slots like the game's own bags, with a silver outline for everyday items,
+  and the corner marks sit inside the frame. Thanks to Jeor.
 - The Disenchant Helper's Likely results name every material, like Small Glimmering Shard, instead of "item 10978"
   when the game hadn't loaded it yet: the name appears as soon as the game has it.
 

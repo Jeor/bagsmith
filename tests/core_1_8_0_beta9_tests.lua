@@ -25,10 +25,12 @@
 			end
 			return (b.qFrame and b.qFrame:IsShown() and b.qFrame.color) or nil
 		end
-		check(n.db.glowStyle_herb == "glow", S .. "Inner Glow by default")
+		-- (beta11, by design) empty and filled slots each choose; "both" sets them together as beta9's one style did
+		local function both(v) n:Set("glowEmpty_herb", v); n:Set("glowFilled_herb", v) end
+		check(n.db.glowEmpty_herb == "glow" and n.db.glowFilled_herb == "glow", S .. "Inner Glow by default")
 		check(cell(2).bagGlow and cell(2).bagGlow:IsShown(), S .. "(setup) Inner Glow: the empty slot glows")
 		local hr, hg, hb = n:BagKindColor("herb")
-		n:Set("glowStyle_herb", "frame"); M.runTimers()
+		both("frame"); M.runTimers()
 		check(not (cell(2).bagGlow and cell(2).bagGlow:IsShown()) and not (cell(1).bagGlow and cell(1).bagGlow:IsShown()), S .. "Frame Color: no glow")
 		local c = frameColor(cell(1))
 		check(c and math.abs(c[1] - hr) < 1e-6 and math.abs(c[2] - hg) < 1e-6 and math.abs(c[3] - hb) < 1e-6, S .. "the Peacebloom's frame is the herb bag's color, not its rarity green")
@@ -36,26 +38,31 @@
 		check(e and math.abs(e[1] - hr) < 1e-6, S .. "an empty slot gets the frame too")
 		n:Set("glowAlpha_herb", 0.5); M.runTimers()
 		check(math.abs(frameColor(cell(1))[4] - 0.5) < 1e-9, S .. "at the kind's opacity")
-		n:Set("glowItems_herb", false); M.runTimers()
+		n:Set("glowFilled_herb", "off"); M.runTimers()
 		c = frameColor(cell(1))
-		check(c and math.abs(c[1] - hr) > 0.01, S .. "Show on Herb Bag Items Too off: the Peacebloom's frame is its rarity color again")
+		check(c and math.abs(c[1] - hr) > 0.01, S .. "Filled Herb Bag Slots off: the Peacebloom's frame is its rarity color again")
 		check(frameColor(cell(2)) ~= nil, S .. "and the empty slot keeps the indicator")
 		n:Set("glow_herb", false); M.runTimers()
 		check(frameColor(cell(2)) == nil, S .. "the indicator off: an empty slot has no frame again")
-		check(n:Set("glowStyle_herb", "sparkles") == false and n.db.glowStyle_herb == "frame", S .. "only Inner Glow or Frame Color")
+		check(n:Set("glowEmpty_herb", "sparkles") == false and n.db.glowEmpty_herb == "frame", S .. "only Inner Glow, Frame Color or Off")
+		-- mixed: empty slots glow, items get the frame
+		n:Set("glow_herb", true); n:Set("glowEmpty_herb", "glow"); n:Set("glowFilled_herb", "frame"); M.runTimers()
+		check(cell(2).bagGlow and cell(2).bagGlow:IsShown() and frameColor(cell(2)) == nil, S .. "Empty: Inner Glow, no frame")
+		c = frameColor(cell(1))
+		check(c and math.abs(c[1] - hr) < 1e-6 and not (cell(1).bagGlow and cell(1).bagGlow:IsShown()), S .. "Filled: Frame Color, no glow")
 		-- Integration: special-bag frames share the adaptive pixel geometry,
 		-- and inner glow keeps its one-pixel inset after an effective-scale change.
-		n:Set("glow_herb", true); n:Set("glowItems_herb", true)
+		n:Set("glow_herb", true)
 		for _, scale in ipairs({ .3, .64, .9, 1, 1.5 }) do
 			for _, slot in ipairs({ 1, 2 }) do
 				local b = cell(slot)
 				b.GetEffectiveScale = function() return scale end
-				n:Set("glowStyle_herb", "frame"); n.Buttons:RefreshGlows()
+				both("frame"); n.Buttons:RefreshGlows()
 				if skin == "classic" then
 					check(b.qFrame.points[1][4] == -b.classicBorderOutset and b.qFrame.points[2][4] == b.classicBorderOutset,
 						S .. "bag frame shares adaptive bounds at " .. scale)
 				end
-				n:Set("glowStyle_herb", "glow"); n.Buttons:RefreshGlows()
+				both("glow"); n.Buttons:RefreshGlows()
 				b.GetEffectiveScale = function() return scale * .9 end
 				n.Buttons:RealignModernBorders()
 				local pixel = n.Buttons.PixelSize(b)

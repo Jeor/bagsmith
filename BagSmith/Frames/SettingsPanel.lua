@@ -1400,6 +1400,7 @@ end
 pages.icons = function(self, db)
 	self:Head("Appearance")
 	self:Seg("border", "Rarity Borders", { { "all", "All" }, { "unc", "Green and Up" }, { "off", "Off" } })
+	self:Check("questFrame", "Gold Frame for Quest Items", "Quest items get a gold frame, whatever Rarity Borders is set to.")   -- (1.8.0-beta11)
 	self:Step("iconSize", "Icon Size (Icons View)", 2, "%d", nil, {
 		title = "Smaller icons",
 		lines = {
@@ -1429,9 +1430,10 @@ pages.icons = function(self, db)
 		self:Check("glow_" .. k.key, ("%s Indicator"):format(name), ("Shows which slots are in your %s, so you can tell them apart at a glance."):format(lower))
 		if db["glow_" .. k.key] then
 			self:Indented(function()
-				self:Seg("glowStyle_" .. k.key, ("%s Indicator Style"):format(name), { { "glow", "Inner Glow" }, { "frame", "Frame Color" } },
-					db["glowStyle_" .. k.key] == "frame" and "The slot's frame takes this color instead of the item's rarity color." or "A soft glow inside each slot.")
-				self:Check("glowItems_" .. k.key, ("Show on %s Items Too"):format(name), ("The items in your %s show it too, not only its empty slots."):format(lower))
+				-- (beta10 feedback, Shweep) empty and filled slots each choose
+				local CHOICES = { { "glow", "Inner Glow" }, { "frame", "Frame Color" }, { "off", "Off" } }
+				self:Seg("glowEmpty_" .. k.key, ("Empty %s Slots"):format(name), CHOICES)
+				self:Seg("glowFilled_" .. k.key, ("Filled %s Slots"):format(name), CHOICES, "Frame Color shows this color instead of the item's rarity color.")
 				self:Color("glowColor_" .. k.key, ("%s Indicator Color"):format(name), ("The indicator's color in your %s"):format(lower))
 				self:Step("glowAlpha_" .. k.key, ("%s Indicator Opacity"):format(name), 0.05, "%d%%", ("How strong the indicator is in your %s."):format(lower))
 			end)

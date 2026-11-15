@@ -1704,15 +1704,22 @@ function View:UpdateTabs()
 end
 
 -- (1.8.0-beta5) The Bags button's tooltip: free slots in ordinary bags, then each kind of special bag (its name in its
--- glow color), when there are special bags. Nil otherwise: the button keeps its plain help tip.
+-- indicator color).
+-- (beta10 feedback, Shweep: "not seeing that") Always shown, not only with special bags: the general slots, the
+-- reagent bag's when there is one, then each special bag's.
 function View:FreeTip()
-	local special = self.freeSpecial
-	if not (special and next(special)) then return nil end
-	local g = self.freeGeneral or { 0, 0 }
+	local special = self.freeSpecial or {}
+	local g = self.freeGeneral
+	if not g then return nil end
+	local reagent = self.freeReagent
 	return function(tt, help)
 		if help then tt:AddLine(" ") end
 		if help then tt:AddLine("Free slots", 1, 0.82, 0) else ns.TipText(tt, "Free slots", 1, 0.82, 0) end
 		tt:AddDoubleLine("Bags (anything fits)", ("%d / %d"):format(g[1], g[2]), 1, 1, 1, 1, 1, 1)
+		if reagent then
+			local r, gg, b = ns:BagKindColor("reagent")
+			tt:AddDoubleLine(ns:BagKindName("reagent"), ("%d / %d"):format(reagent[1], reagent[2]), r, gg, b, 1, 1, 1)
+		end
 		for _, k in ipairs(ns:BagKindsSorted()) do   -- (beta7 feedback) alphabetical, as in Settings
 			local v = special[k.key]
 			if v then
@@ -1758,6 +1765,7 @@ function View:UpdateFooter(bagInfo)
 	end
 	if (self.isMain and self.st.sheet == "Bank") or self.isBank then rtotal = 0 end
 	self.freeSpecial = special
+	self.freeReagent = rtotal > 0 and { rfree, rtotal } or nil   -- (beta11) for the tooltip
 	-- A window showing only the reagent bag reports the reagent slots; one showing only special bags, theirs.
 	if total == 0 and rtotal > 0 then free, total = rfree, rtotal
 	elseif total == 0 and special then

@@ -57,3 +57,39 @@ end)()
 	for _, m in ipairs(DE:Expectation({ quality = 3, ilvl = 20, classID = 4 })) do c.allowed[m[1]] = true end
 	check(DE:Attributable(c, MATS.strangeDust) and DE:Attributable(c, MATS.greaterMagic), "a blue's dust and essence count from the loot chat too")
 end)()
+
+;(function()
+	-- ======== 1.8.0-beta11 (Shweep): gold quest frames in both skins, a setting (on); beta profiles' indicator choices carry over ========
+	for _, skin in ipairs({ "modern", "classic" }) do
+		package.loaded.mock = nil
+		local M = require("mock")
+		M.put(0, 1, { id = 9101, name = "Gnoll Paw", q = 1, count = 3, class = 12, subclass = 0, type = "Quest", sub = "Quest", bind = 4 })
+		_G.BagSmithCharDB = { version = 1, firstSeen = {} }
+		_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = { skin = skin, view = "icons", border = "off" } } }
+		local n = M.loadAddon("BagSmith")
+		M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
+		ToggleAllBags(); M.runTimers(); M.runTimers()
+		local b = n.Buttons:Get(0, 1)
+		local function color()
+			if skin == "modern" then local e = b.modernBorder and b.modernBorder[1]; return e and e:IsShown() and e.color end
+			return b.qFrame:IsShown() and b.qFrame.color
+		end
+		check(n.db.questFrame == true, skin .. ": Gold Frame for Quest Items is on by default")
+		local c = color()
+		check(c and c[1] == 1 and math.abs(c[2] - 0.82) < 1e-9 and c[3] == 0, skin .. ": a quest item gets the gold frame, even with Rarity Borders Off")
+		n:Set("questFrame", false); M.runTimers()
+		c = color()
+		check(not (c and c[1] == 1 and math.abs(c[2] - 0.82) < 1e-9), skin .. ": off: no gold frame")
+		check((n.errors or 0) == 0, skin .. ": no errors")
+	end
+	-- a beta profile's beta9 style and beta5 items switch carry over to the empty and filled choices
+	package.loaded.mock = nil
+	local M = require("mock")
+	_G.BagSmithCharDB = { version = 1, firstSeen = {} }
+	_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = { glow_herb = true, glowStyle_herb = "frame", glowItems_herb = false, glowStyle_soul = "glow" } } }
+	local n = M.loadAddon("BagSmith")
+	M.fire("ADDON_LOADED", "BagSmith")
+	check(n.db.glowEmpty_herb == "frame" and n.db.glowFilled_herb == "off", "beta herb: Frame Color, items off: empty Frame Color, filled Off")
+	check(n.db.glowEmpty_soul == "glow" and n.db.glowFilled_soul == "glow", "beta soul: Inner Glow on both")
+	check(n.db.glowStyle_herb == nil and n.db.glowItems_herb == nil, "the old keys are gone")
+end)()
