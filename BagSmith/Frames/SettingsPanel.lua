@@ -35,6 +35,84 @@ local PAGES = {
 	{ "sorting", "Sorting & Filters" }, { "automation", "Automations & Actions" }, { "loothelper", "Loot Helper", "automation" }, { "dehelper", "Disenchant Helper", "automation" },
 	{ "keys", "Keybindings" }, { "plugins", "Plugins" }, { "profile", "Profile" }, { "advanced", "Advanced" },
 }
+-- (1.8.0-beta18) What's New's "Settings > ..." links find their page by its name here (About & Support too).
+function Panel:PageLabels()
+	if not self.labels then
+		self.labels = {}
+		for _, p in ipairs(PAGES) do self.labels[#self.labels + 1] = p end
+		self.labels[#self.labels + 1] = { "about", "About & Support" }
+	end
+	return self.labels
+end
+-- (1.8.0-beta18, Shweep, after FlareUI) A small soft-blue "NEW" beside what this release added: its pages in the list on
+-- the left, and the headings and settings on them. A page's tags go once it has been opened, from the next time
+-- Settings opens (so they don't vanish while you look). Kept per account (BagSmithDB.newSeen), per release; a release
+-- other than NEW.release shows none, so the list is replaced each release. heads and keys name the page they're on.
+Panel.NEW = {
+	release = "1.8",
+	pages = { look = true, icons = true, profile = true },
+	heads = { ["Special Bag Slot Indicators"] = "icons", ["Shared Between Characters"] = "profile" },
+	keys = { textScale = "look", fontName = "look", questFrame = "icons" },
+}
+Panel.NEW_COLOR = { 0.55, 0.78, 1 }   -- the soft blue of What's New's links
+local function release() return tostring(ns.version or ""):match("^(%d+%.%d+)") end
+function Panel:NewPage(page)
+	local N = self.NEW
+	if not (N and page and N.pages[page] and release() == N.release) then return false end
+	return not (self.seenAtOpen and self.seenAtOpen[page])
+end
+function Panel:IsNew(kind, id)
+	local N = self.NEW
+	local page = N and N[kind] and id ~= nil and N[kind][id]
+	return page and self:NewPage(page) or false
+end
+-- The tags showing while Settings is open: what was seen when it opened.
+function Panel:SnapshotNew()
+	local N, t = self.NEW, {}
+	local seen = N and type(BagSmithDB) == "table" and type(BagSmithDB.newSeen) == "table" and BagSmithDB.newSeen[N.release]
+	if type(seen) == "table" then for k, v in pairs(seen) do t[k] = v end end
+	self.seenAtOpen = t
+end
+function Panel:MarkPageSeen(page)
+	local N = self.NEW
+	if not (N and page and N.pages[page] and release() == N.release and type(BagSmithDB) == "table") then return end
+	if type(BagSmithDB.newSeen) ~= "table" then BagSmithDB.newSeen = {} end
+	local t = BagSmithDB.newSeen[N.release]
+	if type(t) ~= "table" then t = {}; BagSmithDB.newSeen[N.release] = t end
+	t[page] = true
+end
+-- The tag itself, on owner, just right of anchor (x on screen, from its left). Blizzard's NEW label (the game's own soft
+-- blue with its glow, as FlareUI shows it), smaller and with its text at the left; a plain soft-blue NEW where the
+-- game has no such template.
+local NEW_SCALE = 0.65
+local function makeTag(owner)
+	local ok, b = pcall(CreateFrame, "Frame", nil, owner, "NewFeatureLabelNoAnimateTemplate")
+	if ok and b and b.Label then
+		b:SetScale(NEW_SCALE)
+		b.Label:ClearAllPoints(); b.Label:SetPoint("LEFT")
+		if b.BGLabel then b.BGLabel:ClearAllPoints(); b.BGLabel:SetPoint("LEFT", 0.5, -0.5) end
+		if b.Glow then b.Glow:ClearAllPoints(); b.Glow:SetPoint("TOPLEFT", b.Label, -6, 4); b.Glow:SetPoint("BOTTOMRIGHT", b.Label, 6, -4) end
+		b.scaled = true
+		return b
+	end
+	if ok and b and b.Hide then b:Hide() end
+	local t = owner:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+	t:SetText("NEW"); t:SetTextColor(unpack(Panel.NEW_COLOR))
+	return t
+end
+local function tagWidth(t)
+	if t.scaled then return math.ceil((t.Label:GetStringWidth() or 16) * NEW_SCALE) end
+	return t:GetStringWidth() or 24
+end
+local function newTag(owner, show, anchor, x)
+	if not show then if owner.newTag then owner.newTag:Hide() end return end
+	local t = owner.newTag
+	if not t then t = makeTag(owner); owner.newTag = t end
+	t:ClearAllPoints(); t:SetPoint("LEFT", anchor, "LEFT", t.scaled and x / NEW_SCALE or x, 0)
+	t:Show()
+end
+Panel.NewTag = newTag
+
 local PARENT, HAS_SUBS = {}, {}
 for _, p in ipairs(PAGES) do if p[3] then PARENT[p[1]] = p[3]; HAS_SUBS[p[3]] = true end end
 local NAV_STEP = 28
@@ -233,6 +311,9 @@ function Panel:SyncNav()
 		end
 		local on = b.page == self.page and not self.query   -- (no page is current while searching)
 		b.text:SetTextColor(unpack(on and s.heading or s.muted))
+		-- (beta18) at the right of the page's row, as FlareUI has it
+		newTag(b, self:NewPage(b.page), b, 0)
+		if b.newTag and b.newTag:IsShown() then newTag(b, true, b, (NAV_W - 10) - 12 - tagWidth(b.newTag)) end
 		if on then b.bar:SetVertexColor(Skins:Accent()); b.bar:Show() else b.bar:Hide() end
 	end
 	-- (1.5.4) Place them: full spacing when they fit above About & Support, tighter when not, and when even the tight
@@ -282,6 +363,7 @@ function Panel:ShowPage(page)
 	-- Opening a page ends a search.
 	if self.query then self.query = nil; if self.frame and self.frame.search then self.frame.search:SetText("") end end
 	self.page = page
+	self:MarkPageSeen(page)   -- (beta18) its NEW tags go from the next time Settings opens
 	self.scroll:SetVerticalScroll(0)
 	self:SyncNav()
 	self:Refresh()
@@ -389,6 +471,7 @@ end
 -- searchable.
 function Panel:Head(text, info)
 	self:CloseCard()
+	if self.seek and not self.seekY and not self.filter and tostring(text):lower() == self.seek then self.seekY = self.y end   -- (beta18) Open's heading
 	local h = acquire(self, "head", function(p)
 		local w = CreateFrame("Frame", nil, p); w:SetSize(ROW_W, 30)
 		w.text = fs(w, "GameFontNormal"); w.text:SetPoint("BOTTOMLEFT", 2, 6)
@@ -404,6 +487,8 @@ function Panel:Head(text, info)
 	elseif h.info then
 		h.info:Hide()
 	end
+	local tagX = (h.text:GetStringWidth() or 0) + 6 + ((h.info and h.info:IsShown()) and 20 or 0)
+	newTag(h, self:IsNew("heads", text), h.text, tagX)   -- (beta18)
 	self.y = self.y + 40
 	-- The card for this sub-section starts just under the heading's line.
 	self.card = { top = self.y - 6, rows = 0 }
@@ -458,6 +543,8 @@ local function layoutRow(w, label, help, controlW, controlH)
 	w.text:SetText(label); w.text:SetTextColor(Skins:Color("text"))
 	w.text:SetWordWrap(false); w.text:SetWidth(0)
 	local labelW = w.text:GetStringWidth()
+	newTag(w, Panel:IsNew("keys", w.key), w.text, labelW + 6)   -- (beta18) a new setting
+	if w.newTag and w.newTag:IsShown() then labelW = labelW + 6 + tagWidth(w.newTag) end
 	local fits = labelW + 16 + controlW <= rowW
 	local y = 6 + FONT_H
 	if not fits then w.text:SetWidth(rowW - 4) end
@@ -630,6 +717,7 @@ function Panel:Step(key, label, step, fmt, help, info)
 		s.info.title, s.info.lines = info.title, info.lines
 		s.info:ClearAllPoints(); s.info:SetPoint("LEFT", s.text, "LEFT", (s.text:GetStringWidth() or 0) + 6, 0)
 		s.info:Show()
+		if s.newTag and s.newTag:IsShown() then newTag(s, true, s.info, 20) end   -- (beta18) the tag after the (i)
 	elseif s.info then
 		s.info:Hide()
 	end
@@ -2247,6 +2335,23 @@ function Panel:Refresh()
 	if ns.Classic then ns.Classic:DressButtons(self.frame) end   -- new rows match the current skin
 end
 
+-- (1.8.0-beta18) Open Settings on a page, scrolled to a heading on it when one is named (What's New's links). A heading
+-- the page doesn't have leaves it at the top.
+function Panel:Open(page, heading)
+	if not pages[page] then return false end
+	if not (self.frame and self.frame:IsShown()) then self:Show() end
+	if self.frame.Raise then self.frame:Raise() end
+	self.seek, self.seekY = heading and heading:lower() or nil, nil
+	self:ShowPage(page)
+	local y = self.seekY
+	self.seek, self.seekY = nil, nil
+	if y and self.scroll then
+		local room = math.max(0, (self.frame.child:GetHeight() or 0) - (self.scroll:GetHeight() or 0))
+		self.scroll:SetVerticalScroll(math.max(0, math.min(room, y - 4)))
+	end
+	return true, y
+end
+
 -- The profile segment writes a fake key; intercept it.
 local origSet = ns.Set
 function ns:Set(key, value, silent)
@@ -2263,6 +2368,7 @@ function Panel:Show()
 	if ns.API then ns.API:RefreshPlugins() end
 	self:Create()
 	self:ApplyPosition()
+	if not self.frame:IsShown() then self:SnapshotNew(); self:MarkPageSeen(self.page or "profile") end   -- (beta18)
 	self.frame:Show()
 	self:SyncNav()
 	self:Refresh()

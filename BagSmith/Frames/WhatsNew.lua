@@ -26,16 +26,16 @@ ns.WhatsNew = WN
 WN.ENTRIES = {
 	-- (1.8.0-beta2) the 1.8 card: Shweep approved the draft (15 Nov) with BagSmith's own fonts added
 	{ v = "1.8.0", heading = "BagSmith 1.8", items = {
-		-- (1.8.0-beta8, Shweep: friendlier wording for all four)
-		"|cfffac775Text Your Way:|r make the text in your bags, bank and helpers bigger or smaller, and pick a font you like. BagSmith now comes with three fonts of its own (Noto Sans, Roboto Condensed and Inter), and you'll find them in your other addons too. Try it in Settings > Style.",
+		-- (1.8.0-beta8, Shweep: friendlier wording for all four; beta18: titles renamed, Quick Tip removed, and each
+		-- "Settings > ..." names the heading it opens to)
+		"|cfffac775Fonts:|r make the text in your bags, bank and helpers bigger or smaller, and pick a font you like. BagSmith now comes with three fonts of its own (Noto Sans, Roboto Condensed and Inter), and you'll find them in your other addons too. Try it in Settings > Style > Size.",
 		"|cfffac775A Disenchant Helper That Learns:|r the first time a disenchant gives you something it hasn't seen, it remembers it. For higher-level gear, it learns from your own results as you go.",
-		"|cfffac775Special Bags:|r your free-slot count now shows the space anything can go in. Hover it to see what's left in your quiver, herb bag, soul bag and more. Want them to stand out? Give each kind of bag its own color, as a soft glow or a colored frame, in Settings > Item Icons.",
-		-- (1.8.0-beta16, Shweep) the icon work (Jeor's PR #9), the gold quest frames, the clickable gold
+		"|cfffac775Special Bag Indicators:|r your free-slot count now shows the space anything can go in. Hover it to see what's left in your quiver, herb bag, soul bag and more. Want them to stand out? Give each kind of bag its own color, as a soft glow or a colored frame, in Settings > Item Icons > Special Bag Slot Indicators.",
+		-- (1.8.0-beta16, Shweep) the icon work (Jeor's PR #9), the gold quest frames
 		"|cfffac775Crisper Icons:|r icons and their borders line up cleanly at any scale, and quest items now wear a gold frame (you can turn it off in Settings > Item Icons). In Classic, icons fill their slots just like the game's own bags. Thanks to Jeor!",
-		"|cfffac775Quick Tip:|r click your gold to open your currency drawer.",
-		"|cfffac775Profiles, Your Way:|r like one profile on all your characters, but want each to keep its own favorites, currencies or sheets? Just uncheck them in Settings > Profile.",
+		"|cfffac775Profile Sharing Improved:|r like one profile on all your characters, but want each to keep its own favorites, currencies or sheets? Just uncheck them in Settings > Profile > Shared Between Characters.",
 		-- (1.8.0-beta8, Shweep) in soft red, so nobody misses it
-		"|cfff09595Important:|r each character now keeps its own favorites, pinned sections, custom currencies and pinned currencies. Yours carried over, so nothing is lost, but changes you make now stay with that character. Want them shared again? Check them in Settings > Profile.",
+		"|cfff09595Important:|r each character now keeps its own favorites, pinned sections, custom currencies and pinned currencies. Yours carried over, so nothing is lost, but changes you make now stay with that character. Want them shared again? Check them in Settings > Profile > Shared Between Characters.",
 	} },
 	-- (1.7.0-beta6) the 1.7 card; (1.7.0-beta12) its text approved by Shweep (12 Nov)
 	-- (1.7.0-beta8, the beta7 audit's F2; Shweep's choice) the quest promise says what it can't see, as the (i) does
@@ -213,6 +213,18 @@ local function create()
 	f.content = CreateFrame("Frame", nil, f.body)
 	f.content:SetSize(WIDTH, 10)
 	f.body:SetScrollChild(f.content)
+	-- (1.8.0-beta18) The bullets' "Settings > ..." links: clicking one opens Settings there. The body still drags the card.
+	if f.content.SetHyperlinksEnabled then f.content:SetHyperlinksEnabled(true) end
+	f.content:EnableMouse(true); f.content:RegisterForDrag("LeftButton")
+	f.content:SetScript("OnDragStart", function() f:StartMoving() end)
+	f.content:SetScript("OnDragStop", function() f:StopMovingOrSizing() end)
+	f.content:SetScript("OnHyperlinkClick", function(_, link) WN.OnLink(link) end)
+	f.content:SetScript("OnHyperlinkEnter", function(self, link)
+		if ns.HelpTipsOK() and tostring(link):find("^bagsmith:settings:") then
+			GameTooltip:SetOwner(self, "ANCHOR_CURSOR"); ns.TipText(GameTooltip, "Click to go there in Settings"); GameTooltip:Show()
+		end
+	end)
+	f.content:SetScript("OnHyperlinkLeave", function() GameTooltip:Hide() end)
 	f.body:EnableMouseWheel(true)
 	f.body:SetScript("OnMouseWheel", function(sf, delta)
 		local max = math.max(0, (f.contentH or 0) - (f.bodyH or 0))
@@ -366,6 +378,68 @@ local function measure(f, e, textW)
 	return y + 4
 end
 
+-- (1.8.0-beta18, Shweep) Directions in a bullet ("Settings > Style > Size") show in soft blue and open Settings right
+-- there: the page, scrolled to the heading when the direction names one (or the sub-page it names). The bullets stay
+-- plain text; the links are added as they're drawn. A direction naming no page Settings has stays as it is.
+WN.LINK_COLOR = "|cff8cc8ff"
+local function pageAt(s, i, labels)
+	local best
+	for _, p in ipairs(labels) do
+		local L = p[2]
+		if s:sub(i, i + #L - 1) == L and not s:sub(i + #L, i + #L):find("^[%w]") and (not best or #L > #best[2]) then best = p end
+	end
+	return best
+end
+function WN.Linkify(text)
+	local P = ns.SettingsPanel
+	local labels = P and P.PageLabels and P:PageLabels()
+	if type(text) ~= "string" or not labels then return text end
+	local out, pos = {}, 1
+	while true do
+		local a, b = text:find("Settings > ", pos, true)
+		if not a then break end
+		local page = pageAt(text, b + 1, labels)
+		if not page then
+			out[#out + 1] = text:sub(pos, b); pos = b + 1
+		else
+			local stop = b + #page[2]
+			local key, heading = page[1], ""
+			-- " > " and then a sub-page of that page, or a heading (words that start with a capital, or "&")
+			if text:sub(stop + 1, stop + 3) == " > " then
+				local sub
+				for _, p in ipairs(labels) do
+					if p[3] == key and text:sub(stop + 4, stop + 3 + #p[2]) == p[2] and not text:sub(stop + 4 + #p[2], stop + 4 + #p[2]):find("^[%w]") then sub = p end
+				end
+				if sub then
+					key, stop = sub[1], stop + 3 + #sub[2]
+				else
+					local words = text:match("^%u[%w']*", stop + 4)
+					if words then
+						local j = stop + 4 + #words
+						while true do
+							local more = text:match("^ [%u&][%w']*", j)
+							if not more then break end
+							words, j = words .. more, j + #more
+						end
+						heading, stop = words, j - 1
+					end
+				end
+			end
+			out[#out + 1] = text:sub(pos, a - 1)
+			out[#out + 1] = ("%s|Hbagsmith:settings:%s:%s|h%s|h|r"):format(WN.LINK_COLOR, key, heading, text:sub(a, stop))
+			pos = stop + 1
+		end
+	end
+	out[#out + 1] = text:sub(pos)
+	return table.concat(out)
+end
+-- A direction's link: open Settings on its page (and heading).
+function WN.OnLink(link)
+	local page, heading = tostring(link or ""):match("^bagsmith:settings:([%w]+):(.*)$")
+	if not page or not ns.SettingsPanel then return false end
+	return ns.SettingsPanel:Open(page, heading ~= "" and heading or nil)
+end
+
 function WN:Select(i)
 	if not card or not card.entries or not card.entries[i] then return end
 	self:Fill(card.entries, i)
@@ -443,7 +517,7 @@ function WN:Fill(entries, sel)
 		for bi, text in ipairs(e.items) do
 			n = n + 1
 			local s2 = line(f, n)
-			s2:SetFontObject(GameFontHighlight); s2:SetTextColor(1, 1, 1); s2:SetWidth(textW - INDENT); s2:SetText(text)
+			s2:SetFontObject(GameFontHighlight); s2:SetTextColor(1, 1, 1); s2:SetWidth(textW - INDENT); s2:SetText(WN.Linkify(text))
 			s2:ClearAllPoints(); s2:SetPoint("TOPLEFT", f.content, "TOPLEFT", PAD + INDENT, -(y + ITEM_GAP)); s2:Show()
 			local ds = dash(f, n)
 			ds:ClearAllPoints(); ds:SetPoint("TOPLEFT", f.content, "TOPLEFT", PAD, -(y + ITEM_GAP)); ds:Show()

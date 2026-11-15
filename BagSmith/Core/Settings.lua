@@ -827,6 +827,20 @@ local function loadDB(saved)
 	-- What's New existed counts as "seen nothing yet"; no saved data at all
 	-- (a first install) stays empty and is marked seen once loaded.
 	if type(saved) == "table" then db.whatsNewSeen = type(saved.whatsNewSeen) == "string" and saved.whatsNewSeen or "0.0.0" end
+	-- (1.8.0-beta18) The Settings pages whose "NEW" tags this account has opened, per release ({ ["1.8"] = { look = true } }).
+	if type(saved) == "table" and type(saved.newSeen) == "table" then
+		local keep, releases = {}, 0
+		for rel, seen in pairs(saved.newSeen) do
+			if type(rel) == "string" and rel:find("^%d+%.%d+$") and type(seen) == "table" and releases < 16 then
+				local t, n = {}, 0
+				for k, v in pairs(seen) do
+					if type(k) == "string" and #k <= 32 and k:find("^%w+$") and v == true and n < 64 then t[k] = true; n = n + 1 end
+				end
+				keep[rel], releases = t, releases + 1
+			end
+		end
+		db.newSeen = keep
+	end
 	if type(saved) == "table" and type(saved.profiles) == "table" then
 		for name, prof in pairs(saved.profiles) do
 			local n = cleanName(name)

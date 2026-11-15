@@ -18,6 +18,9 @@ New:
   each item's icon.
 - Quest items get a gold frame in both looks, whatever Rarity Borders says (Settings > Item Icons, Gold Frame for
   Quest Items, on by default).
+- Settings marks what's new: a small blue NEW beside a page in the list on the left, and beside the new headings and
+  settings on it. A page's marks go once you've opened it, from the next time you open Settings.
+- What's New's directions, like Settings > Style > Size, are links: click one to open Settings right there.
 - /bs cpu: how much time BagSmith takes each frame, measured by the game over a few seconds (scroll or loot meanwhile
   to see what that costs).
 - Profiles: choose what the characters using a profile share (Settings > Profile, Shared Between Characters): Favorites,
