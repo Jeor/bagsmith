@@ -39,6 +39,15 @@ for _, setting in ipairs({ "all", "unc", "off" }) do
 			B:ApplyQuality(b, { quality = quality })
 			check(b.qFrame.shown == (setting ~= "off"), "green and above respect rarity setting")
 		end
+		for _, rec in ipairs({
+			{ quality = 1, classID = 12 }, { quality = 1, bindType = 4 },
+			{ quality = 2, isQuest = true },
+		}) do
+			B:ApplyQuality(b, rec)
+			check(b.qFrame.shown and b.qFrame.color[1] == 1 and b.qFrame.color[2] == .82 and b.qFrame.color[3] == 0, "quest class/binding/flag all receive gold")
+		end
+		B:ApplyQuality(b, { quality = 1, cat = "Quest" })
+		check(not b.qFrame.shown, "moving an ordinary item to Quest does not change its border")
 		B:ApplyQuality(b, { quality = 1, isQuest = true })
 		check(b.qFrame.shown and b.qFrame.color[1] == 1 and b.qFrame.color[2] == .82 and b.qFrame.color[3] == 0, "quest items have gold borders")
 		check(b.qFrame.points[1][4] == -2 and b.qFrame.points[2][4] == 2, "frame covers square icon corners")

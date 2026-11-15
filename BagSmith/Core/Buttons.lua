@@ -250,8 +250,11 @@ function Buttons:ApplyQuality(b, rec)
 		b.qRing:Hide(); b.qFrame:Hide(); b.frameEdge:Hide(); b.frameBG:Hide()
 		self:DrawModernBorder(b, r, g, bl)
 	elseif classicCell then
+		-- Match Classify.lua: the container quest flag is not set for every quest item.
+		local questClass = ns.ITEM_CLASS and ns.ITEM_CLASS.Questitem or 12
+		local quest = rec.isQuest or rec.classID == questClass or rec.bindType == 4
 		-- Ordinary items keep the default slot artwork without an added outline.
-		if not rec.isQuest and (q < 2 or not colored) then
+		if not quest and (q < 2 or not colored) then
 			b.qFrame:Hide(); b.qRing:Hide()
 			return
 		end
@@ -260,7 +263,7 @@ function Buttons:ApplyQuality(b, rec)
 		b.qFrame:ClearAllPoints()
 		b.qFrame:SetPoint("TOPLEFT", icon, "TOPLEFT", -2, 2)
 		b.qFrame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 2, -2)
-		if rec.isQuest then r, g, bl = 1, 0.82, 0 end
+		if quest then r, g, bl = 1, 0.82, 0 end
 		b.qFrame:SetVertexColor(r, g, bl, 1)
 		b.qFrame:Show(); b.qRing:Hide()
 	else
