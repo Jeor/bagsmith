@@ -1,8 +1,8 @@
 ## 1.8.0
 
 New:
-- Text Size (Settings > Style, under Size): make the item text in your bags, bank and bag windows and the Loot and
-  Disenchant Helpers bigger or smaller, from 80% to 150%. List rows grow to fit bigger text.
+- Text Size (Settings > Style, under Size): make the item text in your bags, bank and individual bag windows and the
+  Loot and Disenchant Helpers bigger or smaller, from 80% to 150%. List rows grow to fit bigger text.
 - Font (beside it, a dropdown): show that text in one of three fonts that now come with BagSmith (Noto Sans, Roboto
   Condensed and Inter), one of the game's own, or one another addon shares. BagSmith's fonts also appear in your other
   addons' font lists.
@@ -12,10 +12,13 @@ New:
   learning" until it has 20 results for that range, then shows your own.
 - Special bags (quivers, ammo pouches, soul bags, herb, enchanting, engineering, mining, leatherworking and cooking
   bags, tackle boxes, trinket bags and reagent bags): each kind can glow softly inside its slots, in a color you choose
-  (Settings > Item Icons > Special Bags). Every glow is off until you turn it on.
+  (Settings > Item Icons > Special Bags). Every glow is off until you turn it on; each kind's items glow too unless
+  you turn that off.
 Changed:
 - Your free-slot count shows only the slots anything fits in: a quiver or a herb bag's room no longer counts. A small
   + says there's more room in special bags, and hovering the count lists it for each kind of bag.
+- Settings > Windows reads more clearly: Main Window and Individual Bag Windows (were Bag Window and Bag Windows), and
+  Ignore Clicks While Faded is now Prevent Accidental Clicks in Combat, under its own Combat heading.
 - The Disenchant Helper's summary in chat reads as one sentence, like "1 item disenchanted: Greater Magic Essence x2,
   worth about 7s 60c at current AH prices."
 Fixed:

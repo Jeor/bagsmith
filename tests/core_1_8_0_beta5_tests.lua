@@ -72,14 +72,18 @@
 	check(not any, "every glow is off until turned on")
 	for _, k in ipairs(n.BAG_KINDS) do check(n.db["glow_" .. k.key] == false and n.db["glowColor_" .. k.key] == k.color, "(defaults) " .. k.key .. ": off, its own color") end
 	n:Set("glow_herb", true); M.runTimers()
-	check(glowing(3, 4) and not glowing(3, 1), "Herb Bag on: its empty slots glow, its items don't")
+	-- (beta5 feedback, by design) each kind's items glow too unless that kind's own "Glow on ... Items Too" is off
+	check(glowing(3, 4) and glowing(3, 1), "Herb Bag on: its empty slots and its items glow (items on by default)")
+	n:Set("glowItems_herb", false); M.runTimers()
+	check(glowing(3, 4) and not glowing(3, 1), "Glow on Herb Bag Items Too off: only its empty slots")
 	check(not glowing(4, 1) and not glowing(1, 1), "a quiver (still off) and an ordinary bag don't")
 	local hr, hg, hb = n:BagKindColor("herb")
 	check(math.abs(hr - 0x6c / 255) < 1e-6 and math.abs(hb - 0x4f / 255) < 1e-6, "in the herb bag's default color")
 	n:Set("glowColor_herb", "ff0000"); M.runTimers()
 	check(select(1, n:BagKindColor("herb")) == 1 and select(2, n:BagKindColor("herb")) == 0, "a color of your own")
-	n:Set("glowItems", true); M.runTimers()
-	check(glowing(3, 1) and glowing(3, 4), "Also Glow on Items: the herbs glow too")
+	n:Set("glowItems_herb", true); M.runTimers()
+	check(glowing(3, 1) and glowing(3, 4), "and back on: the herbs glow again")
+	check(n.db.glowItems_quiver == true and n.db.glowItems == nil, "every kind has its own items switch (on); no shared one")
 	n.ui.bagWindows = false; main:SetPref("view", "list"); n:RefreshViews(true); M.runTimers()
 	local rowGlow = false
 	for _, b in ipairs(n.Buttons.all) do if b:IsShown() and b.mode == "row" and b.bagGlow and b.bagGlow:IsShown() then rowGlow = true end end
@@ -113,6 +117,17 @@ end)()
 	local seen = 0
 	for _, w in ipairs(n.SettingsPanel.pools.check or {}) do if w:IsShown() and w.key and w.key:find("^glow_") then seen = seen + 1 end end
 	check(seen == 12, "Settings > Item Icons lists a glow switch for each of the twelve kinds: " .. seen)
+	-- a kind turned on shows its own items switch and color, each naming the kind
+	n:Set("glow_herb", true); n.SettingsPanel:Show(); n.SettingsPanel:ShowPage("icons"); M.runTimers()
+	local itemsRow, colorRow
+	for _, w in ipairs(n.SettingsPanel.pools.check or {}) do if w:IsShown() and w.key == "glowItems_herb" then itemsRow = w end end
+	for _, w in ipairs(n.SettingsPanel.pools.color or {}) do if w:IsShown() and w.key == "glowColor_herb" then colorRow = w end end
+	check(itemsRow and itemsRow.text.text == "Glow on Herb Bag Items Too", "its items switch names the kind: " .. tostring(itemsRow and itemsRow.text.text))
+	check(colorRow and colorRow.text.text == "Herb Bag Glow Color", "and so does its color: " .. tostring(colorRow and colorRow.text.text))
+	local others = 0
+	for _, w in ipairs(n.SettingsPanel.pools.check or {}) do if w:IsShown() and w.key and w.key:find("^glowItems_") then others = others + 1 end end
+	check(others == 2, "only the kinds turned on (herb, and soul from this profile) show their options: " .. others)
+	n.SettingsPanel:Hide()
 	n.SettingsPanel:Hide()
 	check((n.errors or 0) == 0, "no errors")
 end)()

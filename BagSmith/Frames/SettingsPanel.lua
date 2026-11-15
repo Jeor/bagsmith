@@ -1372,7 +1372,7 @@ pages.look = function(self, db)
 	self:Step("rowHeight", "Row Height (List View)", 2, "%d")
 	self:Check("dense", "Compact Rows", "Shorter rows in List view")
 	-- (1.8.0, Shweep's plan of 10 Nov) the item windows' text: bags, bank, bag windows, the Loot and Disenchant Helpers
-	self:Step("textScale", "Text Size", 0.1, "%d%%", "How big the item text is in your bags, bank and bag windows and the Loot and Disenchant Helpers.")
+	self:Step("textScale", "Text Size", 0.1, "%d%%", "How big the item text is in your bags, bank and individual bag windows and the Loot and Disenchant Helpers.")
 	do
 		local choices = ns.Fonts and ns.Fonts:Choices() or { { key = "", label = "Game Font" } }
 		for _, c in ipairs(choices) do c.path = ns.Fonts and ns.Fonts:PathOf(c.key) end
@@ -1412,14 +1412,18 @@ pages.icons = function(self, db)
 	self:Indented(function() self:Color("iconItemLevelColor", "Item Level Color", "The color of the item level") end)
 	-- (1.8.0-beta5) Special bags: an inner glow per kind of bag, each off until turned on, in a color of your choice
 	self:Head("Special Bags")
+	-- (beta5 feedback, Shweep) each kind's options sit under it and name it: its items too (on by default), its color
 	for _, k in ipairs(ns.BAG_KINDS) do
 		local name = ns:BagKindName(k.key)
-		self:Check("glow_" .. k.key, ("Glow in %s Slots"):format(name), ("A soft glow inside the slots of your %s, so you can tell them apart at a glance."):format(name:lower()))
+		local lower = name:lower()
+		self:Check("glow_" .. k.key, ("Glow in %s Slots"):format(name), ("A soft glow inside the slots of your %s, so you can tell them apart at a glance."):format(lower))
 		if db["glow_" .. k.key] then
-			self:Indented(function() self:Color("glowColor_" .. k.key, ("%s Color"):format(name), ("The glow's color in your %s"):format(name:lower())) end)
+			self:Indented(function()
+				self:Check("glowItems_" .. k.key, ("Glow on %s Items Too"):format(name), ("The items in your %s glow too, not only its empty slots."):format(lower))
+				self:Color("glowColor_" .. k.key, ("%s Glow Color"):format(name), ("The glow's color in your %s"):format(lower))
+			end)
 		end
 	end
-	self:Check("glowItems", "Also Glow on Items", "The glow shows on the items in those bags too, not only on their empty slots.")
 	self:IconCorners()
 end
 
@@ -1568,7 +1572,7 @@ pages.keys = function(self, db)
 end
 
 pages.window = function(self, db)
-	self:Head("Bag Window")
+	self:Head("Main Window")   -- (1.8.0-beta5, Shweep) was "Bag Window", too close to the individual bag windows' heading
 	self:Seg("view", "Start In", { { "list", "List" }, { "icons", "Icons" } })
 	self:Seg("sizeMode", "Window Size", { { "auto", "Fit to Items" }, { "fixed", "Scalable" } },
 		db.sizeMode == "auto" and "Shrinks to fit your items, up to the max size below. Dragging the corner sets the max size." or "Stays the size you set. Drag the corner to resize it.")
@@ -1578,29 +1582,32 @@ pages.window = function(self, db)
 		self:Step("fixW", "Width", 20, "%d"); self:Step("fixH", "Height", 20, "%d")
 	end
 	-- (1.7.0-beta2, Shweep)
-	self:Check("lockWindows", "Lock Windows", "Your bags, bank and bag windows and the Loot and Disenchant Helpers can't be moved or resized.")
+	self:Check("lockWindows", "Lock Windows", "Your bags, bank and individual bag windows and the Loot and Disenchant Helpers can't be moved or resized.")
 	-- (1.6.0) one Opacity card, in three parts (Shweep): what's always see-through, what dims while moving, what dims in
 	-- combat. Background Opacity alone touches only the frame; moving and combat fade whole windows.
 	self:Head("Opacity")
 	self:Sub("Always")
-	self:Step("bgOpacity", "Background Opacity", 0.05, "%d%%", "How see-through the bag windows' frame and background are. Your items and text stay solid.")
+	self:Step("bgOpacity", "Background Opacity", 0.05, "%d%%", "How see-through the frame and background of your bags, bank and individual bag windows are. Your items and text stay solid.")
 	self:Indented(function()
 		self:Check("bgWhole", "Whole Window", "Fade your items, text and buttons too. Moving and combat never make it brighter than this.")
 	end)
 	self:Sub("While Moving")
-	self:Check("fadeMoving", "Fade While Moving", "Dims the bag windows while your character is moving.")
+	self:Check("fadeMoving", "Fade While Moving", "Dims your bags, bank and individual bag windows while your character is moving.")
 	self:Indented(function() self:Step("movingAlpha", "Opacity While Moving", 0.05, "%d%%") end)
 	self:Sub("In Combat")
 	self:Check("combatFade", "Fade in Combat", "Dims every BagSmith window during combat, including the helpers.")
 	self:Indented(function() self:Step("combatAlpha", "Opacity in Combat", 0.05, "%d%%") end)
-	self:Check("combatLock", "Ignore Clicks While Faded", "In combat, clicks pass through faded windows, so you can't use an item by accident.")
-	self:Head("Bag Windows")
+	-- (1.8.0-beta5, Shweep) out of Opacity, with a plainer name (was "Ignore Clicks While Faded"); it still works with the
+	-- combat fade (Window.lua: ApplyCombatFade), as before
+	self:Head("Combat")
+	self:Check("combatLock", "Prevent Accidental Clicks in Combat", "While your BagSmith windows are faded in combat (Fade in Combat, under Opacity), clicks on them go to the game instead, so you can't use an item by accident.")
+	self:Head("Individual Bag Windows")   -- (1.8.0-beta5, Shweep) was "Bag Windows": each bag in its own small window
 	self:Seg("__openWindows", "When the Main Window Opens",
 		{ { "main", "Open Main Window Only" }, { "all", "Auto-Open All Bags" }, { "reagent", "Auto-Open Reagent Bag" } },
-		"The footer buttons open or close bag windows anytime.", true)
-	self:Step("bagCols", "Icons per Row in Bag Windows", 1, "%d")
-	self:Step("bagScale", "Bag Window Scale", 0.05, "%d%%", "On top of Scale in Style. 100% matches the main window.")
-	self:Step("bagMaxH", "Bag Window Max Height", 20, "%d", "Taller bags scroll.")
+		"The footer buttons open or close individual bag windows anytime.", true)
+	self:Step("bagCols", "Icons per Row in Individual Bag Windows", 1, "%d")
+	self:Step("bagScale", "Individual Bag Window Scale", 0.05, "%d%%", "On top of Scale in Style. 100% matches the main window.")
+	self:Step("bagMaxH", "Individual Bag Window Max Height", 20, "%d", "Taller bags scroll.")
 	self:Head("Currency Drawer")
 	self:Seg("side", "Opens to the", { { "left", "Left" }, { "right", "Right" } }, "Switches sides when there isn't room.")
 end

@@ -461,8 +461,8 @@ for _, k in ipairs(ns.BAG_KINDS or {}) do
 	DEFAULTS["glow_" .. k.key] = false
 	DEFAULTS["glowColor_" .. k.key] = k.color
 	validators["glowColor_" .. k.key] = validators.accent
+	DEFAULTS["glowItems_" .. k.key] = true   -- (beta5 feedback, Shweep) its items glow too, unless turned off
 end
-DEFAULTS.glowItems = false   -- the glow on items in those bags too, not only on empty slots
 
 local copy = ns.Copy
 validators.bankCols = validators.cols
