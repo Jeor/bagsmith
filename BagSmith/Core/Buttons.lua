@@ -137,7 +137,26 @@ end
 
 Buttons.PixelSize = pixelSize   -- (1.7.3-beta3) also the resize outline's line (Frames/Outline.lua)
 
+-- Read the current client's bag border before item updates can change it.
+-- Cached/alt cells share that art without enabling the secure button's own
+-- IconBorder (Blizzard can show that region again during item updates).
+local function templateBorderArt(b)
+	if Buttons.borderArt then return Buttons.borderArt end
+	local probe = b.IconBorder and b or Buttons.all[1]
+	local tex = probe and probe.IconBorder
+	if not tex then return end   -- retry when a template-backed button exists
+	local atlas = tex.GetAtlas and tex:GetAtlas()
+	local file = tex.GetTexture and tex:GetTexture()
+	if atlas and atlas ~= "" then
+		Buttons.borderArt = { atlas = atlas }
+	elseif file then
+		Buttons.borderArt = { file = file, coords = tex.GetTexCoord and { tex:GetTexCoord() } }
+	end
+	return Buttons.borderArt
+end
+
 function Buttons.AddFrame(b)
+	templateBorderArt(b)
 	b.frameBG = b:CreateTexture(nil, "BACKGROUND", nil, -2)
 	b.frameBG:SetTexture("Interface\\Buttons\\WHITE8X8")
 	b.frameEdge = b:CreateTexture(nil, "BACKGROUND", nil, -1)
@@ -250,11 +269,23 @@ function Buttons:ApplyQuality(b, rec)
 		b.qRing:Hide(); b.qFrame:Hide(); b.frameEdge:Hide(); b.frameBG:Hide()
 		self:DrawModernBorder(b, r, g, bl)
 	elseif classicCell then
-		-- Blizzard's rarity frame, 2 px larger than the icon on every side so its
-		-- rounded corners cover the icon's square corners (icons whose art runs
-		-- to the edge, such as capes, showed a corner outside the frame).
+		local art = templateBorderArt(b)
+		if art and b.classicBorderArt ~= art then
+			if art.atlas then b.qFrame:SetAtlas(art.atlas)
+			else
+				b.qFrame:SetTexture(art.file)
+				if art.coords and #art.coords > 0 then b.qFrame:SetTexCoord(unpack(art.coords)) end
+			end
+			b.classicBorderArt = art
+		end
 		b.qFrame:ClearAllPoints()
-		b.qFrame:SetPoint("TOPLEFT", icon, "TOPLEFT", -2, 2); b.qFrame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 2, -2)
+		if art then
+			b.qFrame:SetAllPoints(icon)
+		else
+			-- Older clients without readable template art keep the legacy frame
+			-- and its expansion, which covers the icon's square corners.
+			b.qFrame:SetPoint("TOPLEFT", icon, "TOPLEFT", -2, 2); b.qFrame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 2, -2)
+		end
 		b.qFrame:SetVertexColor(r, g, bl, 1)
 		b.qFrame:Show(); b.qRing:Hide()
 	else
