@@ -888,7 +888,7 @@ function View:PlaceHiddenNotice(host, y, width)
 	if not note then
 		note = CreateFrame("Frame", nil, host)
 		note:SetHeight(50)
-		note.text = note:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		note.text = note:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall"))
 		note.text:SetPoint("TOP", note, "TOP", 0, -6); note.text:SetJustifyH("CENTER")
 		note.btn = ns.TextButton(note, "", 100, function()
 			ns.ui.showHidden = not ns.ui.showHidden
@@ -927,6 +927,8 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 	local used, usedSet = {}, {}
 	local iconMode = self:Pref("view") == "icons" or self.kind == "bag"
 	local rowH, cell = db.dense and 22 or db.rowHeight, db.iconSize
+	-- (1.8.0) a row holds its text: above 100% Text Size, rows grow to fit it (a larger Row Height still applies)
+	if ns.Fonts then rowH = math.max(rowH, ns.Fonts:RowNeed()) end
 	local y = 0
 
 	-- Live bags: attach proxies to this host so the buttons draw and clip here.
@@ -1519,7 +1521,7 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 			-- A set you're wearing: "Worn" where Equip would be.
 			if lane.allWorn then
 				if not h.wornTag then
-					h.wornTag = h:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+					h.wornTag = h:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall"))
 					h.wornTag:SetText("Worn")
 				end
 				h.wornTag:ClearAllPoints(); h.wornTag:SetPoint("LEFT", h.count, "RIGHT", 10, 0)
@@ -1632,7 +1634,7 @@ function View:PlaceGearSetsNote(host, y, width, show)
 	end
 	if not note then
 		note = CreateFrame("Frame", nil, host)
-		note.text = note:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+		note.text = note:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlight"))
 		note.text:SetPoint("TOP", note, "TOP", 0, -10); note.text:SetJustifyH("CENTER")
 		note.btn = ns.TextButton(note, "Create Gear Set", 130, function() if ns.GearSets then ns.GearSets:PromptNew() end end)
 		note.btn:SetHeight(22); note.btn:SetPoint("TOP", note.text, "BOTTOM", 0, -10)

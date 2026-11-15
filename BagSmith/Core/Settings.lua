@@ -167,6 +167,7 @@ local DEFAULTS = {
 	fav = {},                  -- currency keys, e.g. "c:3402" or "i:20558"
 	blizzUnpinned = {},        -- (1.7.1-beta1) currency ID -> true: unpinned in this profile, never pinned again by the game's picks
 	-- size
+	textScale = 1.0, fontName = "",   -- (1.8.0) Text Size (80% to 150%) and Font ("" = the game's) for the item windows
 	scale = 1.0, sizeMode = "fixed", maxW = 680, maxH = 720, fixW = 620, fixH = 560,   -- new players start Scalable ("fixed")
 	iconSize = 37, rowHeight = 26,
 	iconItemLevel = false,        -- Icons view: the item level in the icon's top-right corner, for weapons and armor (1.0.2)
@@ -338,7 +339,7 @@ local validators = {
 	end,
 	sort = oneOf("quality", "name", "newest", "oldest", "ilvl", "off"), sizeMode = oneOf("auto", "fixed"),
 	bankGrp = oneOf("none", "type", "bag"), bankSort = oneOf("quality", "name", "newest", "oldest", "ilvl", "off"), bankView = oneOf("list", "icons"),
-	combatAlpha = num(0.05, 1), bgOpacity = num(0, 1), pinnedHighlightAlpha = num(0.05, 0.5), movingAlpha = num(0.05, 1), scale = num(0.5, 1.5), bagCols = num(4, 12, true), bagScale = num(0.5, 1.5), bagMaxH = num(200, 800, true), shardKeep = num(0, 40, true), maxW = num(440, 1400, true), maxH = num(300, 1200, true),
+	combatAlpha = num(0.05, 1), bgOpacity = num(0, 1), pinnedHighlightAlpha = num(0.05, 0.5), movingAlpha = num(0.05, 1), scale = num(0.5, 1.5), textScale = num(0.8, 1.5), fontName = function(v) if type(v) == "string" and #v <= 100 then return v end end, bagCols = num(4, 12, true), bagScale = num(0.5, 1.5), bagMaxH = num(200, 800, true), shardKeep = num(0, 40, true), maxW = num(440, 1400, true), maxH = num(300, 1200, true),
 	fixW = num(440, 1400, true), bankW = num(500, 1400, true), bankH = num(300, 1200, true), fixH = num(300, 1200, true), iconSize = num(24, 48, true), rowHeight = num(20, 32, true),
 	minimapAngle = num(0, 360), point = pointV, bankPoint = pointV, settingsPoint = pointV,
 	makeRoomPos = function(v) if v == false then return false end return pointV(v) end,

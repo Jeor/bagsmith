@@ -141,7 +141,7 @@ local function listWindow(kind)
 	f:SetMovable(true); f:RegisterForDrag("LeftButton")
 	f:SetScript("OnDragStart", f.StartMoving); f:SetScript("OnDragStop", f.StopMovingOrSizing)
 	f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge"); f.title:SetPoint("TOPLEFT", 12, -12); f.title:SetText(spec.title)
-	f.sub = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.sub:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 0, -3)
+	f.sub = f:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.sub:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 0, -3)
 	f.sub:SetWidth(NW - 24); f.sub:SetJustifyH("LEFT")
 	f.search = CreateFrame("EditBox", spec.global .. "Search", f, "SearchBoxTemplate")
 	f.search:SetSize(NW - 32, 22); f.search:SetAutoFocus(false); f.search:SetPoint("TOPLEFT", 18, -58)
@@ -151,7 +151,7 @@ local function listWindow(kind)
 	f.scroll:SetPoint("TOPLEFT", 10, -88); f.scroll:SetPoint("BOTTOMRIGHT", -30, 44)
 	f.child = CreateFrame("Frame", nil, f.scroll); f.child:SetSize(NW - 44, 1); f.scroll:SetScrollChild(f.child)
 	f.rows = {}
-	f.empty = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.empty:SetPoint("TOPLEFT", 16, -96)
+	f.empty = f:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.empty:SetPoint("TOPLEFT", 16, -96)
 	f.empty:SetWidth(NW - 32); f.empty:SetJustifyH("LEFT")
 	f.close = ns.TextButton(f, "Close", 70, function() f:Hide() end); f.close:SetHeight(22); f.close:SetPoint("BOTTOMRIGHT", -12, 12)
 	f.classicSpec = ns.Classic.DialogSpec(f, { restore = function() ns.Skins:ApplyBackdrop(f); local s = ns.Skins:Current(); f:SetBackdropColor(s.bg[1], s.bg[2], s.bg[3], 1) end })
@@ -173,7 +173,7 @@ local function listRow(f, i)
 	r = CreateFrame("Frame", nil, f.child); r:SetSize(NW - 44, NROW - 2)
 	r:EnableMouse(true)
 	r.icon = r:CreateTexture(nil, "ARTWORK"); r.icon:SetSize(18, 18); r.icon:SetPoint("LEFT", 2, 0)
-	r.name = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); r.name:SetPoint("LEFT", r.icon, "RIGHT", 6, 0)
+	r.name = r:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); r.name:SetPoint("LEFT", r.icon, "RIGHT", 6, 0)
 	r.name:SetPoint("RIGHT", -28, 0); r.name:SetJustifyH("LEFT"); r.name:SetWordWrap(false)
 	r.remove = ns.IconButton(r, "Interface\\AddOns\\BagSmith\\Media\\ui-close.tga", spec.removeTip, function(b) spec.remove(b:GetParent().id) end)
 	r.remove:SetSize(16, 16); r.remove:SetPoint("RIGHT", -4, 0)
@@ -1409,15 +1409,15 @@ local function makeItemRow(parent, opts)
 	r.dot:SetShown(r.choosable)
 	r.icon = r:CreateTexture(nil, "ARTWORK"); r.icon:SetSize(28, 28); r.icon:SetPoint("LEFT", 26, 0)
 	r.count = r:CreateFontString(nil, "OVERLAY", "NumberFontNormal"); r.count:SetPoint("BOTTOMRIGHT", r.icon, "BOTTOMRIGHT", -1, 1)
-	r.name = r:CreateFontString(nil, "OVERLAY", "GameFontHighlight"); r.name:SetPoint("TOPLEFT", r.icon, "TOPRIGHT", 8, -1)
+	r.name = r:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlight")); r.name:SetPoint("TOPLEFT", r.icon, "TOPRIGHT", 8, -1)
 	r.name:SetJustifyH("LEFT"); r.name:SetWordWrap(false)
-	r.value = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); r.value:SetPoint("BOTTOMLEFT", r.icon, "BOTTOMRIGHT", 8, 1)
+	r.value = r:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); r.value:SetPoint("BOTTOMLEFT", r.icon, "BOTTOMRIGHT", 8, 1)
 	r.value:SetJustifyH("LEFT"); r.value:SetWordWrap(false)
 	r.btns = {}
 	local prev, used = nil, 0
 	-- (1.7.0-beta10) a cost column on the right: "Free", "Junk 3c", "8c"
 	if opts.cost then
-		r.cost = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); r.cost:SetPoint("RIGHT", -8, 0); r.cost:SetJustifyH("RIGHT")
+		r.cost = r:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); r.cost:SetPoint("RIGHT", -8, 0); r.cost:SetJustifyH("RIGHT")
 		used = COST_W
 	end
 	for i = #buttons, 1, -1 do
@@ -1453,7 +1453,7 @@ function MR.ToScreen(f)
 	f:ClearAllPoints(); f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top); f:SetSize(w, h)
 end
 local function hrule(f) local t = f:CreateTexture(nil, "ARTWORK"); t:SetHeight(1); t:SetColorTexture(1, 1, 1, 0.12); t:Hide(); return t end
-local function line(f) local t = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); t:SetJustifyH("LEFT"); t:Hide(); return t end
+local function line(f) local t = f:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); t:SetJustifyH("LEFT"); t:Hide(); return t end
 function MR:Frame()
 	local f = self.frame
 	if f then return f end
@@ -1474,7 +1474,7 @@ function MR:Frame()
 	f.closeX = ns.IconButton(f, MEDIA .. "ui-close.tga", "Close", function() f:Hide() end)
 	f.closeX:SetSize(18, 18); f.closeX:SetPoint("TOPRIGHT", -10, -10)
 	f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge"); f.title:SetPoint("TOPLEFT", 12, -12)
-	f.sub = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight"); f.sub:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 0, -3)
+	f.sub = f:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlight")); f.sub:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 0, -3)
 	f.sub:SetWidth(W - 24); f.sub:SetJustifyH("LEFT"); f.sub:SetWordWrap(true)
 	f.heads = {}
 	f.waitRows, f.combineRows, f.destroyRows = {}, {}, {}
@@ -1501,25 +1501,25 @@ function MR:Frame()
 	f.protect:SetSecondary(true)   -- 1.7.0-beta11: gray in both skins, a second choice beside the main button
 	f.protect.tip = "Don't suggest again"
 	f.protect.tipSub = "The Loot Helper won't offer this item again. Settings > Loot Helper lists what you've protected."
-	f.foot = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.foot:SetJustifyH("CENTER"); f.foot:SetWordWrap(false); f.foot:Hide()
+	f.foot = f:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.foot:SetJustifyH("CENTER"); f.foot:SetWordWrap(false); f.foot:Hide()
 	-- Soul Shards row
 	f.shard = CreateFrame("Frame", nil, f); f.shard:SetSize(W - 24, 24)
-	f.shard.text = f.shard:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.shard.text:SetPoint("TOPLEFT", 0, 0)
+	f.shard.text = f.shard:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.shard.text:SetPoint("TOPLEFT", 0, 0)
 	f.shard.text:SetWidth(W - 24); f.shard.text:SetJustifyH("LEFT")
 	f.shard.minus = ns.IconButton(f.shard, MEDIA .. "ui-minus.tga", "Fewer", function() MR.shardQty = math.max(1, (MR.shardQty or 1) - 1); MR:Paint() end)
 	f.shard.minus:SetSize(20, 20); f.shard.minus:SetPoint("TOPLEFT", 0, -16)
-	f.shard.qty = f.shard:CreateFontString(nil, "OVERLAY", "GameFontHighlight"); f.shard.qty:SetPoint("LEFT", f.shard.minus, "RIGHT", 6, 0)
+	f.shard.qty = f.shard:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlight")); f.shard.qty:SetPoint("LEFT", f.shard.minus, "RIGHT", 6, 0)
 	f.shard.plus = ns.IconButton(f.shard, MEDIA .. "ui-plus.tga", "More", function() local _, can = MR:Shards(); MR.shardQty = math.min(can, (MR.shardQty or 1) + 1); MR:Paint() end)
 	f.shard.plus:SetSize(20, 20); f.shard.plus:SetPoint("LEFT", f.shard.qty, "RIGHT", 6, 0)
 	f.shard.go = ns.TextButton(f.shard, "Destroy Shards", 150, function(b) MR:DestroyNextShard(b) end)
 	f.shard.go:SetHeight(20); f.shard.go:SetPoint("LEFT", f.shard.plus, "RIGHT", 8, 0)
-	f.status = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.status:SetPoint("BOTTOMLEFT", 12, 12)
+	f.status = f:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.status:SetPoint("BOTTOMLEFT", 12, 12)
 	f.status:SetWidth(W - 24); f.status:SetJustifyH("CENTER")
 	-- When nothing can free a slot: the card, with BagSmith's mark.
 	f.card = CreateFrame("Frame", nil, f); f.card:SetSize(W - 24, 150); f.card:Hide()
 	f.card.mark = f.card:CreateTexture(nil, "ARTWORK"); f.card.mark:SetSize(48, 48); f.card.mark:SetPoint("TOP", 0, -8); f.card.mark:SetTexture(MEDIA .. "mark128.tga")
 	f.card.head = f.card:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge"); f.card.head:SetPoint("TOP", f.card.mark, "BOTTOM", 0, -8); f.card.head:SetText("Nothing here frees a slot.")
-	f.card.text = f.card:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.card.text:SetPoint("TOP", f.card.head, "BOTTOM", 0, -6)
+	f.card.text = f.card:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.card.text:SetPoint("TOP", f.card.head, "BOTTOM", 0, -6)
 	f.card.text:SetWidth(W - 60); f.card.text:SetJustifyH("CENTER"); f.card.text:SetWordWrap(true)
 	f.classicSpec = ns.Classic.DialogSpec(f, { hide = { f.closeX }, restore = function() ns.Skins:ApplyBackdrop(f); local s = ns.Skins:Current(); f:SetBackdropColor(s.bg[1], s.bg[2], s.bg[3], 1) end })
 	ns.Skins:Register(f, function(fr)

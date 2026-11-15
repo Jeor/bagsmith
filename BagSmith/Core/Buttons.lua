@@ -344,7 +344,7 @@ end
 ------------------------------------------------------------------------
 local function addText(b)
 	for _, key in ipairs(COL_KEYS) do
-		local s = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		local s = b:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall"))
 		s:SetWordWrap(false)
 		s:Hide()
 		-- Its normal color, so Dim Junk Items can put it back.
@@ -1180,23 +1180,23 @@ end
 -- Lane headers (plain buttons: collapse on click, drag to reorder)
 ------------------------------------------------------------------------
 local function decorateLane(h)
-	h.text = h:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	h.text = h:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontNormal"))
 	h.text:SetPoint("LEFT", 20, 0)
 	h.accent = h:CreateTexture(nil, "ARTWORK")
 	h.accent:SetPoint("TOPLEFT", 0, -3); h.accent:SetPoint("BOTTOMLEFT", 0, 3); h.accent:SetWidth(3)
 	h.accent:SetTexture("Interface\\Buttons\\WHITE8X8"); h.accent:SetVertexColor(1, 1, 1, 0.9)
 	h.text:SetJustifyH("LEFT")
-	h.sub = h:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	h.sub = h:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall"))
 	h.sub:SetPoint("RIGHT", -4, 0)
 	h.sub:SetJustifyH("RIGHT")
 	-- The section's item count, right after its name: "Trade Goods (11)".
-	h.count = h:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	h.count = h:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall"))
 	h.count:SetPoint("LEFT", h.text, "RIGHT", 6, 0)
 	h.count:SetJustifyH("LEFT")
 	-- Stacked values (see writeHeaderValues in ViewList.lua): a small table of
 	-- "V:" and "AH:" labels with their amounts, right-aligned in columns.
 	for _, key in ipairs({ "vLabel", "vAmt", "aLabel", "aAmt" }) do
-		h[key] = h:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		h[key] = h:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall"))
 		h[key]:SetJustifyH("RIGHT")
 		h[key]:Hide()
 	end

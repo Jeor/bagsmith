@@ -1,3 +1,17 @@
+## 1.8.0
+
+New:
+- Text Size (Settings > Style, under Size): make the item text in your bags, bank and bag windows and the Loot and
+  Disenchant Helpers bigger or smaller, from 80% to 150%. List rows grow to fit bigger text.
+- Font (beside it): show that text in a font another addon shares, or the game's own.
+- The Disenchant Helper learns new disenchant materials: anything a disenchant gives that it didn't know is remembered
+  for this character and counted from then on.
+- Gear the Disenchant Helper has no table for (above item level 99) learns from your own disenchants: it says "Still
+  learning" until it has 20 results for that range, then shows your own.
+Changed:
+- The Disenchant Helper's summary in chat reads as one sentence, like "1 item disenchanted: Greater Magic Essence x2,
+  worth about 7s 60c at current AH prices."
+
 ## 1.7.4
 
 Changed:
