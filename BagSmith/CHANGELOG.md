@@ -14,7 +14,8 @@ New:
   bags, tackle boxes, trinket bags and reagent bags): turn on an indicator for each kind to tell its slots apart at a
   glance, as a soft glow inside the slot or as the slot's frame in that color instead of the rarity color (Settings >
   Item Icons > Special Bag Slot Indicators). Every indicator is off until you turn it on; each has its own color and
-  opacity, and its empty and filled slots each choose Inner Glow, Frame Color or Off.
+  opacity, and its empty and filled slots each choose Inner Glow, Frame Color or Off. List view shows it too, on
+  each item's icon.
 - Quest items get a gold frame in both looks, whatever Rarity Borders says (Settings > Item Icons, Gold Frame for
   Quest Items, on by default).
 - Profiles: choose what the characters using a profile share (Settings > Profile, Shared Between Characters): Favorites,

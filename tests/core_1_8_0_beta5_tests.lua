@@ -90,9 +90,14 @@
 	n:Set("glowEmpty_herb", "glow"); M.runTimers()
 	check(n.db.glowFilled_quiver == "glow" and n.db.glowEmpty_quiver == "glow" and n.db.glowItems_quiver == nil, "every kind has its own empty and filled choices (Inner Glow); the old switch is gone")
 	n.ui.bagWindows = false; main:SetPref("view", "list"); n:RefreshViews(true); M.runTimers()
-	local rowGlow = false
-	for _, b in ipairs(n.Buttons.all) do if b:IsShown() and b.mode == "row" and b.bagGlow and b.bagGlow:IsShown() then rowGlow = true end end
-	check(not rowGlow, "list rows never glow")
+	-- (1.8.0-beta12, by design, Shweep: "not seeing the bag indicators in list view") a herb bag item's row glows too
+	local herbRow, otherRow = false, false
+	for _, b in ipairs(n.Buttons.all) do
+		if b:IsShown() and b.mode == "row" and b.bagGlow and b.bagGlow:IsShown() then
+			if b.smithBag == 3 then herbRow = true else otherRow = true end
+		end
+	end
+	check(herbRow and not otherRow, "List view: a herb bag item's row shows the indicator, an ordinary bag's doesn't")
 	check((n.errors or 0) == 0, "no errors")
 
 	-- saved: each bag's kind, so another character's footer splits its counts the same way

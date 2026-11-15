@@ -324,7 +324,8 @@ end
 -- bags only; empty and filled slots each have their own choice (beta11: Inner Glow, Frame Color or Off).
 function Buttons:Indicator(b, rec)
 	local db = ns.db
-	if not db or b.mode ~= "cell" then return nil end
+	-- (beta12, Shweep: "not seeing the bag indicators in list view") List rows too: a row is always a filled slot
+	if not db or (b.mode ~= "cell" and b.mode ~= "row") then return nil end
 	rec = rec or b.rec
 	if rec and (rec.cached or rec.display) then return nil end
 	local bag = (rec and rec.bag) or b.smithBag or b.bag
@@ -343,6 +344,14 @@ local function drawIndicatorFrame(self, b, kind)
 	local a = tonumber(ns.db["glowAlpha_" .. kind]) or 1
 	if (ns.db.skin or "modern") == "modern" then
 		self:DrawModernBorder(b, r, g, bl, a)
+	elseif b.mode == "row" then
+		-- (beta12) a Classic list row's thin ring, in the kind's color
+		local pixel = pixelSize(b)
+		b.qRing:ClearAllPoints()
+		b.qRing:SetPoint("TOPLEFT", b.icon, "TOPLEFT", -pixel, pixel); b.qRing:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", pixel, -pixel)
+		b.ringPixel = pixel
+		b.qRing:SetVertexColor(r, g, bl, a)
+		b.qRing:Show(); b.qFrame:Hide()
 	else
 		self:UpdateClassicBorderGeometry(b)
 		b.qFrame:SetVertexColor(r, g, bl, a)
