@@ -166,10 +166,11 @@
 		local n, M = boot(pack)
 		local MR = n.MakeRoom
 		MR.Waiting = function() return { { id = 9741, name = "Shiny Ring", qty = 1, quality = 2, values = { vendor = 500 } } } end
-		MR.quest = { kind = "complete", title = "A Quest" }
+		-- (1.7.4-beta1, by design) a quest's footer counts what's left: with its one reward, "Then there's room for the reward."
+		MR.quest = { kind = "complete", title = "A Quest", rewards = { { id = 9741, name = "Shiny Ring", qty = 1, quality = 2 } } }
 		MR:Show("quest"); M.runTimers()
 		local f = MR.frame
-		check(f.foot:IsShown() and f.foot.text == "Then there's room for Shiny Ring.", "quest rewards: \"Then there's room for Shiny Ring.\" (" .. tostring(f.foot.text) .. ")")
+		check(f.foot:IsShown() and f.foot.text == "Then there's room for the reward.", "quest rewards: \"Then there's room for the reward.\" (" .. tostring(f.foot.text) .. ")")
 		f:Hide()
 	end
 

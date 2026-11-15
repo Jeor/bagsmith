@@ -332,11 +332,21 @@ local function questEntries(self)
 			out[#out + 1] = { id = e.id, name = e.name, qty = e.qty, quality = e.quality, icon = e.icon, link = e.link }
 		end
 	else
-		-- The game doesn't say which item a quest hands you on accepting.
-		out[#out + 1] = { name = "An item from this quest", qty = 1, icon = "Interface\\Icons\\INV_Misc_QuestionMark" }
+		-- The game doesn't say which item a quest hands you on accepting, nor how many. (1.7.4-beta1) At least one, and
+		-- more once a refusal shows it: the game said full with that many free slots (q.minNeed, set in questFull).
+		for _ = 1, math.max(1, q.minNeed or 1) do
+			out[#out + 1] = { name = "An item from this quest", qty = 1, icon = "Interface\\Icons\\INV_Misc_QuestionMark" }
+		end
 	end
 	return out
 end
+-- (1.7.4-beta1) Free slots any item can use (ordinary bags: not special bags, not the reagent bag).
+local function ordinaryFree()
+	local n = 0
+	for _, b in ipairs(freeSpace()) do if b.family == 0 and not b.reagent then n = n + b.free end end
+	return n
+end
+MR.OrdinaryFree = ordinaryFree
 -- The entries that won't fit (room in existing stacks first, then special
 -- bags that take them, then ordinary bags), each counted against the last.
 -- (1.7.0-beta10) first: the order slots are handed out in (the target, then the rest); the answer keeps the loot
@@ -423,9 +433,17 @@ function MR:Target(list)
 	return best
 end
 function MR:Waiting()
-	local entries = self.mode == "quest" and questEntries(self) or lootEntries(self)
+	-- (1.7.4-beta1, Shweep) A quest hands over every reward at once, so no reward is first in line for a free slot: which
+	-- rewards are waiting doesn't depend on the one you picked (it took the free slot, counted as fitting and left the
+	-- list, and the reward that had held the slot came back: clicking swapped them back and forth). The pick only moves
+	-- the highlight and what the offers are judged against. Loot keeps it: a slot you free goes to the loot you picked.
+	if self.mode == "quest" then return fitting(self, questEntries(self)) end   -- (what still needs room: a count)
+	local entries = lootEntries(self)
 	return fitting(self, entries, self:Target(entries))
 end
+
+-- (1.7.4-beta1) Everything the quest gives (shown in full: a quest hands over all of it at once).
+function MR:QuestItems() return questEntries(self) end
 
 -- Soul Shards in ordinary bags (never soul bags), and how many may go.
 function MR:Shards()
@@ -609,7 +627,18 @@ end
 -- (1.7.0-beta9, the beta8 audit's A2) An item objective with blank text, or C_QuestLog's list with a hole in it, is a
 -- failed read too (a non-item objective's blank text is fine).
 MR.questMemo = MR.questMemo or {}
-local function objectiveName(text) return text:match("^(.-):%s*%d+%s*/%s*%d+%s*$") or text end
+-- An objective's item name: "Okra: 3/3" (the classic log) or "0/4 Miners' Union Card" (C_QuestLog on Forever, 1.7.4-beta2;
+-- a note in brackets after the name is dropped: "0/5 Linen Cloth (collect)" is Linen Cloth); nil for a line in neither form.
+local function objectiveItem(text)
+	local named = text:match("^(.-):%s*%d+%s*/%s*%d+%s*$")
+	if named then return named end
+	named = text:match("^%s*%d+%s*/%s*%d+%s+(.-)%s*$")
+	if named then named = named:gsub("%s*%b()$", "") end
+	if named and named ~= "" then return named end
+	return nil
+end
+MR.ObjectiveItem = objectiveItem
+local function objectiveName(text) return objectiveItem(text) or text end
 -- (1.7.0-beta9) A usable quest ID: a positive number (also for /bs questlog's count), else nil.
 function MR.QuestID(v)
 	v = tonumber(v)
@@ -657,15 +686,36 @@ local function apiTexts(questID)
 end
 function MR:QuestObjectives(report)
 	local memo = self.questMemo
-	if not GetNumQuestLogEntries then return {}, true end
-	local okC, n = pcall(GetNumQuestLogEntries)
+	-- (1.7.4-beta1, Shweep's /bs questlog on Forever: "? lines", "Items kept for quests: 0", while C_QuestLog listed 20
+	-- quests) Forever has no GetNumQuestLogEntries: the log was taken as read and empty, so nothing was kept for a quest
+	-- (Westfall Stew's Okra, Goretusk Snouts and Murloc Eyes were offered at its turn-in). Without it, the log is listed
+	-- through C_QuestLog (its lines, each line's title, header state and quest ID), and each quest's items read by its
+	-- ID first. A client with neither still holds nothing back (1.7.0-beta5, by design).
+	local count, lineAt, viaApi
+	if GetNumQuestLogEntries then
+		count = GetNumQuestLogEntries
+		lineAt = function(i)
+			local ok, title, _, _, isHeader, isCollapsed, _, _, questID = pcall(GetQuestLogTitle, i)
+			return ok, title, isHeader, isCollapsed, questID
+		end
+	elseif C_QuestLog and type(C_QuestLog.GetNumQuestLogEntries) == "function" and type(C_QuestLog.GetInfo) == "function" then
+		count, viaApi = C_QuestLog.GetNumQuestLogEntries, true
+		lineAt = function(i)
+			local ok, info = pcall(C_QuestLog.GetInfo, i)
+			if not ok or type(info) ~= "table" then return false end
+			return true, info.title, info.isHeader, info.isCollapsed, info.questID
+		end
+	else
+		return {}, true
+	end
+	local okC, n = pcall(count)
 	n = okC and tonumber(n) or nil
 	local complete = n ~= nil and n >= 0
 	local hasLog = GetNumQuestLeaderBoards and GetQuestLogLeaderBoard
 	local hasApi = C_QuestLog and C_QuestLog.GetQuestObjectives
 	local seen, byTitle, collapsed = {}, {}, false
 	for i = 1, (complete and n or 0) do
-		local ok, title, _, _, isHeader, isCollapsed, _, _, questID = pcall(GetQuestLogTitle, i)
+		local ok, title, isHeader, isCollapsed, questID = lineAt(i)
 		if not ok or type(title) ~= "string" or title == "" then
 			complete = false
 			if report then report[#report + 1] = { line = i, failed = true } end
@@ -674,7 +724,10 @@ function MR:QuestObjectives(report)
 		else
 			questID = MR.QuestID(questID)
 			local texts, via
-			if hasLog then texts = logTexts(i); via = texts and "log" end
+			-- (1.7.4-beta1) a log listed through C_QuestLog: its objectives by quest ID first (the old functions' line
+			-- numbers may not be C_QuestLog's)
+			if viaApi and questID and hasApi then texts = apiTexts(questID); via = texts and "C_QuestLog" end
+			if not texts and hasLog then texts = logTexts(i); via = texts and "log" end
 			if not texts and questID and hasApi then texts = apiTexts(questID); via = texts and "C_QuestLog" end
 			if not texts and not (GetQuestLogLeaderBoard or hasApi) then texts, via = {}, "none" end   -- nothing to read objectives with
 			if questID then
@@ -713,7 +766,9 @@ function MR:ForgetQuest(questID) local id = MR.QuestID(questID); if id then self
 function MR:NeededForQuest(name, objectives)
 	if type(name) ~= "string" or name == "" then return false end
 	for _, text in ipairs(objectives or {}) do
-		local named = text:match("^(.-):%s*%d+%s*/%s*%d+%s*$")
+		-- (1.7.4-beta2) both forms matched exactly: "Linen Cloth" isn't kept for "0/5 Bolt of Linen Cloth"; only a line in
+		-- neither form falls back to the name anywhere in it
+		local named = objectiveItem(text)
 		if named then
 			if named == name then return true end
 		elseif text:find(name, 1, true) then
@@ -1538,10 +1593,26 @@ function MR:Paint()
 		-- The quest window may have closed (clicking Accept closes it at once).
 		local how = q.closedAt and ("talk to the quest giver and click " .. click) or ("click " .. click)
 		local from = q.title and q.title ~= "" and q.title or "this quest"
-		if n > 0 then
-			f.sub:SetText(("Your bags are full: %d %s from %s won't fit. Make room, then %s."):format(n, n == 1 and "item" or "items", from, how))
-		else
+		-- (1.7.4-beta1, Shweep) say it plainly: a quest gives everything at once, so it's a count of free slots
+		local slots = function(k) return k == 1 and "slot" or "slots" end
+		if n > 0 and q.kind == "complete" then
+			local total = #self:QuestItems()
+			if total > 1 then
+				f.sub:SetText(("Your bags are full. %s gives you all %d rewards at once, so you need %d more free %s. Make room, then %s.")
+					:format(from, total, n, slots(n), how))
+			else
+				f.sub:SetText(("Your bags are full: %s's reward needs %d more free %s. Make room, then %s."):format(from, n, slots(n), how))
+			end
+		elseif n > 0 then
+			local need = math.max(1, q.minNeed or 1)
+			f.sub:SetText(("Your bags are full. Accepting %s gives you at least %d %s, so you need at least %d free %s. The game doesn't say how many items. Make room, then %s.")
+				:format(from, need, need == 1 and "item" or "items", need, slots(need), how))
+		elseif q.kind == "complete" then
 			f.sub:SetText(("There's room now: %s."):format(how))
+		else
+			local need = math.max(1, q.minNeed or 1)
+			f.sub:SetText(("There's room now: %s. If the game still says your bags are full, the quest gives more than %d %s, and this will say how many more free slots you need.")
+				:format(how, need, need == 1 and "item" or "items"))
 		end
 	else
 		f.title:SetText("Loot Helper"); if ns.Classic then ns.Classic:RefreshTitle(f) end
@@ -1550,29 +1621,50 @@ function MR:Paint()
 	end
 	local y, hi = 12 + (f.title:GetStringHeight() or 18) + 4 + (f.sub:GetStringHeight() or 14) + 12, 0
 	if n > 0 then
-		hi = hi + 1; y = head(f, hi, "Waiting to loot", y)
-		-- (1.7.0-beta10, Shweep) the loot it's making room for is the highlighted row; click another to switch
-		local target = self:Target(waiting)
+		-- (1.7.4-beta1, Shweep) a quest's rows: all its rewards (or, accepting, one row for the items it hands you), plain:
+		-- a quest gives everything at once, so there's no reward to pick
+		local rows, target = waiting, nil
+		if quest then
+			local all = self:QuestItems()
+			if (self.quest or {}).kind == "complete" then rows = all
+			else
+				local k = #all
+				rows = { { name = k > 1 and ("At least %d items from this quest"):format(k) or "An item from this quest", qty = 1, icon = all[1] and all[1].icon } }
+			end
+		else
+			-- (1.7.0-beta10, Shweep) the loot it's making room for is the highlighted row; click another to switch
+			target = self:Target(waiting)
+		end
+		hi = hi + 1; y = head(f, hi, quest and ((self.quest or {}).kind == "complete" and "Rewards" or "Given when you accept") or "Waiting to loot", y)
 		local ar, ag, ab = ns.Skins:Accent()
-		for i, w in ipairs(waiting) do
+		for i, w in ipairs(rows) do
 			local r = row(f, f.waitRows, i, function() return makeItemRow(f, { buttons = { { "Skip", 46 }, { "Exclude", 62 } } }) end)
 			r:ClearAllPoints(); r:SetPoint("TOPLEFT", 6, -y)
 			r.icon:SetTexture(w.icon); r.count:SetText((w.qty or 1) > 1 and tostring(w.qty) or "")
 			r.name:SetText(w.name); r.name:SetTextColor(qualityColor(w.quality))
+			if w.id and not w.values then w.values = self:Values(w.id, w.qty or 1, w.link, bindsOnPickup(w.id) and "bop" or nil) end
 			r.value:SetText(w.id and self:ValueText(w.values) or ""); r.value:SetTextColor(unpack(s.muted))
-			local isTarget = w == target
+			local isTarget = target ~= nil and w == target
 			if not r.bar then
 				r.bar = r:CreateTexture(nil, "ARTWORK"); r.bar:SetPoint("TOPLEFT", 0, -2); r.bar:SetPoint("BOTTOMLEFT", 0, 2); r.bar:SetWidth(3)
 				r.bar:SetTexture("Interface\\Buttons\\WHITE8X8")
 				r:SetScript("OnClick", function(self) if self.onTarget then self.onTarget() end end)
 			end
 			r.bar:SetVertexColor(ar, ag, ab, 1); r.bar:SetShown(isTarget); r.hl:SetShown(isTarget)
+			-- (1.7.4-beta2, Shweep) an oversized accent caret in the dot column points at the loot it's making room for
+			if not r.caret then
+				r.caret = r:CreateTexture(nil, "OVERLAY")
+				r.caret:SetTexture("Interface\\AddOns\\BagSmith\\Media\\ui-chev-right.tga")
+				r.caret:SetSize(18, 18); r.caret:SetPoint("LEFT", 5, 0)
+			end
+			r.caret:SetVertexColor(ar, ag, ab, 1); r.caret:SetShown(isTarget)
 			r.isTarget = isTarget
 			local key = self:TargetKey(w)
-			r.onTarget = (n > 1 and not isTarget) and function() MR.target = key; MR.sel, MR.selPicked = nil, nil; MR:Paint() end or nil
+			local pickable = not quest and n > 1 and not isTarget
+			r.onTarget = pickable and function() MR.target = key; MR.sel, MR.selPicked = nil, nil; MR:Paint() end or nil
 			r.tipFn = function(tip)
 				if w.slot and tip.SetLootItem then tip:SetLootItem(w.slot) elseif w.link then tip:SetHyperlink(w.link) else ns.TipText(tip, w.name) end
-				if n > 1 and not isTarget then ns.TipLine(tip, "Click to make room for this instead.", 0.4, 0.8, 1, true) end
+				if pickable then ns.TipLine(tip, "Click to make room for this instead.", 0.4, 0.8, 1, true) end
 			end
 			-- Skip and Exclude are about leaving loot behind: not for quests.
 			r.btns[1]:SetShown(not quest); r.btns[2]:SetShown(not quest)
@@ -1592,6 +1684,8 @@ function MR:PaintSections(f, waiting, shardsOnly, y, hi)
 	local quest = self.mode == "quest"
 	-- (1.7.0-beta10, Shweep's layout) The loot it's making room for, the target: offers are judged against it alone.
 	local target = (not shardsOnly) and self:Target(waiting) or nil
+	-- (1.7.4-beta1) a quest: judged against its most valuable item (nothing worth more than the best reward is offered)
+	if quest then target = self:Target(self:QuestItems()) end
 	local judge = target and { target } or waiting
 	local combine, destroy, held, noPrice, pricier = {}, {}, nil, false, 0
 	if not shardsOnly and #waiting > 0 then combine, destroy, held, noPrice, pricier = self:Suggestions(waiting, judge) end
@@ -1634,7 +1728,13 @@ function MR:PaintSections(f, waiting, shardsOnly, y, hi)
 	-- then items to let go, least missed first; the cost on the right. One choice, one button.
 	local n = shardsOnly and 0 or (#combine + (cleanUp and 1 or 0) + #destroy)
 	if n > 0 then
-		hi = hi + 1; y = head(f, hi, ("To make room for %s"):format(target and target.name or "this loot"), y)
+		local forWhat = target and target.name or "this loot"
+		if quest then
+			local q = self.quest or {}
+			if q.kind == "complete" then forWhat = (q.title and q.title ~= "") and (q.title .. "'s rewards") or "the quest's rewards"
+			else forWhat = #self:QuestItems() > 1 and "them" or "it" end
+		end
+		hi = hi + 1; y = head(f, hi, ("To make room for %s"):format(forWhat), y)
 		local h = f.heads[hi]
 		h:SetWidth(W - 24 - 22); h:SetWordWrap(false)
 		f.footInfo.title = "How it decides"
@@ -1780,7 +1880,16 @@ function MR:PaintSections(f, waiting, shardsOnly, y, hi)
 	if not shardsOnly and #options > 0 and target then
 		f.foot:ClearAllPoints(); f.foot:SetPoint("TOPLEFT", 12, -y); f.foot:SetPoint("TOPRIGHT", -12, -y)
 		f.foot:SetJustifyH("LEFT")
-		f.foot:SetText((quest and "Then there's room for %s." or "Then %s goes in your bags."):format(target.name))
+		if quest then
+			-- (1.7.4-beta1) a count: one slot freed, so many still needed
+			local left, q = #waiting - 1, self.quest or {}
+			local total = #self:QuestItems()
+			if left > 0 then f.foot:SetText(("Then you need %d more free %s."):format(left, left == 1 and "slot" or "slots"))
+			elseif q.kind == "complete" then f.foot:SetText(total > 1 and ("Then there's room for all %d rewards."):format(total) or "Then there's room for the reward.")
+			else f.foot:SetText(total > 1 and "Then there's room for them." or "Then there's room for it.") end
+		else
+			f.foot:SetText(("Then %s goes in your bags."):format(target.name))
+		end
 		f.foot:SetShown(not hasStatus)
 		y = y + 16
 	elseif hasStatus then y = y + 16 end
@@ -1921,7 +2030,12 @@ function MR:Install()
 	-- it closes: clicking Accept closes the window at once, and the server's
 	-- "Inventory is full" arrives a moment later.
 	local function title() return (GetTitleText and GetTitleText()) or "" end
-	ns:On("QUEST_DETAIL", function() newOffers(); MR.quest = { kind = "accept", title = title() } end)
+	ns:On("QUEST_DETAIL", function()
+		newOffers()
+		local old, t = MR.quest, title()
+		-- (1.7.4-beta1) the same quest opened again keeps what its refusals showed
+		MR.quest = { kind = "accept", title = t, minNeed = (old and old.kind == "accept" and old.title == t) and old.minNeed or nil }
+	end)
 	ns:On("QUEST_COMPLETE", function() newOffers(); MR.quest = { kind = "complete", title = title(), rewards = readRewards() } end)
 	ns:On("QUEST_FINISHED", function() if MR.quest then MR.quest.closedAt = GetTime() end end)
 	local function questDone()
@@ -1937,6 +2051,10 @@ function MR:Install()
 			if not failedTitle then return end
 			-- Only the game's "<quest> failed: Inventory is full." to go on.
 			MR.quest = { kind = "accept", title = failedTitle, closedAt = GetTime() }
+		end
+		-- (1.7.4-beta1) accepting was refused with this many free slots: the quest hands you more items than that
+		if MR.quest.kind == "accept" then
+			MR.quest.minNeed = math.max(MR.quest.minNeed or 1, ordinaryFree() + 1)
 		end
 		ns:Debug("Loot Helper (quest %s, %s): %d reward items remembered", MR.quest.kind, tostring(MR.quest.title), #(MR.quest.rewards or {}))
 		MR:Show("quest")

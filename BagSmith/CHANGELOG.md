@@ -1,3 +1,15 @@
+## 1.7.4
+
+Changed:
+- In the Loot Helper, an arrow in your accent color points at the item it's making room for, beside its highlight.
+Fixed:
+- The Loot Helper never offers items your quests ask for, like Westfall Stew's Okra. On WoW Forever it couldn't read
+  your quest log, so it could offer them, even at the quest's turn-in.
+- The Loot Helper is clearer for quests. Turning one in, it lists every reward and says how many more free slots you
+  need, since a quest gives you all its rewards at once; the list no longer swaps rewards in and out when you click
+  one. Accepting a quest that hands you items, it says you need at least one free slot (the game doesn't say how many
+  items), and if the game refuses again after you've made room, it says how many more you need.
+
 ## 1.7.3
 
 Changed:
