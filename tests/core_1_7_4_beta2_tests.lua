@@ -19,6 +19,8 @@
 	check(not MR:NeededForQuest("Linen Cloth", needs) and MR:NeededForQuest("Bolt of Linen Cloth", needs), "exact: Linen Cloth isn't kept for Bolt of Linen Cloth")
 	check(not MR:NeededForQuest("Murloc Gill", needs), "nor a name inside a longer one (Murloc Gill, Longshore Murloc Gill)")
 	check(MR:NeededForQuest("Old Lantern", needs), "a line in neither form: the name anywhere in it still keeps it")
+	check(MR.ObjectiveItem("0/5 Linen Cloth (collect)") == "Linen Cloth" and MR:NeededForQuest("Linen Cloth", { "0/5 Linen Cloth (collect)" }),
+		"a note in brackets after the name is dropped (1.7.0-beta3's \"0/5 Linen Cloth (collect)\" still keeps Linen Cloth)")
 
 	-- the caret, in loot and quest modes, both skins
 	for _, skin in ipairs({ "modern", "classic" }) do

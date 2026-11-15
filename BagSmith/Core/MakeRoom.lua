@@ -627,10 +627,15 @@ end
 -- (1.7.0-beta9, the beta8 audit's A2) An item objective with blank text, or C_QuestLog's list with a hole in it, is a
 -- failed read too (a non-item objective's blank text is fine).
 MR.questMemo = MR.questMemo or {}
--- An objective's item name: "Okra: 3/3" (the classic log) or "0/4 Miners' Union Card" (C_QuestLog on Forever, 1.7.4-beta2);
--- nil for a line in neither form.
+-- An objective's item name: "Okra: 3/3" (the classic log) or "0/4 Miners' Union Card" (C_QuestLog on Forever, 1.7.4-beta2;
+-- a note in brackets after the name is dropped: "0/5 Linen Cloth (collect)" is Linen Cloth); nil for a line in neither form.
 local function objectiveItem(text)
-	return text:match("^(.-):%s*%d+%s*/%s*%d+%s*$") or text:match("^%s*%d+%s*/%s*%d+%s+(.-)%s*$")
+	local named = text:match("^(.-):%s*%d+%s*/%s*%d+%s*$")
+	if named then return named end
+	named = text:match("^%s*%d+%s*/%s*%d+%s+(.-)%s*$")
+	if named then named = named:gsub("%s*%b()$", "") end
+	if named and named ~= "" then return named end
+	return nil
 end
 MR.ObjectiveItem = objectiveItem
 local function objectiveName(text) return objectiveItem(text) or text end
