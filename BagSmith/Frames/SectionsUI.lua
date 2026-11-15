@@ -19,11 +19,18 @@ local Skins = ns.Skins
 -- A small menu. items: { text, onClick, checked, disabled, title, gap }
 ------------------------------------------------------------------------
 local MENU_W, ROW_H, MENU_MAX = 220, 20, 300
--- (1.8.0) it.font: the row's text in that font file, at the row's size
-function ns.MenuFace(fs, path)
+-- (1.8.0) it.font: the row's text in that font file, at the row's size. Without one, the text goes back to its font
+-- object's own face: a face set directly stays until set again (the font object alone doesn't undo it, beta2's bug:
+-- Game Font kept the last font picked), and rows are reused.
+function ns.MenuFace(fs, path, object)
 	if not (fs.SetFont and fs.GetFont) then return end
+	local obj = object and _G[object]
+	local objPath, objSize, objFlags
+	if obj and obj.GetFont then objPath, objSize, objFlags = obj:GetFont() end
 	local _, size, flags = fs:GetFont()
-	if size then pcall(fs.SetFont, fs, path, size, flags or "") end
+	size, flags = objSize or size, objFlags or flags
+	path = path or objPath
+	if path and size then pcall(fs.SetFont, fs, path, size, flags or "") end
 end
 function ns.ShowMenu(items, anchor, keepPlace)
 	local m = ns.menuFrame
@@ -70,7 +77,7 @@ function ns.ShowMenu(items, anchor, keepPlace)
 	for _, it in ipairs(items) do
 		if it.text then
 			m.measure:SetFontObject(it.big and "GameFontNormal" or "GameFontHighlightSmall")
-			if it.font then ns.MenuFace(m.measure, it.font) end
+			ns.MenuFace(m.measure, it.font, it.big and "GameFontNormal" or "GameFontHighlightSmall")
 			m.measure:SetText(it.text)
 			widest = math.max(widest, m.measure:GetStringWidth() + (it.icon and 28 or 22) + 10)
 		end
@@ -82,7 +89,7 @@ function ns.ShowMenu(items, anchor, keepPlace)
 		local need = 0
 		if it.text then
 			m.measure:SetFontObject(it.big and "GameFontNormal" or "GameFontHighlightSmall")
-			if it.font then ns.MenuFace(m.measure, it.font) end
+			ns.MenuFace(m.measure, it.font, it.big and "GameFontNormal" or "GameFontHighlightSmall")
 			m.measure:SetText(it.text); need = m.measure:GetStringWidth()
 		end
 		it.wrap = need > textRoom
@@ -194,7 +201,7 @@ function ns.ShowMenu(items, anchor, keepPlace)
 			r.text:ClearAllPoints(); r.text:SetPoint("LEFT", it.icon and 26 or 22, 0); r.text:SetPoint("RIGHT", -6, 0)
 			-- The item's name: one size larger, in its quality color.
 			r.text:SetFontObject(it.big and "GameFontNormal" or "GameFontHighlightSmall")
-			if it.font then ns.MenuFace(r.text, it.font) end   -- (1.8.0) a row in its own face (the Font setting)
+			ns.MenuFace(r.text, it.font, it.big and "GameFontNormal" or "GameFontHighlightSmall")   -- (1.8.0) a row in its own face (the Font setting)
 			r.text:SetWordWrap(it.wrap and true or false)
 			r:SetHeight((it.big and ROW_H + 4 or ROW_H) + (it.wrap and 12 or 0))
 			r.text:SetText(it.text or "")

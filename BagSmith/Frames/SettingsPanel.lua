@@ -644,17 +644,40 @@ function Panel:Dropdown(key, label, choices, help)
 		w.btn = ns.TextButton(w, "", DROP_W, function(btn)
 			local pr = btn:GetParent()
 			local items = {}
+			-- (1.8.0-beta2, Shweep) a group: a long list scrolls inside the menu, the current one in view
 			for _, c in ipairs(pr.choices or {}) do
-				items[#items + 1] = { text = c.label, checked = c.key == ns.db[pr.key], font = c.path, onClick = function() ns:Set(pr.key, c.key) end }
+				items[#items + 1] = { text = c.label, checked = c.key == ns.db[pr.key], font = c.path, group = true, onClick = function() ns:Set(pr.key, c.key) end }
 			end
 			ns.ShowMenu(items, btn)
 		end)
 		w.btn:SetHeight(22)
 		w.btn.label:ClearAllPoints(); w.btn.label:SetPoint("LEFT", 8, 0); w.btn.label:SetPoint("RIGHT", -24, 0)
 		w.btn.label:SetJustifyH("LEFT"); w.btn.label:SetWordWrap(false)
+		-- (1.8.0-beta2, Shweep: "like our alt selector") the character picker's look: Modern, the chevron as the picker
+		-- has it; Classic, the game's dropdown art behind it (Classic.DropdownArt) instead of a red button
 		w.btn.chev = w.btn:CreateTexture(nil, "OVERLAY")
 		w.btn.chev:SetTexture("Interface\\AddOns\\BagSmith\\Media\\ui-chev-down.tga")
-		w.btn.chev:SetSize(12, 12); w.btn.chev:SetPoint("RIGHT", -7, 0)
+		w.btn.chev:SetSize(11, 11); w.btn.chev:SetPoint("RIGHT", -6, 0); w.btn.chev:SetVertexColor(0.62, 0.6, 0.55)
+		local baseActive = w.btn.SetActive
+		function w.btn:SetActive(on)
+			if self.ddOn then
+				self.active = on
+				self:SetBackdropColor(0, 0, 0, 0); self:SetBackdropBorderColor(0, 0, 0, 0)
+				self.label:SetTextColor(1, 1, 1)
+				return
+			end
+			baseActive(self, on)
+		end
+		function w.btn:SetClassic(on)
+			-- (a red button made before this took over: put away, the label back on the button)
+			if self.classic then self.classic:Hide(); self.classicOn = false; self.label:SetParent(self) end
+			if on and self.ddArt == nil then self.ddArt = ns.Classic and ns.Classic.DropdownArt and ns.Classic.DropdownArt(self) or false end
+			self.ddOn = (on and self.ddArt) and true or false
+			if self.ddArt then self.ddArt:SetShown(self.ddOn) end
+			self.chev:SetShown(not self.ddOn)
+			self:SetActive(self.active)
+		end
+		w.btn:SetClassic(ns.Classic and ns.Classic.IsOn and ns.Classic.IsOn() or false)
 		return w
 	end)
 	s.key, s.choices = key, choices
@@ -666,7 +689,7 @@ function Panel:Dropdown(key, label, choices, help)
 	s.btn:SetActive(false)
 	s.btn.label:SetText(cur and cur.label or "")
 	s.btn.chev:SetVertexColor(Skins:Color("text"))
-	if cur and cur.path then ns.MenuFace(s.btn.label, cur.path) elseif s.btn.label.SetFontObject then s.btn.label:SetFontObject("GameFontHighlightSmall") end
+	ns.MenuFace(s.btn.label, cur and cur.path, "GameFontHighlightSmall")   -- (Game Font: the button's own face again)
 	self.y = self.y + s:GetHeight()
 end
 
