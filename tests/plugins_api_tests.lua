@@ -732,7 +732,10 @@
 	P:ShowPage("plugins")
 	local row3; for _, w in ipairs(P.pools.plug) do if w:IsShown() and w.pluginId == "third-thing" then row3 = w end end
 	check(row3 and row3.options:IsShown() and row3.status.text:find("Status: Active", 1, true), "an active plugin with options shows Active and an Options button")
-	check(row3.text.width and 2 + row3.text.width <= 306 - 8, "a long active title stops short of the Options button (which starts at x=306) and the checkbox")
+	-- (1.8.0-beta6, by design) the Settings page is 15% wider, so the Options button starts further right (x=306 before):
+	-- measured from the row instead of a fixed number
+	local optX = row3:GetWidth() - 30 - row3.options:GetWidth()
+	check(row3.text.width and 2 + row3.text.width <= optX - 8, "a long active title stops short of the Options button (which starts at x=" .. optX .. ") and the checkbox")
 	check(row3.help.points[1][3] <= -(4 + 24 + 8), "the row's description starts below the checkbox and the Options button")
 	P:SetQuery("choice"); P:SetQuery("")
 	check(renders == 0, "search never runs an options render")

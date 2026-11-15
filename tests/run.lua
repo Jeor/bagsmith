@@ -6027,7 +6027,7 @@ end)()
 	local ids = {}
 	for _, e in ipairs(n.Currency:List()) do if e.custom then ids[#ids + 1] = e.id end end
 	check(ids[1] == 456 and #ids == 1, "tracked currencies follow the profile at once")
-	check(P.frame.scale == 1.0 and P.frame.points[1][1] == "TOPLEFT", "open Settings takes the new profile's scale and spot")
+	check(P.frame.scale == 1.0 and P.frame.points[1][1] == "TOPLEFT", "open Settings takes the new profile's spot (and keeps its own size: 1.8.0-beta6, by design)")
 	local bp = n.Window.bagViews[0].frame.points[1]
 	check(bp[4] == 800, "a small bag window moves to the new profile's saved spot")
 	if picker.cancelFunc then picker.cancelFunc() end

@@ -22,7 +22,8 @@ end
 -- Layout cursor helpers. Everything is rebuilt on Refresh so the panel is
 -- always in sync with the profile; widgets are pooled by type.
 ------------------------------------------------------------------------
-local NAV_W, WIN_W, WIN_H = 170, 680, 560
+-- (1.8.0-beta6, Shweep) the page side 15% wider: 510 px beside the page list, now 587 (the window 680 to 757)
+local NAV_W, WIN_W, WIN_H = 170, 757, 560
 local SEARCH_W = 200   -- NAV_W fits the longest page name, "Automations & Actions"
 -- A third field names the page an entry sits under: it's listed (indented)
 -- only while that page or one of its sub-pages is open.
@@ -271,7 +272,9 @@ end
 function Panel:ApplyPosition()
 	local f, p = self.frame, ns.db.settingsPoint
 	f:ClearAllPoints(); f:SetPoint(p[1], UIParent, p[3], p[4], p[5])
-	f:SetScale(ns.db.scale)
+	-- (1.8.0-beta6, Shweep) Settings keeps its own size: BagSmith's Scale shrinks the bags, bank and helpers, never the
+	-- window you change it in (it stays clamped to the screen)
+	f:SetScale(1)
 end
 
 function Panel:ShowPage(page)
@@ -1368,7 +1371,7 @@ pages.look = function(self, db)
 	self:Color("accent", "Accent Color", "Highlights, selected buttons and section titles")
 	self:Check("rtext", "Color Item Names by Rarity")
 	self:Head("Size")
-	self:Step("scale", "Scale", 0.05, "%d%%")
+	self:Step("scale", "Scale", 0.05, "%d%%", "The size of your bags, bank and helpers. Settings keeps its own size.")
 	self:Step("rowHeight", "Row Height (List View)", 2, "%d")
 	self:Check("dense", "Compact Rows", "Shorter rows in List view")
 	-- (1.8.0, Shweep's plan of 10 Nov) the item windows' text: bags, bank, bag windows, the Loot and Disenchant Helpers
