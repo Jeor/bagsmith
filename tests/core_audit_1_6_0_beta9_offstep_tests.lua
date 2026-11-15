@@ -4,7 +4,9 @@
 AUDIT_CORE = AUDIT_CORE or "BagSmith"
 -- Scope probes outside normal whole-copper/5%-slider use. Source unchanged.
 package.loaded.mock=nil;local M=require('mock')
-M.put(0,1,{id=7001,name='Rare Boundary Boots',q=3,count=1,class=4,subclass=1,price=0,ilvl=23,equip='INVTYPE_FEET'})
+-- (1.8.0-beta10, by design) item level 28, not 23: on Forever a blue to level 25 isn't always one shard (Shweep's
+-- results), and this probe needs a rare whose materials are exactly one shard (Large Glimmering, 26 to 30)
+M.put(0,1,{id=7001,name='Rare Boundary Boots',q=3,count=1,class=4,subclass=1,price=0,ilvl=28,equip='INVTYPE_FEET'})
 _G.BagSmithCharDB={version=1,firstSeen={}}
 _G.BagSmithDB={version=2,chars={},cache={},profiles={Default={deEnabled=true,deLeveling='never'}}}
 local gross=8.8
