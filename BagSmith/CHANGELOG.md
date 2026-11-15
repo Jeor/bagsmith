@@ -23,6 +23,9 @@ Important:
   over, so nothing is lost, but changes you make now stay with that character. Want them shared again? Check them in
   Settings > Profile.
 Changed:
+- The Disenchant Helper's estimate for blue items up to level 25 follows what they give on WoW Forever: sometimes dust
+  or an essence, not always a shard. It's an early estimate from a few results and says so; your own results take over
+  as you disenchant.
 - Your free-slot count shows only the slots anything fits in: a quiver or a herb bag's room no longer counts. A small
   + says there's more room in special bags, and hovering the count lists it for each kind of bag.
 - Settings > Windows reads more clearly: Main Window and Individual Bag Windows (were Bag Window and Bag Windows), and

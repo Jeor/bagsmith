@@ -25,3 +25,35 @@
 	check(p and p[4] == 0 and p[5] == 0, "Modern: unchanged, flush in the corner")
 	check((n.errors or 0) == 0, "no errors")
 end)()
+
+;(function()
+	-- (1.8.0-beta10, Shweep's results on Forever) low blues: a third each, the shard, 3 dust, 3 essences; an early estimate
+	package.loaded.mock = nil
+	local M = require("mock")
+	_G.BagSmithCharDB = { version = 1, firstSeen = {} }
+	_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = {} } }
+	local n = M.loadAddon("BagSmith")
+	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
+	local DE, MATS = n.Disenchant, n.Disenchant.MATS
+	local list, key = DE:Expectation({ quality = 3, ilvl = 20, classID = 4 })
+	local by = {}
+	for _, m in ipairs(list) do by[m[1]] = m end
+	check(key == "3:1" and #list == 3, "a level 20 blue: three results, the same bracket key as before (3:1)")
+	check(by[MATS.smallGlimmering] and math.abs(by[MATS.smallGlimmering][2] - 1/3) < 1e-9 and by[MATS.smallGlimmering][3] == 1, "a Small Glimmering Shard, a third of the time")
+	check(by[MATS.strangeDust] and by[MATS.strangeDust][3] == 3 and by[MATS.strangeDust][4] == 3, "Strange Dust x3, a third")
+	check(by[MATS.greaterMagic] and by[MATS.greaterMagic][3] == 3, "Greater Magic Essence x3, a third (item level 16 to 25)")
+	list = DE:Expectation({ quality = 3, ilvl = 12, classID = 2 })
+	local lesser = false
+	for _, m in ipairs(list) do if m[1] == MATS.lesserMagic then lesser = true end end
+	check(lesser, "a level 12 blue: Lesser Magic Essence, as for greens")
+	list = DE:Expectation({ quality = 3, ilvl = 30, classID = 4 })
+	check(#list == 1 and list[1][1] == MATS.largeGlimmering and list[1][2] == 1 and not list.early, "above level 25: the classic shard, unchanged")
+	local _, head = DE:LikelyLines({ quality = 3, ilvl = 20, classID = 4 })
+	check(head and head:find("^early Forever estimate"), "the Likely results say it's an early Forever estimate: " .. tostring(head))
+	local _, head2 = DE:LikelyLines({ quality = 2, ilvl = 20, classID = 4 })
+	check(head2 and head2:find("^DE estimate"), "a green keeps its plain DE estimate")
+	-- the loot chat now counts a blue's dust (it's in the cast's expected list)
+	local c = { key = "3:1", allowed = {} }
+	for _, m in ipairs(DE:Expectation({ quality = 3, ilvl = 20, classID = 4 })) do c.allowed[m[1]] = true end
+	check(DE:Attributable(c, MATS.strangeDust) and DE:Attributable(c, MATS.greaterMagic), "a blue's dust and essence count from the loot chat too")
+end)()

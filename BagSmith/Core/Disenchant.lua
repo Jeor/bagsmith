@@ -81,6 +81,12 @@ DE.SHARD = {
 	{ 41, 45, M.smallRadiant }, { 46, 50, M.largeRadiant }, { 51, 55, M.smallBrilliant }, { 56, 99, M.largeBrilliant },
 }
 DE.EPIC_CRYSTAL_FROM = 56
+-- (1.8.0-beta10, Shweep's results on Forever, 15 Nov) Low blues don't always give a shard there: his three gave Strange
+-- Dust x3, Greater Magic Essence x3 and a Small Glimmering Shard (classic gives the shard every time). Until there are
+-- more results, rare items up to this level count a third each: the shard, 3 dust, 3 of the bracket's essence
+-- (Lesser Magic to item level 15, Greater Magic above, as for greens). The Likely results say it's an early estimate;
+-- a player's own results take over at CALIBRATE_AT casts, as everywhere. Improve as data comes in.
+DE.FOREVER_RARE_TO = 25
 -- Enchanting skill needed to disenchant, by item level.
 DE.SKILL = { { 20, 1 }, { 25, 25 }, { 30, 50 }, { 35, 75 }, { 40, 100 }, { 45, 125 }, { 50, 150 }, { 55, 175 }, { 60, 200 }, { 99, 225 } }
 
@@ -125,6 +131,11 @@ function DE:Expectation(rec)
 	elseif q == 3 then
 		local i, b = bracket(self.SHARD, ilvl)
 		if not b then return nil, self:FallbackKey(rec) end
+		if ilvl <= self.FOREVER_RARE_TO then
+			local third = 1 / 3
+			local essence = ilvl <= 15 and M.lesserMagic or M.greaterMagic
+			return { { b[3], third, 1, 1 }, { M.strangeDust, third, 3, 3 }, { essence, third, 3, 3 }, early = true }, ("3:%d"):format(i)
+		end
 		return { { b[3], 1, 1, 1 } }, ("3:%d"):format(i)
 	elseif q == 4 then
 		if ilvl >= self.EPIC_CRYSTAL_FROM then return { { M.nexusCrystal, 1, 1, 1 } }, "4:crystal" end
@@ -453,6 +464,11 @@ function DE:LikelyLines(rec)
 		parts[#parts + 1] = { id = m[1], rest = rest }   -- (1.7.3-beta5) the result rows: a linked name, then the rest
 	end
 	local head = basis == "yours" and ("from %d of your results"):format(n) or ("DE estimate, %d of %d in this range"):format(n or 0, self.CALIBRATE_AT)
+	-- (1.8.0-beta10) an estimate from only a few Forever results says so
+	if basis == "estimate" then
+		local shipped = self:Expectation(rec)
+		if shipped and shipped.early then head = ("early Forever estimate, %d of %d in this range"):format(n or 0, self.CALIBRATE_AT) end
+	end
 	return lines, head, basis, n, parts
 end
 
