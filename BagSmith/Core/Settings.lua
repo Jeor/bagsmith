@@ -465,19 +465,22 @@ for _, k in ipairs(ns.BAG_KINDS or {}) do
 	DEFAULTS["glowAlpha_" .. k.key] = 1      -- (beta6 feedback, Shweep) and its own opacity, 10% to 100%
 	validators["glowAlpha_" .. k.key] = num(0.1, 1)
 end
--- (1.8.0-beta7, Shweep) What every character using a profile shares, part by part. Each part is shared (true) unless
--- the profile says otherwise; then each character keeps its own copy (BagSmithCharDB.own[profile][key]). The keys
+-- (1.8.0-beta7, Shweep) What every character using a profile shares, part by part (share<Part>: true shared, false
+-- each character keeps its own copy, BagSmithCharDB.own[profile][key]; defaults below). The keys
 -- that go together move together: moved items name custom sections; tab order and hidden tabs name sheets.
 ns.PROFILE_PARTS = {
-	{ key = "Favorites", label = "Favorites", help = "The items you've starred.", keys = { "favItems" } },
+	{ key = "Favorites", label = "Favorites", help = "The items you've starred.", keys = { "favItems" }, shared = false },
 	{ key = "Sections", label = "Custom Sections", help = "Your own sections, and the items you've moved from one section to another.", keys = { "customSections", "sectionMoves", "sectionNextId" } },
-	{ key = "PinnedSections", label = "Pinned Sections", help = "Which sections are pinned to the top.", keys = { "pinnedSections" } },
+	{ key = "PinnedSections", label = "Pinned Sections", help = "Which sections are pinned to the top.", keys = { "pinnedSections" }, shared = false },
 	{ key = "SectionOrder", label = "Section Order and Hidden Sections", help = "The order of your sections, and the ones you've hidden.", keys = { "laneOrder", "sectionHide" } },
-	{ key = "Currencies", label = "Custom Currencies", help = "The items you track as currencies.", keys = { "customCurrencies" } },
-	{ key = "PinnedCurrencies", label = "Pinned Currencies", help = "The currencies pinned to the footer, and the ones you've unpinned.", keys = { "fav", "blizzUnpinned" } },
+	{ key = "Currencies", label = "Custom Currencies", help = "The items you track as currencies.", keys = { "customCurrencies" }, shared = false },
+	{ key = "PinnedCurrencies", label = "Pinned Currencies", help = "The currencies pinned to the footer, and the ones you've unpinned.", keys = { "fav", "blizzUnpinned" }, shared = false },
 	{ key = "Sheets", label = "Custom Sheets", help = "Your saved sheets for the bags and the bank, and the order of the tabs.", keys = { "sheets", "bankSheets", "tabOrder", "hiddenTabs", "bankTabOrder", "bankHiddenTabs" } },
 }
-for _, part in ipairs(ns.PROFILE_PARTS) do DEFAULTS["share" .. part.key] = true end
+-- (beta8, Shweep) Favorites, Pinned Sections, Custom Currencies and Pinned Currencies are each character's own unless
+-- the profile shares them; the rest are shared. A profile saved before 1.8 has no choice saved, so it takes these: on
+-- each character's first login, its own copy starts from the profile's (nothing is lost; What's New says so).
+for _, part in ipairs(ns.PROFILE_PARTS) do DEFAULTS["share" .. part.key] = part.shared ~= false end
 
 local copy = ns.Copy
 validators.bankCols = validators.cols

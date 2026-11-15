@@ -1325,7 +1325,7 @@ pages.profile = function(self, db)
 	self:Head("Shared Between Characters")   -- (beta7 feedback, Shweep: plainer)
 	self:Text("Characters on this profile share everything checked below. Uncheck something to let each character keep its own.")
 	for _, part in ipairs(ns.PROFILE_PARTS) do self:Check("share" .. part.key, part.label, part.help) end
-	self:Head("Share")
+	self:Head("Profile Codes")   -- (1.8.0-beta8, Shweep) was "Share", too close to "Shared Between Characters"
 	self:Text("A profile code holds all of a profile's settings, including saved sheets. Share yours, or import one to add it as a new profile.")
 	self:Button("Share This Profile", function() ns.ShareWindow("share") end, 160)
 	self:Button("Import Profile", function() ns.ShareWindow("import") end, 160)

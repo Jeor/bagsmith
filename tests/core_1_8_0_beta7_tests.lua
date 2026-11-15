@@ -17,9 +17,11 @@
 	-- the game writes the saved data after PLAYER_LOGOUT: a deep copy stands in for that
 	local function logout(M) M.fire("PLAYER_LOGOUT"); return deep(_G.BagSmithDB), deep(_G.BagSmithCharDB) end
 
-	local saved = { version = 2, chars = {}, cache = {}, profiles = { Default = { customCurrencies = { 20558 }, favItems = { 6948 } } } }
+	-- (beta8, by design) Favorites, Pinned Sections, Custom Currencies and Pinned Currencies are per character by default;
+	-- this profile shares currencies and favorites on purpose, to follow one part from shared to unshared
+	local saved = { version = 2, chars = {}, cache = {}, profiles = { Default = { customCurrencies = { 20558 }, favItems = { 6948 }, shareCurrencies = true, shareFavorites = true } } }
 	local n, M = boot("Aldren Thorne", saved)
-	check(#n.PROFILE_PARTS == 7 and n.db.shareCurrencies == true and n.db.shareFavorites == true, "seven parts, each shared by default")
+	check(#n.PROFILE_PARTS == 7 and n.db.shareCurrencies == true and n.db.shareFavorites == true, "seven parts; this profile shares currencies and favorites")
 	check(n.db.customCurrencies[1] == 20558, "(setup) the profile tracks Warsong Gulch Marks")
 
 	-- Aldren keeps his own currencies
@@ -131,4 +133,59 @@ end)()
 	check(head, "the heading reads Special Bag Slot Indicators")
 	check(shown[1] == "Glow in Ammo Pouch Slots" and shown[12] == "Glow in Trinket Bag Slots", "Settings lists them in that order: " .. table.concat(shown, " | "))
 	P:Hide()
+end)()
+
+;(function()
+	-- (1.8.0-beta8, Shweep) Settings > Profile: the profile list near the top; "Profile Codes" (was "Share")
+	package.loaded.mock = nil
+	local M = require("mock")
+	_G.BagSmithCharDB = { version = 1, firstSeen = {} }
+	_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = {} } }
+	local n = M.loadAddon("BagSmith")
+	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
+	local P = n.SettingsPanel
+	P:Show(); P:ShowPage("profile"); M.runTimers()
+	local heads = {}
+	for _, h in ipairs(P.pools.head or {}) do if h:IsShown() and h.text then heads[#heads + 1] = { y = h.points[1] and h.points[1][5] or 0, t = h.text.text } end end
+	table.sort(heads, function(a, b) return a.y > b.y end)
+	local t = {}
+	for _, h in ipairs(heads) do t[#t + 1] = h.t end
+	check(table.concat(t, " > ") == "Profile: Default > All Profiles > Shared Between Characters > Profile Codes", "the Profile page's order: " .. table.concat(t, " > "))
+	P:Hide()
+end)()
+
+;(function()
+	-- (1.8.0-beta8, Shweep) the defaults: Favorites, Pinned Sections, Custom Currencies and Pinned Currencies are each
+	-- character's own; a profile saved before 1.8 takes them, and nothing is lost: each character starts from the profile's
+	local function deep(t) if type(t) ~= "table" then return t end local o = {} for k, v in pairs(t) do o[k] = deep(v) end return o end
+	local function boot(charName, db, cdb)
+		package.loaded.mock = nil
+		local M = require("mock")
+		M.charName = charName
+		_G.BagSmithCharDB = cdb or { version = 1, firstSeen = {} }
+		_G.BagSmithDB = db
+		local n = M.loadAddon("BagSmith")
+		M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
+		return n, M
+	end
+	local old = { version = 2, chars = {}, cache = {}, profiles = { Default = { favItems = { 6948 }, customCurrencies = { 20558 }, fav = { "i:20558" }, pinnedSections = { Gear = true }, customSections = { { id = "c1", name = "Professions" } } } } }
+	local n, M = boot("Aldren Thorne", old)
+	check(n.db.shareFavorites == false and n.db.sharePinnedSections == false and n.db.shareCurrencies == false and n.db.sharePinnedCurrencies == false,
+		"per character by default: Favorites, Pinned Sections, Custom Currencies, Pinned Currencies")
+	check(n.db.shareSections == true and n.db.shareSectionOrder == true and n.db.shareSheets == true, "shared by default: Custom Sections, Section Order, Custom Sheets")
+	check(n.db.favItems[1] == 6948 and n.db.customCurrencies[1] == 20558 and n.db.fav[1] == "i:20558" and n.db.pinnedSections.Gear, "his favorites, currencies and pins carried over")
+	n.db.favItems[#n.db.favItems + 1] = 1004
+	M.fire("PLAYER_LOGOUT")
+	local db = deep(BagSmithDB)
+	check(#db.profiles.Default.favItems == 1, "a new favorite stays his: the profile's untouched")
+	local n2 = boot("Brannoc Vale", deep(db))
+	check(#n2.db.favItems == 1 and n2.db.favItems[1] == 6948 and n2.db.customCurrencies[1] == 20558, "another character starts from the profile's, not his")
+	-- What's New says so, in soft red
+	local card
+	for _, e in ipairs(n2.WhatsNew.ENTRIES) do if e.v == "1.8.0" then card = e end end
+	local important
+	for _, line in ipairs(card and card.items or {}) do if line:find("^|cfff09595Important:|r") then important = line end end
+	check(important and important:find("favorites, pinned sections, custom currencies and pinned currencies", 1, true) and important:find("nothing is lost", 1, true),
+		"the 1.8 card's Important bullet, in soft red")
+	check((n2.errors or 0) == 0, "no errors")
 end)()
