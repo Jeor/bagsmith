@@ -138,6 +138,8 @@ end
 Buttons.PixelSize = pixelSize   -- (1.7.3-beta3) also the resize outline's line (Frames/Outline.lua)
 
 function Buttons.AddFrame(b)
+	-- Numeric labels stay above the slot and rarity frames without moving.
+	if b.Count and b.Count.SetDrawLayer then b.Count:SetDrawLayer("OVERLAY", 3) end
 	b.frameBG = b:CreateTexture(nil, "BACKGROUND", nil, -2)
 	b.frameBG:SetTexture("Interface\\Buttons\\WHITE8X8")
 	b.frameEdge = b:CreateTexture(nil, "BACKGROUND", nil, -1)
@@ -1256,8 +1258,7 @@ end
 -- Fill and blank. Texture/text only: safe in combat.
 ------------------------------------------------------------------------
 -- The item level on an icon (Icons view, the setting on, gear with a real level): a small number in the icon's
--- top-right corner, drawn on ARTWORK just above the icon itself and below every OVERLAY region (quality ring,
--- count at bottom-right, junk coin at top-left, new dot at the bottom), inset inside the ring. Hidden otherwise.
+-- top-right corner, drawn above the slot and rarity frames without changing its position. Hidden otherwise.
 -- (1.5.0) whether the item level would show on this button, for the icon corners
 function Buttons:ItemLevelShows(b, rec)
 	return (rec and b.mode == "cell" and ns.db and ns.db.iconItemLevel == true and (rec.ilvl or 0) > 1 and (rec.classID == 2 or rec.classID == 4)) and true or false
@@ -1267,8 +1268,8 @@ function Buttons:ItemLevel(b, rec)
 	-- reports one for everything, and potions and cloth have item levels of their own
 	local show = self:ItemLevelShows(b, rec)
 	if show and not b.ilvlText then
-		local t = b:CreateFontString(nil, "ARTWORK", "NumberFontNormalSmall")
-		if t.SetDrawLayer then t:SetDrawLayer("ARTWORK", 1) end
+		local t = b:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmall")
+		if t.SetDrawLayer then t:SetDrawLayer("OVERLAY", 3) end
 		t:SetPoint("TOPRIGHT", b.icon, "TOPRIGHT", -2, -1)
 		if t.SetShadowOffset then t:SetShadowOffset(1, -1) end
 		if t.SetShadowColor then t:SetShadowColor(0, 0, 0, 1) end
