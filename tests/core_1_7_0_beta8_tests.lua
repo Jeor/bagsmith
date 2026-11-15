@@ -193,7 +193,8 @@
 	-- ---- F2: the 1.7 card says what it can't see
 	do
 		local n = boot()
-		local first = n.WhatsNew.ENTRIES[1].items[1]
+		-- (1.8.0-beta2, by design) the 1.8 card leads now; every older card one place down (each check kept)
+		local first = n.WhatsNew.ENTRIES[2].items[1]
 		check(first:find("never offers what you still need for a quest, unless its heading is collapsed in your quest log.", 1, true), "the 1.7 card's first bullet names the collapsed-heading limit")
 		check(n.MakeRoom:HowItDecides()[3] == "Anything you still need for a quest is never on the list, unless its heading is collapsed in your quest log.", "as the (i) does (unchanged)")
 	end

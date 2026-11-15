@@ -159,7 +159,7 @@ function Panel:Create()
 	child:SetSize(1, 1)
 	scroll:SetScrollChild(child)
 	f.child, self.scroll = child, scroll
-	self.pools = { cornerCards = {}, head = {}, check = {}, seg = {}, step = {}, cycle = {}, list = {}, text = {}, edit = {}, btn = {}, color = {}, profiles = {}, cmd = {}, bind = {}, about = {}, csec = {}, csechead = {}, moved = {}, gset = {}, ptitle = {}, listhead = {}, card = {}, sep = {}, plug = {}, pnotice = {}, feat = {}, sub = {} }   -- (1.6.0) sub: sub-headings inside a card
+	self.pools = { cornerCards = {}, head = {}, check = {}, seg = {}, step = {}, dropdown = {}, list = {}, text = {}, edit = {}, btn = {}, color = {}, profiles = {}, cmd = {}, bind = {}, about = {}, csec = {}, csechead = {}, moved = {}, gset = {}, ptitle = {}, listhead = {}, card = {}, sep = {}, plug = {}, pnotice = {}, feat = {}, sub = {} }   -- (1.6.0) sub: sub-headings inside a card
 	self.page = self.page or "general"
 	table.insert(UISpecialFrames, "BagSmithSettings")
 	ns:CombatWindow(f)   -- (1.5.6) fades in combat like the bags window
@@ -633,43 +633,40 @@ function Panel:Step(key, label, step, fmt, help, info)
 	self.y = self.y + s:GetHeight()
 end
 
--- (1.8.0) A choice from a list too long for segments (Font): the current one's name between two arrows, which step
--- through the list (and round). choices: { { key = , label = , path = } }; a path shows that name in its own face.
-function Panel:Cycle(key, label, choices, help)
-	local s = acquire(self, "cycle", function(p)
+-- (1.8.0-beta2, Shweep: "Font selection needs to be a dropdown") A choice from a list too long for segments: a button
+-- showing the current choice with a down chevron; it opens BagSmith's menu (ns.ShowMenu) under it, the current choice
+-- ticked; a pick applies at once. choices: { { key = , label = , path = } }; a path shows that name in its own face.
+function Panel:Dropdown(key, label, choices, help)
+	local DROP_W = 180
+	local s = acquire(self, "dropdown", function(p)
 		local w = CreateFrame("Frame", nil, p); w:SetSize(ROW_W, LINE)
 		w.text = fs(w); w.help = fs(w)
-		w.value = fs(w, "GameFontHighlight", "CENTER")
-		local function step(b, d)
-			local pr = b:GetParent()
-			local list = pr.choices or {}
-			if #list < 2 then return end
-			local i = ((pr.index or 1) - 1 + d) % #list + 1
-			ns:Set(pr.key, list[i].key)
-		end
-		w.prev = ns.IconButton(w, "Interface\\AddOns\\BagSmith\\Media\\ui-chev-right.tga", "Previous", function(b) step(b, -1) end)
-		w.prev.tex:SetTexCoord(1, 0, 0, 1)   -- (the right chevron, mirrored)
-		w.next = ns.IconButton(w, "Interface\\AddOns\\BagSmith\\Media\\ui-chev-right.tga", "Next", function(b) step(b, 1) end)
-		w.prev:SetSize(22, 22); w.next:SetSize(22, 22)
+		w.btn = ns.TextButton(w, "", DROP_W, function(btn)
+			local pr = btn:GetParent()
+			local items = {}
+			for _, c in ipairs(pr.choices or {}) do
+				items[#items + 1] = { text = c.label, checked = c.key == ns.db[pr.key], font = c.path, onClick = function() ns:Set(pr.key, c.key) end }
+			end
+			ns.ShowMenu(items, btn)
+		end)
+		w.btn:SetHeight(22)
+		w.btn.label:ClearAllPoints(); w.btn.label:SetPoint("LEFT", 8, 0); w.btn.label:SetPoint("RIGHT", -24, 0)
+		w.btn.label:SetJustifyH("LEFT"); w.btn.label:SetWordWrap(false)
+		w.btn.chev = w.btn:CreateTexture(nil, "OVERLAY")
+		w.btn.chev:SetTexture("Interface\\AddOns\\BagSmith\\Media\\ui-chev-down.tga")
+		w.btn.chev:SetSize(12, 12); w.btn.chev:SetPoint("RIGHT", -7, 0)
 		return w
 	end)
 	s.key, s.choices = key, choices
-	local cur = ns.db[key]
-	s.index = 1
-	for i, c in ipairs(choices) do if c.key == cur then s.index = i end end
-	local VALUE_W = 160
-	local cy = layoutRow(s, label, help, 22 + 6 + VALUE_W + 6 + 22, 22)
-	s.next:ClearAllPoints(); s.next:SetPoint("TOPRIGHT", s, "TOPRIGHT", 0, cy)
-	s.value:ClearAllPoints(); s.value:SetPoint("RIGHT", s.next, "LEFT", -6, 0); s.value:SetWidth(VALUE_W)
-	s.prev:ClearAllPoints(); s.prev:SetPoint("RIGHT", s.value, "LEFT", -6, 0)
-	local c = choices[s.index]
-	s.value:SetText(c and c.label or ""); s.value:SetTextColor(Skins:Color("text"))
-	if s.value.SetFont and GameFontHighlight and GameFontHighlight.GetFont then
-		local path, size, flags = GameFontHighlight:GetFont()
-		if path then pcall(s.value.SetFont, s.value, (c and c.path) or path, size, flags or "") end
-	end
-	local many = #choices > 1
-	s.prev:SetShown(many); s.next:SetShown(many)
+	local cur
+	for _, c in ipairs(choices) do if c.key == ns.db[key] then cur = c end end
+	cur = cur or choices[1]
+	local cy = layoutRow(s, label, help, DROP_W, 22)
+	s.btn:ClearAllPoints(); s.btn:SetPoint("TOPRIGHT", s, "TOPRIGHT", 0, cy)
+	s.btn:SetActive(false)
+	s.btn.label:SetText(cur and cur.label or "")
+	s.btn.chev:SetVertexColor(Skins:Color("text"))
+	if cur and cur.path then ns.MenuFace(s.btn.label, cur.path) elseif s.btn.label.SetFontObject then s.btn.label:SetFontObject("GameFontHighlightSmall") end
 	self.y = self.y + s:GetHeight()
 end
 
@@ -1356,7 +1353,7 @@ pages.look = function(self, db)
 	do
 		local choices = ns.Fonts and ns.Fonts:Choices() or { { key = "", label = "Game Font" } }
 		for _, c in ipairs(choices) do c.path = ns.Fonts and ns.Fonts:PathOf(c.key) end
-		self:Cycle("fontName", "Font", choices, #choices > 1 and "The same item text, in a font another addon shares." or "Fonts other addons share appear here when one of them is loaded.")
+		self:Dropdown("fontName", "Font", choices, "The same item text in another font: BagSmith's own, the game's, or one another addon shares.")
 	end
 	self:Head("Layout")
 	self:Check("splitView", "Split View (Icons View)", "Shows sections side by side in two columns. Works with By Section or By Bag when the window is wide enough.")
@@ -2284,7 +2281,7 @@ local SEARCHED = {
 		return label, extra
 	end,
 	Color = function(_, label, help) return label, help end,
-	Cycle = function(_, label, choices, help)   -- (1.8.0)
+	Dropdown = function(_, label, choices, help)   -- (1.8.0)
 		local t = {}
 		for _, c in ipairs(type(choices) == "table" and choices or {}) do t[#t + 1] = c.label end
 		return label, (help or "") .. " " .. table.concat(t, " ") .. " typeface text size"

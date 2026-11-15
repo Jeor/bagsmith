@@ -5,9 +5,11 @@
 
 	Each of the game's font templates those windows use gets a BagSmith copy (BagSmithFont_<template>, made from the
 	game's on first use), and their text is created from the copy (ns.Fonts:Name). Text Size (ns.db.textScale, 80% to
-	150%) scales the copies; Font (ns.db.fontName) swaps the typeface for one another addon shares through
-	LibSharedMedia (not bundled: only when another addon has loaded it). A font that's no longer there falls back to the
-	game's. Changing a font object updates every text made from it, so a change is live; windows lay out again to
+	150%) scales the copies; Font (ns.db.fontName) swaps the typeface for one shared through LibSharedMedia. (1.8.0-beta2,
+	Shweep) BagSmith bundles LibSharedMedia and shares three fonts of its own through it (Media/Fonts: Noto Sans, Roboto
+	Condensed, Inter; SIL OFL), so they're in other addons' font lists too, and every font another addon shares is in
+	BagSmith's. A font the client can't load (LibSharedMedia also lists the game's own, not all on every client) isn't
+	offered, and a font that's no longer there falls back to the game's. Changing a font object updates every text made from it, so a change is live; windows lay out again to
 	measure the new widths. The number fonts on item icons stay as they are: they're sized to the icon.
 --]]
 
@@ -22,10 +24,43 @@ Fonts.TEMPLATES = {
 }
 local base = {}   -- template -> { path, size, flags } as the game made it
 
+-- (1.8.0-beta2) BagSmith's own fonts, shared through LibSharedMedia (western clients: they're cut to Latin characters)
+local MEDIA = "Interface\\AddOns\\BagSmith\\Media\\Fonts\\"
+Fonts.OWN = {
+	{ "Noto Sans", MEDIA .. "NotoSans-Regular.ttf" },
+	{ "Roboto Condensed", MEDIA .. "RobotoCondensed-Regular.ttf" },
+	{ "Inter", MEDIA .. "Inter-Regular.ttf" },
+}
+
 local function lsm()
 	if type(LibStub) ~= "table" and type(LibStub) ~= "function" then return nil end
 	local ok, lib = pcall(LibStub, "LibSharedMedia-3.0", true)
 	return ok and lib or nil
+end
+do
+	local lib = lsm()
+	if lib and lib.Register then
+		local western = lib.LOCALE_BIT_western or 128
+		for _, f in ipairs(Fonts.OWN) do pcall(lib.Register, lib, "font", f[1], f[2], western) end
+	end
+end
+
+-- (1.8.0-beta2) Whether the client can load a font file: a scratch text is set to it and asked what it got (a file that
+-- isn't there leaves the text as it was). Remembered per file. A client that can't be asked takes the file as usable.
+local usable, probe = {}, nil
+local function norm(p) return (tostring(p or "")):lower():gsub("/", "\\") end
+function Fonts:Usable(path)
+	if type(path) ~= "string" or path == "" then return false end
+	if usable[path] ~= nil then return usable[path] end
+	if not probe and UIParent and UIParent.CreateFontString then probe = UIParent:CreateFontString(nil, "OVERLAY"); if probe.Hide then probe:Hide() end end
+	if not (probe and probe.SetFont and probe.GetFont) then return true end
+	local fallback = STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
+	if norm(path) == norm(fallback) then usable[path] = true; return true end
+	pcall(probe.SetFont, probe, fallback, 12, "")
+	local ok, res = pcall(probe.SetFont, probe, path, 12, "")
+	local got = probe:GetFont()
+	usable[path] = ok and res ~= false and norm(got) == norm(path)
+	return usable[path]
 end
 
 function Fonts:Scale()
@@ -41,7 +76,8 @@ function Fonts:Path()
 	local lib = lsm()
 	if not (lib and lib.Fetch) then return nil end
 	local ok, path = pcall(lib.Fetch, lib, "font", name, true)
-	return ok and type(path) == "string" and path ~= "" and path or nil
+	path = ok and type(path) == "string" and path ~= "" and path or nil
+	return path and self:Usable(path) and path or nil
 end
 
 -- The choices for the Font setting: the game's font first, then every font another addon shares, by name.
@@ -51,7 +87,9 @@ function Fonts:Choices()
 	if lib and lib.List then
 		local ok, list = pcall(lib.List, lib, "font")
 		if ok and type(list) == "table" then
-			for _, name in ipairs(list) do if type(name) == "string" and name ~= "" then out[#out + 1] = { key = name, label = name } end end
+			for _, name in ipairs(list) do
+				if type(name) == "string" and name ~= "" and self:PathOf(name) then out[#out + 1] = { key = name, label = name } end
+			end
 		end
 	end
 	return out
@@ -62,7 +100,8 @@ function Fonts:PathOf(key)
 	local lib = lsm()
 	if not (lib and lib.Fetch) then return nil end
 	local ok, path = pcall(lib.Fetch, lib, "font", key, true)
-	return ok and type(path) == "string" and path ~= "" and path or nil
+	path = ok and type(path) == "string" and path ~= "" and path or nil
+	return path and self:Usable(path) and path or nil
 end
 
 local function apply(template)

@@ -3,7 +3,9 @@
 New:
 - Text Size (Settings > Style, under Size): make the item text in your bags, bank and bag windows and the Loot and
   Disenchant Helpers bigger or smaller, from 80% to 150%. List rows grow to fit bigger text.
-- Font (beside it): show that text in a font another addon shares, or the game's own.
+- Font (beside it, a dropdown): show that text in one of three fonts that now come with BagSmith (Noto Sans, Roboto
+  Condensed and Inter), one of the game's own, or one another addon shares. BagSmith's fonts also appear in your other
+  addons' font lists.
 - The Disenchant Helper learns new disenchant materials: anything a disenchant gives that it didn't know is remembered
   for this character and counted from then on.
 - Gear the Disenchant Helper has no table for (above item level 99) learns from your own disenchants: it says "Still
