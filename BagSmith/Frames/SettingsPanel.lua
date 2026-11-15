@@ -1318,8 +1318,8 @@ pages.profile = function(self, db)
 	self:Text("This character uses: " .. ns.profileName)
 	self:Edit("Create Profile", function(name) local ok, err = ns.Profiles:Use(name); if not ok then ns:Print(err) end end)
 	-- (1.8.0-beta7, Shweep) what every character using this profile shares; unchecked, each keeps its own
-	self:Head("Shared by Characters Using This Profile")
-	self:Text(("Checked parts are the same for every character using %s. Uncheck one to give each character its own: it starts as a copy of what the profile has now, and checking it again brings back the profile's."):format(ns.profileName))
+	self:Head("Shared Between Characters")   -- (beta7 feedback, Shweep: plainer)
+	self:Text("Characters on this profile share everything checked below. Uncheck something to let each character keep its own.")
 	for _, part in ipairs(ns.PROFILE_PARTS) do self:Check("share" .. part.key, part.label, part.help) end
 	self:Head("Share")
 	self:Text("A profile code holds all of a profile's settings, including saved sheets. Share yours, or import one to add it as a new profile.")

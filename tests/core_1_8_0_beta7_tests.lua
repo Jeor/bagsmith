@@ -1,6 +1,6 @@
 ;(function()
 	-- ======== 1.8.0-beta7: what characters using a profile share (Shweep) ========
-	-- Settings > Profile > Shared by Characters Using This Profile: each part (Favorites, Custom Sections, Pinned
+	-- Settings > Profile > Shared Between Characters: each part (Favorites, Custom Sections, Pinned
 	-- Sections, Section Order and Hidden Sections, Custom Currencies, Pinned Currencies, Custom Sheets) is shared
 	-- unless unchecked; then each character keeps its own copy, and the profile's own values are never written over.
 	local function deep(t) if type(t) ~= "table" then return t end local o = {} for k, v in pairs(t) do o[k] = deep(v) end return o end
