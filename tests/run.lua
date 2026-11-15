@@ -6934,7 +6934,7 @@ end)()
 	-- rc16: in Classic icon cells the rarity frame covers the icon's corners.
 	package.loaded.mock = nil
 	local M = require("mock")
-	M.put(0, 1, { id = 9401, name = "Red Cape", q = 1, class = 4, subclass = 1, price = 5, equip = "INVTYPE_CLOAK" })
+	M.put(0, 1, { id = 9401, name = "Red Cape", q = 2, class = 4, subclass = 1, price = 5, equip = "INVTYPE_CLOAK" })
 	_G.BagSmithCharDB = { version = 1, firstSeen = {} }
 	_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = { skin = "classic", view = "icons" } } }
 	local n = M.loadAddon("BagSmith")
