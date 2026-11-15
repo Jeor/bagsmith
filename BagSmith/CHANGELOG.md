@@ -40,8 +40,6 @@ Changed:
 - The Disenchant Helper's summary in chat reads as one sentence, like "1 item disenchanted: Greater Magic Essence x2,
   worth about 7s 60c at current AH prices."
 Fixed:
-- Classic: the sheet tabs overlap like the game's own tabs, so their shaded edges no longer show between them or at
-  the ends of the row.
 - Item icons and their borders line up exactly at any scale, like 90%: no more clipped edges or icons slipping out of
   their frames. In Classic, icons fill their slots like the game's own bags, with a silver outline for everyday items,
   and the corner marks sit inside the frame. Thanks to Jeor.

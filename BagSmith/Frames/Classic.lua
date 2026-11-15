@@ -189,6 +189,27 @@ function Classic.TabArtReport(btn)
 	end
 	ns:Debug("Tab %q (%d px tall): %s", btn.label and btn.label.GetText and (btn.label:GetText() or "") or "?", math.floor(h + 0.5),
 		#out > 0 and ("art reaching below the tab: " .. table.concat(out, ", ")) or "all its art fits inside the tab")
+	-- (1.8.0-beta14, Shweep: the tabs' own shading) every piece of the tab's art, to see where shading comes from: its
+	-- name, shown or not, layer, size, where it sits against the tab, its texture or atlas and the part of it in use
+	local art = btn.classic
+	local nameOf = {}
+	for k, v in pairs(art) do if type(k) == "string" and type(v) == "table" then nameOf[v] = k end end
+	local bl, bt = btn.GetLeft and btn:GetLeft(), btn.GetTop and btn:GetTop()
+	local function n1(v) return v and ("%.0f"):format(v) or "?" end
+	for _, r in ipairs({ art:GetRegions() }) do
+		if r and r.GetObjectType and r:GetObjectType() == "Texture" then
+			local layer, sub = r.GetDrawLayer and r:GetDrawLayer()
+			local tex = (r.GetAtlas and r:GetAtlas()) or (r.GetTexture and r:GetTexture()) or "?"
+			local c = r.GetTexCoord and { r:GetTexCoord() } or {}
+			local dx = (r.GetLeft and bl) and r:GetLeft() and (r:GetLeft() - bl) or nil
+			local dy = (r.GetTop and bt) and r:GetTop() and (bt - r:GetTop()) or nil
+			local a = r.GetAlpha and r:GetAlpha() or 1
+			ns:Debug("  %s: %s, %s %s, %sx%s at +%s,+%s, alpha %.2f, %s, coords %.3f,%.3f to %.3f,%.3f",
+				nameOf[r] or (r.GetDebugName and r:GetDebugName()) or "piece", (r.IsShown and r:IsShown()) and "shown" or "hidden",
+				tostring(layer), tostring(sub), n1(r:GetWidth()), n1(r:GetHeight()), n1(dx), n1(dy), a, tostring(tex),
+				c[1] or 0, c[2] or 0, c[7] or 1, c[8] or 1)
+		end
+	end
 end
 
 -- The highest frame layer used anywhere in a frame's children.

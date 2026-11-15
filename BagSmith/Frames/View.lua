@@ -1550,7 +1550,9 @@ View.TAB_MORE_W = 30
 -- (1.8.0-beta13, Shweep; learned from Guildy) Classic tabs overlap like the game's (14 px, was 2): each tab's frame is
 -- this much wider, half on each side, so labels, the row's length and folding stay exactly as they were; the shaded
 -- ends of the game's tab art tuck under their neighbors. The row's outer ends are trimmed (Classic.TrimTabEnds).
-View.CLASSIC_TAB_EXTRA = 12
+-- (1.8.0-beta14, Shweep: "the tabs look terrible, regardless of width") Off again: the copied art overlapping its
+-- neighbor crowded the labels. Kept at 0 (beta12's layout) while the shading is examined (Classic.TabArtReport).
+View.CLASSIC_TAB_EXTRA = 0
 function View:TabPlan(widths, avail, current, endRoom, pencilRoom)
 	-- widths: { id, w } in order; endRoom: what the + and the pencil need after the tabs; pencilRoom: the pencil alone
 	-- (it stays while folding, for the current custom sheet). Returns the ids shown and the ids folded, each in order.
@@ -1744,7 +1746,7 @@ function View:UpdateTabs()
 	if isCustom then place(editBtn, x, editW) end
 	-- (1.8.0-beta13) the row's outer ends have no neighbor to tuck under: their shaded ends are trimmed; every other
 	-- end gets its art back (a tab can move from the end to the middle)
-	if ns.Classic and ns.Classic.TrimTabEnds then
+	if extra > 0 and ns.Classic and ns.Classic.TrimTabEnds then
 		for k, btn in ipairs(laid) do
 			ns.Classic.TrimTabEnds(btn, k == 1 and half + 1 or 0, k == #laid and half + 1 or 0)
 		end

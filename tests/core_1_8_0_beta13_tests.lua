@@ -11,17 +11,12 @@
 	local shown = {}
 	for _, b in ipairs(main.tabButtons) do if b:IsShown() then shown[#shown + 1] = b end end
 	check(#shown >= 3, "(setup) Classic tabs: " .. #shown)
+	-- (1.8.0-beta14, by design, Shweep: "the tabs look terrible") the overlap is off again: beta12's layout, 2 px
 	local a, b = shown[1], shown[2]
 	local ax, bx = a.points[1][4], b.points[1][4]
-	check(ax + a:GetWidth() - bx == 14, "neighbors overlap 14 px, like the game's tabs: " .. (ax + a:GetWidth() - bx))
-	check(ax == -6, "the first tab starts half the extra to the left: " .. ax)
-	-- the labels sit where they did: each tab's label width is its own (the frame's extra is the shaded ends)
-	check(a.label.width == a:GetWidth() - 12 - 12, "the label keeps its width; the extra is outside it")
-	local sel
-	for _, t in ipairs(shown) do if t.active then sel = t end end
-	local other = shown[1] == sel and shown[2] or shown[1]
-	check(sel and sel:GetFrameLevel() > other:GetFrameLevel(), "the selected tab draws above its neighbors")
-	-- the end trims, on a stand-in for the game's tab art
+	check(n.View.CLASSIC_TAB_EXTRA == 0, "the overlap is off (CLASSIC_TAB_EXTRA 0)")
+	check(ax + a:GetWidth() - bx == 2 and ax == 0, "neighbors overlap 2 px, the first tab at the row's start, as in beta12: " .. (ax + a:GetWidth() - bx) .. ", " .. ax)
+	-- the end trims (kept for a later attempt; not used while the overlap is off), on a stand-in for the game's tab art
 	local function piece(w)
 		local t = { w = w, c = { 0, 0, 0, 1, 1, 0, 1, 1 } }
 		function t:GetWidth() return self.w end
