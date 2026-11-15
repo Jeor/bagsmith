@@ -873,8 +873,10 @@ local function fishing()
 end
 -- (1.8.0-beta16, the beta15 audit's A1) Every source the game lists for the slot (GetLootSourceInfo returns pairs:
 -- guid, quantity, guid, quantity, ...) must be an item; one creature or object among them and the slot isn't the cast's.
--- Whether the source is the very item disenchanted (the cast's GUID) is reported with /bs debug, not yet required:
--- Forever may name the loot source differently from C_Item.GetItemGUID, and requiring it unseen could stop all learning.
+-- (1.8.0-beta17, Shweep's /bs debug on Forever: "loot slot 1's source is the disenchanted item (Item-6796-0-40000000
+-- 257B6C17; item Item-6796-0-40000000257B6C17)") The loot source is the item's own GUID, so it's required: when the cast
+-- knows its item's GUID, every source must be exactly that item. Without one (a client that gives none), every source
+-- must still be an item.
 local function sourcesOf(i)
 	local ok, list = pcall(function() return { GetLootSourceInfo(i) } end)
 	if not ok or type(list) ~= "table" then return nil end
@@ -894,6 +896,9 @@ local function slotIsCast(i, id)
 	local own = c and c.entry and c.entry.rec and c.entry.rec.guid
 	if own and ns.db and ns.db.debug then
 		ns:Debug("Disenchant Helper: loot slot %d's source %s the disenchanted item (%s; item %s)", i, sources[1] == own and "is" or "is NOT", tostring(sources[1]), tostring(own))
+	end
+	if type(own) == "string" and own ~= "" then
+		for _, guid in ipairs(sources) do if guid ~= own then return false end end
 	end
 	if id then
 		local classID = classOf(id)

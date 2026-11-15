@@ -1,4 +1,11 @@
 ;(function()
+	-- (1.8.0-beta17, by design) Forever's loot source is the disenchanted item's own GUID (Shweep's /bs debug), and the
+	-- Helper now requires it: the stand-in window answers with the GUID of the item being disenchanted
+	function itemSource()
+		local ns = rawget(_G, "__deNS")
+		local c = ns and ns.Disenchant and ns.Disenchant.castOpen
+		return (c and c.entry and c.entry.rec and c.entry.rec.guid) or "Item-6796-0-4000000046B6BAE0"
+	end
 	-- ======== 1.8.0: the Disenchant Helper learns materials it doesn't know, and items past its table ========
 	-- A material the cast's own loot window holds is the cast's, known or not: it's recorded and learned (by item ID,
 	-- per character). The loot chat counts the shipped materials and the learned ones, and nothing else. Gear past the
@@ -10,10 +17,11 @@
 	local function boot(charDB, extra)
 		package.loaded.mock = nil
 		local M = require("mock")
-		M.put(0, 1, { id = 7001, name = "Sturdy Boots", q = 2, count = 1, class = 4, subclass = 1, price = 500, ilvl = 23, equip = "INVTYPE_FEET" })
-		M.put(0, 2, { id = 7002, name = "Worn Dagger", q = 2, count = 1, class = 2, subclass = 15, price = 800, ilvl = 33, equip = "INVTYPE_WEAPON" })
+		-- (1.8.0-beta17, by design) item GUIDs in Forever's form: the loot source is the item's own GUID
+		M.put(0, 1, { id = 7001, guid = "Item-6796-0-4000000000007001", name = "Sturdy Boots", q = 2, count = 1, class = 4, subclass = 1, price = 500, ilvl = 23, equip = "INVTYPE_FEET" })
+		M.put(0, 2, { id = 7002, guid = "Item-6796-0-4000000000007002", name = "Worn Dagger", q = 2, count = 1, class = 2, subclass = 15, price = 800, ilvl = 33, equip = "INVTYPE_WEAPON" })
 		-- past the shipped table: an uncommon helm at 112 (the table's uncommon brackets end at 99)
-		M.put(0, 3, { id = 7010, name = "Starforged Helm", q = 2, count = 1, class = 4, subclass = 4, price = 900, ilvl = 112, equip = "INVTYPE_HEAD" })
+		M.put(0, 3, { id = 7010, guid = "Item-6796-0-4000000000007010", name = "Starforged Helm", q = 2, count = 1, class = 4, subclass = 4, price = 900, ilvl = 112, equip = "INVTYPE_HEAD" })
 		_G.BagSmithCharDB = charDB or { version = 1, firstSeen = {} }
 		_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = { skin = "modern", deEnabled = true } } }
 		_G.IsSpellKnown = function(id) return id == DEID end
@@ -28,13 +36,13 @@
 		_G.GetLootSlotLink = function(i) return lootNow[i] and ("|Hitem:" .. lootNow[i][1] .. ":0|h[m]|h") end
 		_G.GetLootSlotInfo = function(i) return nil, "m", lootNow[i] and lootNow[i][2] or 1 end
 		_G.GetLootSlotType, _G.IsFishingLoot, _G.LOOT_SLOT_MONEY = nil, nil, nil
-		_G.GetLootSourceInfo = function() return "Item-6796-0-4000000046B6BAE0" end   -- (1.8.0-beta1) as on Forever: a disenchant's window says its source is the item
+		_G.GetLootSourceInfo = itemSource   -- (1.8.0-beta1) as on Forever: a disenchant's window says its source is the item; (1.8.0-beta17, by design) its own GUID, as Shweep's /bs debug showed
 		_G.GetItemInfoInstant = nil
 		_G.Auctionator = nil
 		clock = 1000; _G.GetTime = function() return clock end
 		GameTooltip.ClearLines = GameTooltip.ClearLines or function(self) self.lines = {} end   -- (the mock's tooltip has none)
 		if extra then extra(M) end
-		local n = M.loadAddon("BagSmith")
+		local n = M.loadAddon("BagSmith"); _G.__deNS = n   -- (beta17) for itemSource
 		M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
 		return M, n
 	end
@@ -119,7 +127,7 @@
 		check(DE:Log()["2:3:a"].mats[10940] == before + 2, label .. ": a shipped material the bracket gives still counts, as before")
 		M.fire("LOOT_CLOSED")
 		_G.GetLootSlotType, _G.IsFishingLoot, _G.LOOT_SLOT_MONEY = nil, nil, nil
-		_G.GetLootSourceInfo = function() return "Item-6796-0-4000000046B6BAE0" end   -- (1.8.0-beta1) as on Forever: a disenchant's window says its source is the item
+		_G.GetLootSourceInfo = itemSource   -- (1.8.0-beta1) as on Forever: a disenchant's window says its source is the item; (1.8.0-beta17, by design) its own GUID, as Shweep's /bs debug showed
 		C_Item.GetItemInfoInstant = M.realInstant
 	end
 	M.realInstant = C_Item.GetItemInfoInstant
@@ -136,7 +144,7 @@
 	windowCase("a source that can't be read", function() _G.GetLootSourceInfo = function() return nil end end)
 	windowCase("a source that errors", function() _G.GetLootSourceInfo = function() error("no source") end end)
 	windowCase("a client without GetLootSourceInfo", function() _G.GetLootSourceInfo = nil end)
-	windowCase("one slot from the item, one from a creature", function() _G.GetLootSourceInfo = function(i) return i == 1 and "Item-0-1-2" or "Creature-0-1-2-3-4-5" end end)
+	windowCase("one slot from the item, one from a creature", function() _G.GetLootSourceInfo = function(i) return i == 1 and itemSource() or "Creature-0-1-2-3-4-5" end end)
 	windowCase("a window holding armor", function()
 		lootNow[3] = { 7777, 1 }
 		C_Item.GetItemInfoInstant = function(id) if id == 7777 then return id, "Armor", "Cloth", "INVTYPE_CHEST", 1, 4, 1 end return M.realInstant(id) end
@@ -144,13 +152,13 @@
 	-- the client answering oddly is no reason to doubt the cast's own window: an item source, or reads that throw
 	c = cast(M, DE, 7001)
 	lootNow = { { NEW2, 2 } }
-	_G.GetLootSourceInfo = function() return "Item-0-1-2" end
+	_G.GetLootSourceInfo = itemSource   -- (beta17, by design: the cast's own item)
 	_G.IsFishingLoot = function() error("no fishing here") end
 	_G.LOOT_SLOT_MONEY = 2; _G.GetLootSlotType = function() error("no slot types") end
 	C_Item.GetItemInfoInstant = function() error("no instant info") end
 	local ok, err = pcall(M.fire, "LOOT_OPENED")
 	_G.GetLootSlotType, _G.IsFishingLoot, _G.LOOT_SLOT_MONEY = nil, nil, nil
-	_G.GetLootSourceInfo = function() return "Item-6796-0-4000000046B6BAE0" end   -- (1.8.0-beta1) as on Forever: a disenchant's window says its source is the item
+	_G.GetLootSourceInfo = itemSource   -- (1.8.0-beta1) as on Forever: a disenchant's window says its source is the item; (1.8.0-beta17, by design) its own GUID, as Shweep's /bs debug showed
 	C_Item.GetItemInfoInstant = M.realInstant
 	check(ok and DE:Log()["2:3:a"].mats[NEW2] == 2 and DE:LearnedMaterials()[NEW2] == true, "loot from an item, with the other reads throwing: counted and learned, no error (" .. tostring(err) .. ")")
 	M.fire("LOOT_CLOSED")

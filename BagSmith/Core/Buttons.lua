@@ -1304,7 +1304,10 @@ function Buttons:TemplateLeftovers(b)
 	local out = {}
 	if b.GetRegions then
 		for _, r in ipairs({ b:GetRegions() }) do
-			if r and not known[r] and r.IsShown and r:IsShown() and (not r.GetAlpha or (r:GetAlpha() or 1) > 0.01) then
+			-- (1.8.0-beta17, Shweep's /bs debug: "Mask (2922105)") a mask texture never draws by itself (it shapes the
+			-- icon it's applied to): not leftover art
+			local isMask = r and r.GetObjectType and r:GetObjectType() == "MaskTexture"
+			if r and not isMask and not known[r] and r.IsShown and r:IsShown() and (not r.GetAlpha or (r:GetAlpha() or 1) > 0.01) then
 				local what = (r.GetAtlas and r:GetAtlas()) or (r.GetTexture and r:GetTexture()) or (r.GetText and r:GetText()) or "?"
 				out[#out + 1] = ("%s (%s)"):format(names[r] or (r.GetDebugName and r:GetDebugName()) or "unnamed", tostring(what))
 			end
