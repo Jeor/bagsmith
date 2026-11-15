@@ -1,4 +1,4 @@
--- Classic backpack borders stay silver, with rarity colors and gold quest items.
+-- Classic adds borders only for uncommon or better items and quest items.
 local ns = { db = { skin = "classic", border = "all" }, OnSignal = function() end }
 C_Item = { GetItemQualityColor = function(q) return q == 2 and 0 or 1, 1, q == 2 and 0 or 1 end }
 assert(loadfile("BagSmith/Core/Buttons.lua"))("BagSmith", ns)
@@ -31,23 +31,26 @@ for _, setting in ipairs({ "all", "unc", "off" }) do
 	for _, source in ipairs({ texture(), false }) do
 		local b = button(source or nil)
 		ns.db.skin, ns.db.border = "classic", setting
-		B:ApplyQuality(b, { quality = 1 })
-		check(b.qFrame.file == "Interface\\Common\\WhiteIconFrame", "Classic uses silver clipped bag frame")
-		check(b.qFrame.color[1] == 1 and b.qFrame.color[2] == 1 and b.qFrame.color[3] == 1, "common items stay silver for every rarity setting")
-		check(b.qFrame.points[1][4] == -2 and b.qFrame.points[2][4] == 2, "frame covers square icon corners")
-		B:ApplyQuality(b, { quality = 2 })
-		check(b.qFrame.color[1] == (setting == "off" and 1 or 0), "uncommon rarity respects setting")
+		for _, quality in ipairs({ 0, 1 }) do
+			B:ApplyQuality(b, { quality = quality })
+			check(not b.qFrame.shown and not b.qRing.shown, "poor/common items retain default slot border")
+		end
+		for quality = 2, 5 do
+			B:ApplyQuality(b, { quality = quality })
+			check(b.qFrame.shown == (setting ~= "off"), "green and above respect rarity setting")
+		end
 		B:ApplyQuality(b, { quality = 1, isQuest = true })
-		check(b.qFrame.color[1] == 1 and b.qFrame.color[2] == .82 and b.qFrame.color[3] == 0, "quest items have gold borders")
+		check(b.qFrame.shown and b.qFrame.color[1] == 1 and b.qFrame.color[2] == .82 and b.qFrame.color[3] == 0, "quest items have gold borders")
+		check(b.qFrame.points[1][4] == -2 and b.qFrame.points[2][4] == 2, "frame covers square icon corners")
 		B:ApplyQuality(b, { quality = 1 })
-		check(b.qFrame.color[3] == 1, "reusing a quest cell restores silver")
+		check(not b.qFrame.shown, "reusing quest cell removes added border")
 		B:ApplyQuality(b, nil)
 		check(not b.qFrame.shown, "empty cells hide item frame")
 		ns.db.skin = "modern"; B:ApplyQuality(b, { quality = 1, isQuest = true })
 		check(not b.qFrame.shown and b.modernBorder[1].shown, "Modern retains its pixel outline")
 		check(b.modernBorder[1].color[1] == (setting == "all" and 1 or B.NEUTRAL_FRAME[1]), "Modern neutral colors unchanged")
 		ns.db.skin = "classic"; B:ApplyQuality(b, { quality = 1 })
-		check(b.qFrame.shown and not b.modernBorder[1].shown, "skin switch restores Classic")
+		check(not b.qFrame.shown and not b.modernBorder[1].shown, "skin switch restores default Classic common slot")
 		b.mode = "row"; B:ApplyQuality(b, { quality = 1 })
 		check(b.qRing.shown and not b.qFrame.shown, "list rows keep ring")
 	end

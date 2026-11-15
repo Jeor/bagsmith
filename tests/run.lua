@@ -2090,18 +2090,17 @@ end)()
 					local frame = M.modernFrame(b) or (b.qRing:IsShown() and b.qRing) or (b.qFrame:IsShown() and b.qFrame)
 					local both = (b.qRing:IsShown() and b.qFrame:IsShown()) or (M.modernFrame(b) and (b.qRing:IsShown() or b.qFrame:IsShown()))
 					local neutralColor = frame and frame.color and frame.color[1] == N[1] and frame.color[2] == N[2]
-					local plainColor = neutralColor
-					if skin == "classic" and view == "icons" then
-						plainColor = frame and frame.color and frame.color[1] == 1 and frame.color[2] == 1 and frame.color[3] == 1
-					end
-					if not frame or both or (colored and neutralColor) or (not colored and not plainColor) then
+					local defaultSlot = skin == "classic" and view == "icons" and (q < 2 or not colored)
+					local invalid = defaultSlot and frame or (not defaultSlot and
+						(not frame or both or (colored and neutralColor) or (not colored and not neutralColor)))
+					if invalid then
 						ok = false; why = ("%s/%s/%s q%d"):format(skin, view, setting, q)
 					end
 				end
 			end
 		end
 	end
-	check(ok, "every item icon has exactly one thin frame: rarity color when allowed, silver Classic cells or neutral grey otherwise " .. why)
+	check(ok, "every item icon has exactly one thin frame: Classic default slots for ordinary items, rarity outlines when allowed " .. why)
 	n6:Set("skin", "modern"); n6:Set("view", "icons"); n6:Set("border", "off"); n6.ui.bagWindows = true; n6:RefreshViews(true)
 	local empty
 	for _, b in ipairs(n6.Buttons.all) do if not b.hasItem then empty = b; break end end

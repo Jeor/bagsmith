@@ -250,13 +250,16 @@ function Buttons:ApplyQuality(b, rec)
 		b.qRing:Hide(); b.qFrame:Hide(); b.frameEdge:Hide(); b.frameBG:Hide()
 		self:DrawModernBorder(b, r, g, bl)
 	elseif classicCell then
+		-- Ordinary items keep the default slot artwork without an added outline.
+		if not rec.isQuest and (q < 2 or not colored) then
+			b.qFrame:Hide(); b.qRing:Hide()
+			return
+		end
 		-- WhiteIconFrame is the clipped, silver bag outline. The template's
 		-- initial IconBorder can instead contain a dark inset frame.
 		b.qFrame:ClearAllPoints()
 		b.qFrame:SetPoint("TOPLEFT", icon, "TOPLEFT", -2, 2)
 		b.qFrame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 2, -2)
-		-- Disabling rarity colors keeps the Classic silver bevel visible.
-		if not colored then r, g, bl = 1, 1, 1 end
 		if rec.isQuest then r, g, bl = 1, 0.82, 0 end
 		b.qFrame:SetVertexColor(r, g, bl, 1)
 		b.qFrame:Show(); b.qRing:Hide()
