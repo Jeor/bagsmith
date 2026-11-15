@@ -78,6 +78,24 @@
 		check(n.db.fontName == "Plain Sans", S .. "the previous arrow goes back, round the list (" .. tostring(n.db.fontName) .. ")")
 		n:Set("fontName", "")
 		P:Hide()
+		-- the Disenchant Helper's item panel (it holds the secure button): grows with the text, never in combat
+		do
+			local DE = n.Disenchant
+			local set = {}
+			local f = { cur = { h = 84, GetHeight = function(self) return self.h end, SetHeight = function(self, v) set[#set + 1] = v; self.h = v end } }
+			n:Set("textScale", 1.5)
+			local realICL = InCombatLockdown
+			_G.InCombatLockdown = function() return true end
+			DE.ApplyTextSize(f)
+			check(#set == 0 and f.cur.h == 84, S .. "in combat the Disenchant Helper's item panel isn't resized (a protected frame)")
+			_G.InCombatLockdown = function() return false end
+			DE.ApplyTextSize(f)
+			check(#set == 1 and f.cur.h == 126, S .. "out of combat it grows with the text: 84 to 126 px at 150%")
+			DE.ApplyTextSize(f)
+			check(#set == 1, S .. "and isn't set again when it's already right")
+			_G.InCombatLockdown = realICL
+			n:Set("textScale", 1)
+		end
 		-- a profile without the settings: the copies follow it
 		n:Set("textScale", 1.2); M.runTimers()
 		check(small.size == 12, S .. "120%: 12 px")

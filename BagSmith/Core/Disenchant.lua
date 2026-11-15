@@ -1116,7 +1116,10 @@ end
 function DE.ApplyTextSize(f)
 	if not (f and f.cur) then return end
 	local F = ns.Fonts
-	f.cur:SetHeight(F and F:Grow(84) or 84)
+	-- the panel holds the secure button (a protected frame): its height changes out of combat only, and only when it
+	-- must; the layout after combat (DE:SkinNow, DE:Refresh) sets it then
+	local h = F and F:Grow(84) or 84
+	if not InCombatLockdown() and math.abs((f.cur:GetHeight() or 0) - h) > 0.5 then f.cur:SetHeight(h) end
 	local path, flags = F and F:Face("GameFontHighlightSmall")
 	local px = F and F:Px(10) or 10
 	for _, t in ipairs({ f.cur.likely, f.cur.basis }) do
@@ -1138,7 +1141,7 @@ function DE:Layout()
 	f.cols = cols
 	-- (1.8.0) the item panel grows with Text Size
 	DE.ApplyTextSize(f)
-	local curH = ns.Fonts and ns.Fonts:Grow(84) or 84
+	local curH = f.cur:GetHeight() or 84   -- (as set: in combat it waits)
 	local headY = -(56 + curH + 10)
 	for i, c in ipairs(cols) do
 		local h = f.heads[i]
