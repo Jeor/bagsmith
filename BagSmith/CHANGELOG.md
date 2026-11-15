@@ -12,8 +12,11 @@ New:
   learning" until it has 20 results for that range, then shows your own.
 - Special bags (quivers, ammo pouches, soul bags, herb, enchanting, engineering, mining, leatherworking and cooking
   bags, tackle boxes, trinket bags and reagent bags): each kind can glow softly inside its slots, in a color you choose
-  (Settings > Item Icons > Special Bags). Every glow is off until you turn it on; each kind's items glow too unless
-  you turn that off.
+  (Settings > Item Icons > Special Bag Slot Indicators). Every glow is off until you turn it on; each kind's items glow too unless
+  you turn that off, and each has its own color and opacity. The glow sits inside the icon, not over the slot's frame.
+- Profiles: choose what the characters using a profile share (Settings > Profile). Favorites, Custom Sections, Pinned
+  Sections, Section Order and Hidden Sections, Custom Currencies, Pinned Currencies and Custom Sheets are shared
+  unless you uncheck one; then each character keeps its own, starting from a copy of the profile's.
 Changed:
 - Your free-slot count shows only the slots anything fits in: a quiver or a herb bag's room no longer counts. A small
   + says there's more room in special bags, and hovering the count lists it for each kind of bag.

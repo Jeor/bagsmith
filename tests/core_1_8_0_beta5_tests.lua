@@ -53,7 +53,8 @@
 	local lines = table.concat(GameTooltip.lines or {}, " | ")
 	check(lines:find("Free slots") and lines:find(("Bags (anything fits) %d / %d"):format(wantG, wantGT), 1, true) and lines:find("Herb Bag 4 / 6", 1, true)
 		and lines:find("Quiver 4 / 4", 1, true), "hovering the count lists the free slots by kind: " .. lines)
-	check(lines:find("Quiver") < lines:find("Herb Bag"), "in the kinds' order (quivers first)")
+	-- (beta7 feedback, by design) alphabetical: Herb Bag before Quiver
+	check(lines:find("Herb Bag") < lines:find("Quiver"), "in alphabetical order (Herb Bag, then Quiver)")
 	-- with Show Help Tips off the breakdown still shows (it's information, not help)
 	n:Set("helpTips", false)
 	GameTooltip.lines = {}; GameTooltip.shown = false

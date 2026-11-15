@@ -160,6 +160,14 @@ function ns:BagKind(bag)
 	if not ok or type(class) ~= "number" or type(sub) ~= "number" then return nil end
 	return ns.BAG_KIND_BY_TYPE[class * 100 + sub]
 end
+-- (beta7 feedback, Shweep) The kinds in alphabetical order of the names the game shows (Settings and the free-slot
+-- tooltip list them this way, in any language).
+function ns:BagKindsSorted()
+	local list = {}
+	for _, k in ipairs(ns.BAG_KINDS) do list[#list + 1] = k end
+	table.sort(list, function(a, b) return ns:BagKindName(a.key):lower() < ns:BagKindName(b.key):lower() end)
+	return list
+end
 -- A kind's glow color as r, g, b (the profile's choice, else the default).
 function ns:BagKindColor(key)
 	local hex = ns.db and ns.db["glowColor_" .. key] or (ns.BAG_KIND[key] and ns.BAG_KIND[key].color) or "ffffff"

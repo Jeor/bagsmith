@@ -1713,7 +1713,7 @@ function View:FreeTip()
 		if help then tt:AddLine(" ") end
 		if help then tt:AddLine("Free slots", 1, 0.82, 0) else ns.TipText(tt, "Free slots", 1, 0.82, 0) end
 		tt:AddDoubleLine("Bags (anything fits)", ("%d / %d"):format(g[1], g[2]), 1, 1, 1, 1, 1, 1)
-		for _, k in ipairs(ns.BAG_KINDS) do
+		for _, k in ipairs(ns:BagKindsSorted()) do   -- (beta7 feedback) alphabetical, as in Settings
 			local v = special[k.key]
 			if v then
 				local r, gg, b = ns:BagKindColor(k.key)

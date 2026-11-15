@@ -566,10 +566,21 @@ function Buttons:BagGlow(b, rec)
 	if on and not b.bagGlow then
 		b.bagGlow = b:CreateTexture(nil, "OVERLAY", nil, -8)   -- under the rarity border, the count and the corner marks
 		b.bagGlow:SetTexture(Buttons.GLOW_ART)
-		b.bagGlow:SetAllPoints(b)
+	end
+	if on then
+		-- (beta6 feedback, Shweep) inside the icon's square, not over the slot's frame: on the icon's area (the same
+		-- spot when the slot is empty), a pixel in from its edge
+		local area = b.icon or b
+		local inset = (Buttons.PixelSize and Buttons.PixelSize(b)) or 1
+		b.bagGlow:ClearAllPoints()
+		b.bagGlow:SetPoint("TOPLEFT", area, "TOPLEFT", inset, -inset)
+		b.bagGlow:SetPoint("BOTTOMRIGHT", area, "BOTTOMRIGHT", -inset, inset)
 	end
 	if b.bagGlow then
-		if on then b.bagGlow:SetVertexColor(ns:BagKindColor(kind)) end
+		if on then
+			local r, g, bl = ns:BagKindColor(kind)
+			b.bagGlow:SetVertexColor(r, g, bl, tonumber(db["glowAlpha_" .. kind]) or 1)   -- (beta6 feedback) its opacity
+		end
 		b.bagGlow:SetShown(on)
 	end
 	b.glowKind = on and kind or nil

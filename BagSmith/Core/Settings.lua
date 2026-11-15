@@ -180,7 +180,7 @@ local DEFAULTS = {
 	minimapAngle = 220,
 	minimapFade = false,   -- show the minimap button only while the pointer is over the minimap
 }
-local CHAR_DEFAULTS = { version = 1, firstSeen = {}, seen = {}, seenSlots = {}, recentSince = 0, recentSticky = {}, junkMarks = {}, makeRoomNever = {}, makeRoomProtect = {}, professionMats = {},
+local CHAR_DEFAULTS = { version = 1, own = {}, firstSeen = {}, seen = {}, seenSlots = {}, recentSince = 0, recentSticky = {}, junkMarks = {}, makeRoomNever = {}, makeRoomProtect = {}, professionMats = {},
 	deNever = {}, deResults = {}, deResultsVersion = 0, deOfferDeclined = false,
 	deMaterials = {},   -- (1.8.0) the Disenchant Helper's learned materials: item ID -> true
 	blizzPicksSeen = {} }   -- (1.7.0-beta14) currency ID -> true: the game's Show on Backpack picks already pinned once   -- the Disenchant Helper's per-character data (1.2.0): the never list, learned results and their schema version, the declined offer   -- recentSince: start of the Recent section's session (0 = not set)   -- seen: guid -> count at dismissal; seenSlots: "bag:slot" -> "itemID:count"
@@ -462,7 +462,22 @@ for _, k in ipairs(ns.BAG_KINDS or {}) do
 	DEFAULTS["glowColor_" .. k.key] = k.color
 	validators["glowColor_" .. k.key] = validators.accent
 	DEFAULTS["glowItems_" .. k.key] = true   -- (beta5 feedback, Shweep) its items glow too, unless turned off
+	DEFAULTS["glowAlpha_" .. k.key] = 1      -- (beta6 feedback, Shweep) and its own opacity, 10% to 100%
+	validators["glowAlpha_" .. k.key] = num(0.1, 1)
 end
+-- (1.8.0-beta7, Shweep) What every character using a profile shares, part by part. Each part is shared (true) unless
+-- the profile says otherwise; then each character keeps its own copy (BagSmithCharDB.own[profile][key]). The keys
+-- that go together move together: moved items name custom sections; tab order and hidden tabs name sheets.
+ns.PROFILE_PARTS = {
+	{ key = "Favorites", label = "Favorites", help = "The items you've starred.", keys = { "favItems" } },
+	{ key = "Sections", label = "Custom Sections", help = "Your own sections, and the items you've moved from one section to another.", keys = { "customSections", "sectionMoves", "sectionNextId" } },
+	{ key = "PinnedSections", label = "Pinned Sections", help = "Which sections are pinned to the top.", keys = { "pinnedSections" } },
+	{ key = "SectionOrder", label = "Section Order and Hidden Sections", help = "The order of your sections, and the ones you've hidden.", keys = { "laneOrder", "sectionHide" } },
+	{ key = "Currencies", label = "Custom Currencies", help = "The items you track as currencies.", keys = { "customCurrencies" } },
+	{ key = "PinnedCurrencies", label = "Pinned Currencies", help = "The currencies pinned to the footer, and the ones you've unpinned.", keys = { "fav", "blizzUnpinned" } },
+	{ key = "Sheets", label = "Custom Sheets", help = "Your saved sheets for the bags and the bank, and the order of the tabs.", keys = { "sheets", "bankSheets", "tabOrder", "hiddenTabs", "bankTabOrder", "bankHiddenTabs" } },
+}
+for _, part in ipairs(ns.PROFILE_PARTS) do DEFAULTS["share" .. part.key] = true end
 
 local copy = ns.Copy
 validators.bankCols = validators.cols
@@ -834,9 +849,80 @@ function Profiles:List()
 		return a < b end)
 	return names
 end
+-- (1.8.0-beta7, Shweep) A profile's parts a character keeps for itself (ns.PROFILE_PARTS, the profile's share<Part>
+-- off). Only one character plays at a time, so for the session its own copies stand in the profile's table, where the
+-- rest of BagSmith reads and writes them as before; the profile's own values wait aside and go back before the game
+-- writes the saved data (PLAYER_LOGOUT, which /reload sends too), before another profile is used, and when a part is
+-- shared again. A character's copy is kept when a part is shared again, so it comes back if that part is unshared later.
+local Own = { swap = nil }   -- swap = { tbl = the profile's table, name = its name, keys = { [key] = the profile's value } }
+ns.OwnParts = Own
+local function partKeys()
+	local set = {}
+	for _, part in ipairs(ns.PROFILE_PARTS) do for _, k in ipairs(part.keys) do set[k] = part.key end end
+	return set
+end
+function Own:Restore()
+	local sw = self.swap
+	if not sw then return end
+	self.swap = nil
+	local cdb = ns.cdb
+	local mine = cdb and cdb.own and cdb.own[sw.name]
+	for k, profileValue in pairs(sw.keys) do
+		if mine then mine[k] = sw.tbl[k] end   -- the character's copy, as it is now
+		sw.tbl[k] = profileValue
+	end
+end
+function Own:Apply()
+	self:Restore()
+	local tbl, name, cdb = ns.db, ns.profileName, ns.cdb
+	if not (tbl and name and cdb) then return end
+	local keys
+	for _, part in ipairs(ns.PROFILE_PARTS) do
+		if tbl["share" .. part.key] == false then
+			cdb.own = type(cdb.own) == "table" and cdb.own or {}
+			local mine = cdb.own[name] or {}
+			cdb.own[name] = mine
+			for _, k in ipairs(part.keys) do
+				keys = keys or {}
+				keys[k] = tbl[k]
+				if mine[k] == nil then mine[k] = copy(tbl[k]) end   -- the first time: a copy of what the profile has now
+				tbl[k] = mine[k]
+			end
+		end
+	end
+	if keys then
+		self.swap = { tbl = tbl, name = name, keys = keys }
+		fixTabs(tbl)   -- this character's sheets and tabs agree (it may replace a list: the copies follow)
+		local mine = cdb.own[name]
+		for k in pairs(keys) do mine[k] = tbl[k] end
+	end
+end
+-- What a character keeps for itself is checked as the profile's own settings are: anything else is dropped. Copies
+-- for a profile that no longer exists go.
+local function validateOwn(cdb)
+	local allowed = partKeys()
+	local own = type(cdb.own) == "table" and cdb.own or {}
+	local out = {}
+	for name, t in pairs(own) do
+		if type(name) == "string" and type(t) == "table" and BagSmithDB.profiles[name] then
+			local keep = {}
+			for k, v in pairs(t) do
+				if allowed[k] then
+					if validators[k] then keep[k] = validators[k](v)
+					elseif type(v) == type(DEFAULTS[k]) then keep[k] = copy(v) end
+				end
+			end
+			out[name] = keep
+		end
+	end
+	cdb.own = out
+end
+
 local function activate()
+	Own:Restore()   -- (1.8.0-beta7) the old profile gets its own values back first
 	local name, settings = Profiles:Active()
 	ns.db, ns.profileName = settings, name
+	Own:Apply()
 	-- A confirmation asked about the old profile state; it no longer applies.
 	local c = ns.Popups and ns.Popups.confirm
 	if c and c:IsShown() then c:Hide() end
@@ -929,6 +1015,8 @@ ns:On("ADDON_LOADED", function(name)
 	BagSmithCharDB, ns.cdb = cdb, cdb
 	local pname, settings = Profiles:Active()
 	ns.db, ns.profileName = settings, pname
+	validateOwn(cdb)   -- (1.8.0-beta7) this character's own copies of parts its profile doesn't share
+	Own:Apply()
 	if repaired then ns:Print("Some saved settings were invalid and have been reset to defaults.") end
 	ns.loaded = true
 	ns:Fire("ADDON_READY")
@@ -949,3 +1037,14 @@ function ns:Set(key, value, silent)
 	return true
 end
 function ns:Toggle(key) return ns:Set(key, not ns.db[key]) end
+
+-- (1.8.0-beta7) Saving: the profile's own values go back before the game writes them, whatever else runs at logout.
+ns:On("PLAYER_LOGOUT", function() pcall(Own.Restore, Own) end)
+-- A part shared or unshared: swap again, then everything redraws from the right copy (as a profile switch does).
+ns:OnSignal("SETTINGS_CHANGED", function(key)
+	if type(key) ~= "string" or not key:find("^share") then return end
+	Own:Apply()
+	if ns.Currency then ns.Currency:Invalidate() end
+	if ns.ReconcileSheets then ns:ReconcileSheets() end
+	ns:Fire("SETTINGS_CHANGED")
+end)

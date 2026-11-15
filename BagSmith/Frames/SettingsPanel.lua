@@ -1317,6 +1317,10 @@ pages.profile = function(self, db)
 	self:Text("A profile is a saved set of settings. Every character uses Default unless you pick another.")
 	self:Text("This character uses: " .. ns.profileName)
 	self:Edit("Create Profile", function(name) local ok, err = ns.Profiles:Use(name); if not ok then ns:Print(err) end end)
+	-- (1.8.0-beta7, Shweep) what every character using this profile shares; unchecked, each keeps its own
+	self:Head("Shared by Characters Using This Profile")
+	self:Text(("Checked parts are the same for every character using %s. Uncheck one to give each character its own: it starts as a copy of what the profile has now, and checking it again brings back the profile's."):format(ns.profileName))
+	for _, part in ipairs(ns.PROFILE_PARTS) do self:Check("share" .. part.key, part.label, part.help) end
 	self:Head("Share")
 	self:Text("A profile code holds all of a profile's settings, including saved sheets. Share yours, or import one to add it as a new profile.")
 	self:Button("Share This Profile", function() ns.ShareWindow("share") end, 160)
@@ -1414,9 +1418,9 @@ pages.icons = function(self, db)
 	self:Check("iconItemLevel", "Item Level (ilvl)", "Shows the item level on weapons and armor in Icons view. Choose its corner under Icon Corners.")
 	self:Indented(function() self:Color("iconItemLevelColor", "Item Level Color", "The color of the item level") end)
 	-- (1.8.0-beta5) Special bags: an inner glow per kind of bag, each off until turned on, in a color of your choice
-	self:Head("Special Bags")
+	self:Head("Special Bag Slot Indicators")   -- (beta7 feedback, Shweep) was "Special Bags"
 	-- (beta5 feedback, Shweep) each kind's options sit under it and name it: its items too (on by default), its color
-	for _, k in ipairs(ns.BAG_KINDS) do
+	for _, k in ipairs(ns:BagKindsSorted()) do   -- (beta7 feedback, Shweep) alphabetical
 		local name = ns:BagKindName(k.key)
 		local lower = name:lower()
 		self:Check("glow_" .. k.key, ("Glow in %s Slots"):format(name), ("A soft glow inside the slots of your %s, so you can tell them apart at a glance."):format(lower))
@@ -1424,6 +1428,7 @@ pages.icons = function(self, db)
 			self:Indented(function()
 				self:Check("glowItems_" .. k.key, ("Glow on %s Items Too"):format(name), ("The items in your %s glow too, not only its empty slots."):format(lower))
 				self:Color("glowColor_" .. k.key, ("%s Glow Color"):format(name), ("The glow's color in your %s"):format(lower))
+				self:Step("glowAlpha_" .. k.key, ("%s Glow Opacity"):format(name), 0.05, "%d%%", ("How strong the glow is in your %s."):format(lower))
 			end)
 		end
 	end
