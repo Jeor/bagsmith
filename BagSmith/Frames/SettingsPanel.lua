@@ -1317,6 +1317,10 @@ pages.profile = function(self, db)
 	self:Text("A profile is a saved set of settings. Every character uses Default unless you pick another.")
 	self:Text("This character uses: " .. ns.profileName)
 	self:Edit("Create Profile", function(name) local ok, err = ns.Profiles:Use(name); if not ok then ns:Print(err) end end)
+	-- (beta7 feedback, Shweep) All Profiles near the top: choosing and managing profiles is what this page is for
+	self:Head("All Profiles")
+	self:Text("Assign gives this character that profile's settings. Copy brings another profile's settings into the one this character uses. Deleting a profile moves anyone using it back to Default.")
+	self:Profiles()
 	-- (1.8.0-beta7, Shweep) what every character using this profile shares; unchecked, each keeps its own
 	self:Head("Shared Between Characters")   -- (beta7 feedback, Shweep: plainer)
 	self:Text("Characters on this profile share everything checked below. Uncheck something to let each character keep its own.")
@@ -1325,9 +1329,6 @@ pages.profile = function(self, db)
 	self:Text("A profile code holds all of a profile's settings, including saved sheets. Share yours, or import one to add it as a new profile.")
 	self:Button("Share This Profile", function() ns.ShareWindow("share") end, 160)
 	self:Button("Import Profile", function() ns.ShareWindow("import") end, 160)
-	self:Head("All Profiles")
-	self:Text("Assign gives this character that profile's settings. Copy brings another profile's settings into the one this character uses. Deleting a profile moves anyone using it back to Default.")
-	self:Profiles()
 end
 
 -- General: how BagSmith opens, which of Blizzard's windows it stands in for, and its notices.
