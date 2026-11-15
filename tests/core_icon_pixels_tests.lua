@@ -42,6 +42,7 @@ for _, screenH in ipairs({1080,1440,2160}) do
     b.scale=scale
     function b:GetEffectiveScale() return self.scale end
     function b:CreateTexture() return texture() end
+    function b:HookScript(event, fn) self.hooks=self.hooks or {}; self.hooks[event]=fn end
     b.iconLayoutX,b.iconPx=41.3,18
     if mode=='row' then b.w,b.h=300,24; b.icon:SetSize(18,18); b.icon:SetPoint('LEFT',b,'LEFT',41.3,0) end
     b.Count:SetPoint('BOTTOMRIGHT',b,'BOTTOMRIGHT',-2,2)
@@ -98,6 +99,22 @@ for _, screenH in ipairs({1080,1440,2160}) do
     local pixel=ns.Buttons.PixelSize(b)
     assert(integer(x/pixel) and integer(y/pixel) and integer(w/pixel) and integer(h/pixel),'Reused icons must realign after scale/skin changes')
     assert(b.Count.points[1]==countAnchor,'Skin/scale changes must preserve numeric anchors')
+    -- A template/item refresh may replace texture bounds while the button
+    -- itself has not moved. The last requested geometry is not proof of reality.
+    local ix,iy,iw,ih=b.icon:GetRect()
+    b.icon:ClearAllPoints(); b.icon:SetPoint('BOTTOMLEFT',b,'BOTTOMLEFT',0,0)
+    b.icon:SetSize(b.w,b.h)
+    ns.Buttons:RealignModernBorders()
+    local ax,ay,aw,ah=b.icon:GetRect()
+    assert(math.abs(ax-ix)<.000001 and math.abs(ay-iy)<.000001 and math.abs(aw-iw)<.000001 and math.abs(ah-ih)<.000001,
+     'An overwritten icon must recover without moving or resizing the button')
+    for _,event in ipairs({'OnShow','OnSizeChanged'}) do
+     assert(b.hooks and b.hooks[event],'Visibility and size changes must wake alignment')
+     b.icon:SetSize(b.w,b.h)
+     b.hooks[event](b)
+     local _,_,rw,rh=b.icon:GetRect()
+     assert(math.abs(rw-iw)<.000001 and math.abs(rh-ih)<.000001,'A visible/size transition must repair icon bounds')
+    end
     local rect=b.GetRect
     b.GetRect=function() return nil end
     ns.Buttons:ApplyFrame(b) -- layout may be unresolved immediately after a resize

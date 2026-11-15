@@ -185,7 +185,13 @@ function Buttons:UpdateIconGeometry(b)
 	-- gain/lose a pixel as the window moves across fractional coordinates.
 	local sw, sh = math.max(pixel, snap(width)), math.max(pixel, snap(height))
 	local dx, dy = sx - x, sy - y
-	if b.iconSnapX ~= dx or b.iconSnapY ~= dy or b.iconSnapW ~= sw or b.iconSnapH ~= sh then
+	-- Item/template updates can overwrite the texture without changing the
+	-- button rectangle. Compare reality as well as the last requested layout.
+	local ix, iy, iw, ih = b.icon:GetRect()
+	local drift = ix and iy and iw and ih and
+		(math.abs(ix - sx) > 0.00001 or math.abs(iy - sy) > 0.00001
+		or math.abs(iw - sw) > 0.00001 or math.abs(ih - sh) > 0.00001)
+	if drift or b.iconSnapX ~= dx or b.iconSnapY ~= dy or b.iconSnapW ~= sw or b.iconSnapH ~= sh then
 		b.icon:ClearAllPoints()
 		b.icon:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", dx, dy)
 		b.icon:SetSize(sw, sh)
@@ -200,6 +206,15 @@ function Buttons:UpdateIconGeometry(b)
 end
 
 function Buttons.AddFrame(b)
+	if b.HookScript and not b.iconGeometryHooks then
+		local function changed()
+			b.iconSnapX = nil
+			Buttons:WakeModernBorders()
+		end
+		b:HookScript("OnShow", changed)
+		b:HookScript("OnSizeChanged", changed)
+		b.iconGeometryHooks = true
+	end
 	b.classicBorderOutset = nil
 	-- Numeric labels stay above the slot and rarity frames without moving.
 	if b.Count and b.Count.SetDrawLayer then b.Count:SetDrawLayer("OVERLAY", 3) end

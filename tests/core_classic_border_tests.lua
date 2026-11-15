@@ -124,3 +124,18 @@ for _, b in ipairs({live, cached}) do
  addon.db.skin = "classic"; pool:ApplyFrame(b)
  check(b.icon.points[1][2] == b and b.icon.points[1][4] == 0 and b.icon.points[2][4] == 0, "switching back restores full Classic artwork")
 end
+
+-- Delayed visibility/layout changes wake the shared driver after it has gone idle.
+pool:WakeModernBorders()
+for i=1,12 do M.tick() end
+check(not pool.BorderDriverRunning(), "alignment driver settles instead of polling forever")
+live:Hide(); live:Show()
+check(pool.BorderDriverRunning(), "showing a reused item wakes alignment after settling")
+for i=1,12 do M.tick() end
+check(not pool.BorderDriverRunning(), "show-triggered alignment settles again")
+local resized=live:GetScript("OnSizeChanged")
+check(type(resized)=="function", "secure item size changes have an alignment hook")
+if resized then resized(live) end
+check(pool.BorderDriverRunning(), "late item size change wakes alignment")
+for i=1,12 do M.tick() end
+check(not pool.BorderDriverRunning(), "size-triggered alignment settles again")
