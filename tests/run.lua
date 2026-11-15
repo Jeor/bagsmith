@@ -6941,9 +6941,8 @@ end)()
 	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
 	ToggleAllBags(); M.runTimers()
 	local b = n.Buttons:Get(0, 1)
-	local p1, p2 = b.qFrame.points[1], b.qFrame.points[2]
-	check(b.qFrame:IsShown() and p1[2] == b.icon and p1[4] == -2 and p1[5] == 2 and p2[4] == 2 and p2[5] == -2,
-		"Classic: the rarity frame sits 2 px outside the icon on every side, covering its corners")
+	check(b.qFrame:IsShown() and b.qFrame.points[1][2] == b.icon and b.qFrame.points[1][4] == 0 and b.qFrame.points[2][4] == 0 and b.icon.points[1][2] == b and b.icon.points[1][4] == 0 and b.icon.points[2][4] == 0,
+		"Classic: icon and rarity frame share the full slot footprint")
 end)()
 
 ;(function()

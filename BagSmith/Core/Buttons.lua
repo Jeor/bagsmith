@@ -264,8 +264,8 @@ function Buttons:ApplyQuality(b, rec)
 		-- WhiteIconFrame is the clipped, silver bag outline. The template's
 		-- initial IconBorder can instead contain a dark inset frame.
 		b.qFrame:ClearAllPoints()
-		b.qFrame:SetPoint("TOPLEFT", icon, "TOPLEFT", -2, 2)
-		b.qFrame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 2, -2)
+		b.qFrame:SetPoint("TOPLEFT", icon, "TOPLEFT", 0, 0)
+		b.qFrame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 0, 0)
 		b.qFrame:SetVertexColor(r, g, bl, 1)
 		b.qFrame:Show(); b.qRing:Hide()
 	else
@@ -303,6 +303,18 @@ function Buttons:ApplyFrame(b)
 	if not b.frameBG then return end
 	local modern = (ns.db and ns.db.skin or "modern") == "modern"
 	local icon, cell = b.icon, b.mode == "cell"
+	-- Classic artwork and its optional outline share the whole slot. Leaving
+	-- the Modern inset here exposes an extra dark rim on uncolored items.
+	if cell then
+		icon:ClearAllPoints()
+		if modern then
+			icon:SetPoint("TOPLEFT", b, "TOPLEFT", 2, -2)
+			icon:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -2, 2)
+		else
+			icon:SetPoint("TOPLEFT", b, "TOPLEFT", 0, 0)
+			icon:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 0, 0)
+		end
+	end
 	local normal = b.GetNormalTexture and b:GetNormalTexture()
 	if modern then
 		-- Shaded frame. In cells the icon is inset so the frame stays inside

@@ -50,7 +50,7 @@ for _, setting in ipairs({ "all", "unc", "off" }) do
 		check(not b.qFrame.shown, "moving an ordinary item to Quest does not change its border")
 		B:ApplyQuality(b, { quality = 1, isQuest = true })
 		check(b.qFrame.shown and b.qFrame.color[1] == 1 and b.qFrame.color[2] == .82 and b.qFrame.color[3] == 0, "quest items have gold borders")
-		check(b.qFrame.points[1][4] == -2 and b.qFrame.points[2][4] == 2, "frame covers square icon corners")
+		check(b.qFrame.points[1][2] == b.icon and b.qFrame.points[1][4] == 0 and b.qFrame.points[2][4] == 0, "frame matches the icon footprint")
 		B:ApplyQuality(b, { quality = 1 })
 		check(not b.qFrame.shown, "reusing quest cell removes added border")
 		B:ApplyQuality(b, nil)
@@ -103,3 +103,17 @@ for _, b in ipairs({ live, cached }) do
 end
 check(live.IconBorder:GetAlpha() == 0, "secure template cannot restore a second visible frame")
 CreateFrame = create
+
+-- Live and cached Classic icons fill the slot at every rarity; skin switches
+-- restore the Modern inset and do not leave Classic with a second dark rim.
+for _, b in ipairs({live, cached}) do
+ for _, q in ipairs({0, 1, 2}) do
+  addon.db.skin = "classic"; pool:SetMode(b, "cell"); pool:ApplyQuality(b, {quality=q})
+  check(b.icon.points[1][2] == b and b.icon.points[1][4] == 0 and b.icon.points[2][4] == 0, "Classic artwork fills slot for every rarity")
+  if q == 2 then check(b.qFrame.points[1][2] == b.icon and b.qFrame.points[1][4] == 0 and b.qFrame.points[2][4] == 0, "rarity frame shares artwork footprint") end
+ end
+ addon.db.skin = "modern"; pool:ApplyFrame(b)
+ check(b.icon.points[1][4] == 2 and b.icon.points[2][4] == -2, "Modern retains inset after Classic")
+ addon.db.skin = "classic"; pool:ApplyFrame(b)
+ check(b.icon.points[1][2] == b and b.icon.points[1][4] == 0 and b.icon.points[2][4] == 0, "switching back restores full Classic artwork")
+end
