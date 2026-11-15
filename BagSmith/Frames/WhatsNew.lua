@@ -26,12 +26,11 @@ ns.WhatsNew = WN
 WN.ENTRIES = {
 	-- (1.8.0-beta2) the 1.8 card: Shweep approved the draft (15 Nov) with BagSmith's own fonts added
 	{ v = "1.8.0", heading = "BagSmith 1.8", items = {
-		"|cfffac775Text Size and Font:|r make the item text in your bags, bank and helpers bigger or smaller (80% to 150%), and choose its font: the game's, one of three that now come with BagSmith (Noto Sans, Roboto Condensed and Inter), or one another addon shares. BagSmith's fonts appear in your other addons' font lists too. Settings > Style.",
-		"|cfffac775A Disenchant Helper that keeps learning:|r it recognizes a new material the first time a disenchant gives it, and gear past its table learns from your own results.",
-		-- (1.8.0-beta5)
-		"|cfffac775Special Bags:|r your free-slot count now shows only the slots anything fits in. Hover it to see the room left in each quiver, soul bag, herb bag and other special bag. Each kind of special bag can also glow softly inside its slots, in a color and opacity you choose (Settings > Item Icons).",
-		-- (1.8.0-beta7)
-		"|cfffac775Profiles, Your Way:|r one profile for all your characters, but each with its own favorites, currencies, sections or sheets? Uncheck what they shouldn't share in Settings > Profile.",
+		-- (1.8.0-beta8, Shweep: friendlier wording for all four)
+		"|cfffac775Text Your Way:|r make the text in your bags, bank and helpers bigger or smaller, and pick a font you like. BagSmith now comes with three fonts of its own (Noto Sans, Roboto Condensed and Inter), and you'll find them in your other addons too. Try it in Settings > Style.",
+		"|cfffac775A Disenchant Helper That Learns:|r the first time a disenchant gives you something it hasn't seen, it remembers it. For higher-level gear, it learns from your own results as you go.",
+		"|cfffac775Special Bags:|r your free-slot count now shows the space anything can go in. Hover it to see what's left in your quiver, herb bag, soul bag and more. Want them to stand out? Give each kind of bag a soft glow in a color you pick, in Settings > Item Icons.",
+		"|cfffac775Profiles, Your Way:|r like one profile on all your characters, but want each to keep its own favorites, currencies or sheets? Just uncheck them in Settings > Profile.",
 	} },
 	-- (1.7.0-beta6) the 1.7 card; (1.7.0-beta12) its text approved by Shweep (12 Nov)
 	-- (1.7.0-beta8, the beta7 audit's F2; Shweep's choice) the quest promise says what it can't see, as the (i) does
