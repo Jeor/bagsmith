@@ -79,7 +79,7 @@ end
 -- settle positions a frame or two late, and an icon's rect can be unreadable on its first frame). One small driver
 -- does it for every bordered button, and it switches itself off when nothing moves, rather than every button
 -- re-checking on every frame (Jeor's first version, 1.7.3-beta1 PR #5).
-local bordered = setmetatable({}, { __mode = "k" })   -- buttons showing a Modern border
+local bordered = setmetatable({}, { __mode = "k" })   -- icons in either skin, including uncolored items
 local SETTLE_FRAMES = 10
 local settleLeft, driver = 0, nil
 
@@ -92,7 +92,10 @@ end
 
 function Buttons:RealignModernBorders()
 	for b in pairs(bordered) do
-		if b.modernBorderActive then self:UpdateModernBorderGeometry(b) else bordered[b] = nil end
+		if not b.IsVisible or b:IsVisible() then
+			self:UpdateIconGeometry(b)
+			if b.modernBorderActive then self:UpdateModernBorderGeometry(b) end
+		end
 	end
 end
 
@@ -137,9 +140,51 @@ end
 
 Buttons.PixelSize = pixelSize   -- (1.7.3-beta3) also the resize outline's line (Frames/Outline.lua)
 
+-- Always derive from the layout's original rectangle, never from yesterday's
+-- snapped texture: repeated movement/scale changes must not accumulate drift.
+-- Only visual textures move; secure button bounds and numeric anchors do not.
+function Buttons:UpdateIconGeometry(b)
+	if not (b.icon and b.GetRect) then return end
+	local x, y, w, h = b:GetRect()
+	if not (x and y and w and h and w > 0 and h > 0) then return end
+	local left, bottom, width, height
+	if b.mode == "row" then
+		width = b.iconPx or ICON_ROW
+		height = width
+		left, bottom = x + (b.iconLayoutX or 2), y + (h - height) / 2
+	else
+		local inset = (ns.db and ns.db.skin or "modern") == "modern" and 2 or 0
+		left, bottom, width, height = x + inset, y + inset, w - 2 * inset, h - 2 * inset
+	end
+	local pixel = pixelSize(b)
+	local function snap(v) return math.floor(v / pixel + 0.5) * pixel end
+	local sx, sy = snap(left), snap(bottom)
+	-- Round size separately so identical square slots stay square and do not
+	-- gain/lose a pixel as the window moves across fractional coordinates.
+	local sw, sh = math.max(pixel, snap(width)), math.max(pixel, snap(height))
+	local dx, dy = sx - x, sy - y
+	if b.iconSnapX ~= dx or b.iconSnapY ~= dy or b.iconSnapW ~= sw or b.iconSnapH ~= sh then
+		b.icon:ClearAllPoints()
+		b.icon:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", dx, dy)
+		b.icon:SetSize(sw, sh)
+		b.iconSnapX, b.iconSnapY, b.iconSnapW, b.iconSnapH = dx, dy, sw, sh
+	end
+	if b.qRing and b.ringPixel ~= pixel then
+		b.qRing:ClearAllPoints()
+		b.qRing:SetPoint("TOPLEFT", b.icon, "TOPLEFT", -pixel, pixel)
+		b.qRing:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", pixel, -pixel)
+		b.ringPixel = pixel
+	end
+end
+
 function Buttons.AddFrame(b)
 	-- Numeric labels stay above the slot and rarity frames without moving.
 	if b.Count and b.Count.SetDrawLayer then b.Count:SetDrawLayer("OVERLAY", 3) end
+	if b.icon.SetRoundLayoutToNearestPixel then b.icon:SetRoundLayoutToNearestPixel(false) end
+	if b.slotBG then
+		b.slotBG:ClearAllPoints(); b.slotBG:SetAllPoints(b.icon)
+		if b.slotBG.SetRoundLayoutToNearestPixel then b.slotBG:SetRoundLayoutToNearestPixel(false) end
+	end
 	b.frameBG = b:CreateTexture(nil, "BACKGROUND", nil, -2)
 	b.frameBG:SetTexture("Interface\\Buttons\\WHITE8X8")
 	b.frameEdge = b:CreateTexture(nil, "BACKGROUND", nil, -1)
@@ -148,6 +193,7 @@ function Buttons.AddFrame(b)
 	-- Classic list rows retain their original quality ring.
 	b.qRing = b:CreateTexture(nil, "BACKGROUND", nil, 0)
 	b.qRing:SetTexture("Interface\\Buttons\\WHITE8X8")
+	if b.qRing.SetRoundLayoutToNearestPixel then b.qRing:SetRoundLayoutToNearestPixel(false) end
 	b.qRing:Hide()
 	-- Classic cells: Blizzard's own slot ring (UI-Quickslot2) and its white
 	-- icon frame tinted by rarity, exactly what the default bags draw.
@@ -156,6 +202,7 @@ function Buttons.AddFrame(b)
 	b.slotRing:Hide()
 	b.qFrame = b:CreateTexture(nil, "OVERLAY", nil, 2)
 	b.qFrame:SetTexture("Interface\\Common\\WhiteIconFrame")
+	if b.qFrame.SetRoundLayoutToNearestPixel then b.qFrame:SetRoundLayoutToNearestPixel(false) end
 	b.qFrame:Hide()
 	b.modernBorder = {}
 	for i = 1, 4 do
@@ -227,6 +274,7 @@ function Buttons:DrawModernBorder(b, r, g, bl)
 end
 
 function Buttons:ApplyQuality(b, rec)
+	self:UpdateIconGeometry(b)
 	b.modernBorderActive = nil
 	for _, edge in ipairs(b.modernBorder or {}) do edge:Hide() end
 	if b.IconBorder then b.IconBorder:Hide() end
@@ -273,7 +321,9 @@ function Buttons:ApplyQuality(b, rec)
 	else
 		-- Classic rows use a compact ring with the same quest/rarity rules.
 		b.qRing:ClearAllPoints()
-		b.qRing:SetPoint("TOPLEFT", icon, "TOPLEFT", -1, 1); b.qRing:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 1, -1)
+		local pixel = pixelSize(b)
+		b.qRing:SetPoint("TOPLEFT", icon, "TOPLEFT", -pixel, pixel); b.qRing:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", pixel, -pixel)
+		b.ringPixel = pixel
 		b.qRing:SetVertexColor(r, g, bl, 0.95)
 		b.qRing:Show(); b.qFrame:Hide()
 	end
@@ -317,6 +367,11 @@ function Buttons:ApplyFrame(b)
 			icon:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 0, 0)
 		end
 	end
+	-- Keep the existing public wake/realign methods for callers in the views.
+	b.iconSnapX = nil
+	bordered[b] = true
+	self:UpdateIconGeometry(b)
+	self:WakeModernBorders()
 	local normal = b.GetNormalTexture and b:GetNormalTexture()
 	if modern then
 		-- Shaded frame. In cells the icon is inset so the frame stays inside
@@ -464,10 +519,12 @@ end
 
 local function applyMode(b, mode, size)
 	b.mode = mode
+	b.iconSnapX = nil
 	b.colSig = nil   -- (1.6.2-beta1) the row's columns are placed afresh after a change of mode (ApplyColumns)
 	local icon = b.icon
 	icon:ClearAllPoints()
 	if mode == "row" then
+		b.iconLayoutX, b.iconPx = 2, ICON_ROW
 		icon:SetSize(ICON_ROW, ICON_ROW)
 		icon:SetPoint("LEFT", b, "LEFT", 2, 0)
 		if b.IconBorder then
@@ -612,6 +669,7 @@ function Buttons:ApplyColumns(b, plan, rowH)
 	if b.mode == "row" and b.colSig == sig then return end
 	local inPlan = {}
 	local iconSize = math.max(14, math.min(24, rowH - 6))
+	b.iconSnapX = nil
 	b.icon:SetSize(iconSize, iconSize)
 	b.iconPx = iconSize
 	Buttons:FitCountdown(b)   -- (1.4.2-beta2) the number fits the row's icon
@@ -632,6 +690,7 @@ function Buttons:ApplyColumns(b, plan, rowH)
 			fs:Show()
 		end
 		if col.key == "n" then
+			b.iconLayoutX = col.iconX
 			b.icon:ClearAllPoints(); b.icon:SetPoint("LEFT", b, "LEFT", col.iconX, 0)
 			Buttons:PlaceKebab(b, plan.kebab and col.kebabX or nil)
 		end
@@ -658,6 +717,8 @@ function Buttons:ApplyColumns(b, plan, rowH)
 	if not inPlan.colCurr and b.colCurr then b.colCurr:Hide() end
 	-- The icon's own count is redundant next to a Qty column; show it only when Qty is hidden.
 	b.countOnIcon = not inPlan.colQty
+	self:UpdateIconGeometry(b)
+	self:WakeModernBorders()
 	b.colSig = (not InCombatLockdown()) and sig or nil
 end
 
@@ -1055,16 +1116,18 @@ function Buttons:CountdownFontFor(iconSize)
 	countdownFonts[key] = chosen
 	return chosen
 end
--- The picture's size in px: a row's icon is set by its columns; a cell's icon fills the button inside a 2 px inset
--- (read from the button, whose size is set before it's filled, rather than the icon texture, which may not have
--- been laid out yet).
+-- Logical layout size, independent of subpixel snapping: rows are set by their
+-- columns, Classic cells fill the slot, and Modern cells have a 2-unit inset.
+-- Overlay/font sizing must not oscillate as an icon crosses a screen pixel.
 function Buttons:IconPx(b)
 	if b.mode == "row" then
+		if b.iconPx then return b.iconPx end
 		local w = b.icon and b.icon.GetWidth and b.icon:GetWidth()   -- a row's icon has an explicit size
 		if w and w > 0 then return w end
 		return b.iconPx or ICON_ROW
 	end
-	return math.max(0, (b:GetWidth() or 0) - 4)
+	local inset = (ns.db and ns.db.skin or "modern") == "modern" and 4 or 0
+	return math.max(0, (b:GetWidth() or 0) - inset)
 end
 -- forget the fitted sizes (they depend on the font and UI scale); the next fit measures again
 function Buttons:ResetCountdownFonts() countdownFonts = {} end

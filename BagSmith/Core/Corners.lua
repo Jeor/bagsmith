@@ -339,7 +339,9 @@ local function iconPx(b)
 end
 C.SCALE_MIN_ROW = 0.4
 function C:Scale(b, mode, px)
-	local ref = ((ns.DEFAULTS and ns.DEFAULTS.iconSize) or 37) - 4
+	local classicCell = (mode or b.mode) ~= "row" and ns.db and ns.db.skin == "classic"
+	local inset = classicCell and 0 or 4
+	local ref = ((ns.DEFAULTS and ns.DEFAULTS.iconSize) or 37) - inset
 	local s = (px or iconPx(b)) / math.max(1, ref)
 	return math.max((mode or b.mode) == "row" and C.SCALE_MIN_ROW or C.SCALE_MIN, math.min(C.SCALE_MAX, s))
 end
