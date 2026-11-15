@@ -94,6 +94,7 @@ function Buttons:RealignModernBorders()
 	for b in pairs(bordered) do
 		if not b.IsVisible or b:IsVisible() then
 			self:UpdateIconGeometry(b)
+			self:UpdateClassicBorderGeometry(b)
 			if b.modernBorderActive then self:UpdateModernBorderGeometry(b) end
 		end
 	end
@@ -140,6 +141,26 @@ end
 
 Buttons.PixelSize = pixelSize   -- (1.7.3-beta3) also the resize outline's line (Frames/Outline.lua)
 
+-- Leave room around the existing numeric anchors instead of moving the text
+-- inward. Measure the margin in screen pixels, independent of UI/bag scale.
+-- Rows keep their compact frame so dense lists do not overlap adjacent rows.
+function Buttons:UpdateClassicBorderGeometry(b)
+	if (ns.db and ns.db.skin or "modern") ~= "classic" then return end
+	local pixel = pixelSize(b)
+	local gap = (ns.View and ns.View.C and ns.View.C.GAP) or 6
+	-- Reserve two pixels for separation and independent icon-origin rounding.
+	-- Tiny scales reduce the margin rather than joining neighboring frames.
+	local margin = math.max(0, math.min(2, math.floor((math.floor(gap / pixel) - 2) / 2)))
+	local outset = b.mode == "cell" and margin * pixel or 0
+	if b.classicBorderOutset == outset then return end
+	for _, frame in ipairs({ b.qFrame, b.defaultFrame }) do
+		frame:ClearAllPoints()
+		frame:SetPoint("TOPLEFT", b.icon, "TOPLEFT", -outset, outset)
+		frame:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", outset, -outset)
+	end
+	b.classicBorderOutset = outset
+end
+
 -- Always derive from the layout's original rectangle, never from yesterday's
 -- snapped texture: repeated movement/scale changes must not accumulate drift.
 -- Only visual textures move; secure button bounds and numeric anchors do not.
@@ -178,6 +199,7 @@ function Buttons:UpdateIconGeometry(b)
 end
 
 function Buttons.AddFrame(b)
+	b.classicBorderOutset = nil
 	-- Numeric labels stay above the slot and rarity frames without moving.
 	if b.Count and b.Count.SetDrawLayer then b.Count:SetDrawLayer("OVERLAY", 3) end
 	if b.icon.SetRoundLayoutToNearestPixel then b.icon:SetRoundLayoutToNearestPixel(false) end
@@ -208,7 +230,7 @@ function Buttons.AddFrame(b)
 	-- the empty-slot background. Full-size icons otherwise cover its rim.
 	b.defaultFrame = b:CreateTexture(nil, "OVERLAY", nil, 2)
 	b.defaultFrame:SetTexture("Interface\\Common\\WhiteIconFrame")
-	b.defaultFrame:SetVertexColor(1, 1, 1, 1)
+	b.defaultFrame:SetVertexColor(0.72, 0.72, 0.72, 1)
 	b.defaultFrame:SetAllPoints(b.icon)
 	if b.defaultFrame.SetRoundLayoutToNearestPixel then b.defaultFrame:SetRoundLayoutToNearestPixel(false) end
 	b.defaultFrame:Hide()
@@ -283,6 +305,7 @@ end
 
 function Buttons:ApplyQuality(b, rec)
 	self:UpdateIconGeometry(b)
+	self:UpdateClassicBorderGeometry(b)
 	if b.defaultFrame then b.defaultFrame:Hide() end
 	b.modernBorderActive = nil
 	for _, edge in ipairs(b.modernBorder or {}) do edge:Hide() end
@@ -324,9 +347,6 @@ function Buttons:ApplyQuality(b, rec)
 	elseif classicCell then
 		-- WhiteIconFrame is the clipped, silver bag outline. The template's
 		-- initial IconBorder can instead contain a dark inset frame.
-		b.qFrame:ClearAllPoints()
-		b.qFrame:SetPoint("TOPLEFT", icon, "TOPLEFT", 0, 0)
-		b.qFrame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 0, 0)
 		b.qFrame:SetVertexColor(r, g, bl, 1)
 		b.qFrame:Show(); b.qRing:Hide()
 	else

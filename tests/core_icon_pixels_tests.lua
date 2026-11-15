@@ -32,7 +32,7 @@ end
 local function integer(n) return math.abs(n-math.floor(n+0.5))<0.000001 end
 for _, screenH in ipairs({1080,1440,2160}) do
  PixelUtil={GetPixelToUIUnitFactor=function() return 768/screenH end}
- for _,scale in ipairs({0.48,0.64,0.8,1,1.1,1.25,1.5}) do
+ for _,scale in ipairs({0.3,0.48,0.64,0.8,1,1.1,1.25,1.5}) do
   for _,skin in ipairs({'classic','modern'}) do
    for _,mode in ipairs({'cell','row'}) do
     ns.db.skin=skin
@@ -54,6 +54,16 @@ for _, screenH in ipairs({1080,1440,2160}) do
      ns.Buttons:RealignModernBorders()
      local x,y,w,h=b.icon:GetRect()
      local pixel=ns.Buttons.PixelSize(b)
+     if skin=='classic' and mode=='cell' then
+      local margin=math.max(0,math.min(2,math.floor((math.floor(6/pixel)-2)/2)))
+      for _,frame in ipairs({b.qFrame,b.defaultFrame}) do
+       local fx,fy,fw,fh=frame:GetRect()
+       assert(fx and math.abs((x-fx)/pixel-margin)<0.000001 and math.abs((y-fy)/pixel-margin)<0.000001,'Classic border margin must use available physical-pixel space without moving the icon')
+       assert(math.abs((fw-w)/pixel-2*margin)<0.000001 and math.abs((fh-h)/pixel-2*margin)<0.000001,'Border margin must be symmetric at every scale')
+       local adjacent=math.floor((b.x+37+6)/pixel+0.5)*pixel
+       assert(adjacent-margin*pixel>=fx+fw,'Expanded borders must not overlap adjacent slots')
+      end
+     end
      assert(integer(x/pixel) and integer(y/pixel) and integer(w/pixel) and integer(h/pixel), 'Icon bounds must land on physical pixels: '..skin..' '..mode)
      assert(math.abs(w-h)<0.000001,'Square icons must remain square at fractional positions')
      if b.previousWidth then assert(math.abs(w-b.previousWidth)<0.000001,'Moving must not change icon dimensions') end
