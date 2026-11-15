@@ -1410,6 +1410,16 @@ pages.icons = function(self, db)
 	end
 	self:Check("iconItemLevel", "Item Level (ilvl)", "Shows the item level on weapons and armor in Icons view. Choose its corner under Icon Corners.")
 	self:Indented(function() self:Color("iconItemLevelColor", "Item Level Color", "The color of the item level") end)
+	-- (1.8.0-beta5) Special bags: an inner glow per kind of bag, each off until turned on, in a color of your choice
+	self:Head("Special Bags")
+	for _, k in ipairs(ns.BAG_KINDS) do
+		local name = ns:BagKindName(k.key)
+		self:Check("glow_" .. k.key, ("Glow in %s Slots"):format(name), ("A soft glow inside the slots of your %s, so you can tell them apart at a glance."):format(name:lower()))
+		if db["glow_" .. k.key] then
+			self:Indented(function() self:Color("glowColor_" .. k.key, ("%s Color"):format(name), ("The glow's color in your %s"):format(name:lower())) end)
+		end
+	end
+	self:Check("glowItems", "Also Glow on Items", "The glow shows on the items in those bags too, not only on their empty slots.")
 	self:IconCorners()
 end
 

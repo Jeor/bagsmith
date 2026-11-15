@@ -107,6 +107,67 @@ function ns:BagName(bag)
 	return ("Bag %d"):format(bag)
 end
 
+-- (1.8.0-beta5, a player's request via Shweep) Special bags: which kind of bag each one is, for the free-slot breakdown
+-- and the optional inner glow. A bag's kind comes from its item's class and subclass, the types Forever defines
+-- (Shweep's probe, 15 Nov: C_Item.GetItemSubClassInfo; a Herb Pouch hovered at a vendor read family 32, class 1,
+-- subclass 2). The family the container reports can't tell them apart: the reagent bag reports 0, as an ordinary bag
+-- does. Ordinary bags (1, 0) have no kind. Each kind's name is the game's own (translated), else the English one;
+-- color is its default glow color (Settings > Item Icons > Special Bags; every glow is off until turned on).
+ns.BAG_KINDS = {
+	{ key = "quiver", class = 11, sub = 2, name = "Quiver", color = "d9b26f" },
+	{ key = "ammo", class = 11, sub = 3, name = "Ammo Pouch", color = "c08552" },
+	{ key = "soul", class = 1, sub = 1, name = "Soul Bag", color = "a77be0" },
+	{ key = "herb", class = 1, sub = 2, name = "Herb Bag", color = "6cc44f" },
+	{ key = "enchanting", class = 1, sub = 3, name = "Enchanting Bag", color = "6d9cf2" },
+	{ key = "engineering", class = 1, sub = 4, name = "Engineering Bag", color = "e8913f" },
+	{ key = "mining", class = 1, sub = 6, name = "Mining Bag", color = "aab0b8" },
+	{ key = "leatherworking", class = 1, sub = 7, name = "Leatherworking Bag", color = "b07d52" },
+	{ key = "fishing", class = 1, sub = 9, name = "Tackle Box", color = "4fc0d6" },
+	{ key = "cooking", class = 1, sub = 10, name = "Cooking Bag", color = "e6c75a" },
+	{ key = "trinket", class = 1, sub = 12, name = "Trinket Bag", color = "e06aa8" },
+	{ key = "reagent", class = 1, sub = 11, name = "Reagent Bag", color = "46c7a8" },
+}
+ns.BAG_KIND = {}
+do
+	local byType = {}
+	for _, k in ipairs(ns.BAG_KINDS) do ns.BAG_KIND[k.key] = k; byType[k.class * 100 + k.sub] = k.key end
+	ns.BAG_KIND_BY_TYPE = byType
+end
+-- The kind's name in the game's language.
+function ns:BagKindName(key)
+	local k = ns.BAG_KIND[key]
+	if not k then return nil end
+	if k.localName == nil then
+		local f = (C_Item and C_Item.GetItemSubClassInfo) or GetItemSubClassInfo
+		local ok, name = false, nil
+		if type(f) == "function" then ok, name = pcall(f, k.class, k.sub) end
+		k.localName = (ok and type(name) == "string" and name ~= "" and not name:find("OBSOLETE")) and name or false
+	end
+	return k.localName or k.name
+end
+-- The kind of bag in a container slot, or nil for an ordinary bag, the backpack, the keyring and the bank's own slots.
+function ns:BagKind(bag)
+	if type(bag) ~= "number" or bag == ns.BACKPACK or bag == ns.KEYRING or bag == ns.BANK then return nil end
+	if ns:IsReagentBag(bag) then return "reagent" end
+	local okC, inv = pcall(C_Container.ContainerIDToInventoryID, bag)
+	if not okC then inv = nil end
+	if not inv and ns:IsBankBag(bag) and ns.Bank and ns.Bank.InvSlot then inv = ns.Bank:InvSlot(bag - ns.NUM_BAGS) end
+	local link = inv and GetInventoryItemLink("player", inv)
+	if not link then return nil end
+	local info = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
+	if type(info) ~= "function" then return nil end
+	local ok, _, _, _, _, _, class, sub = pcall(info, link)
+	if not ok or type(class) ~= "number" or type(sub) ~= "number" then return nil end
+	return ns.BAG_KIND_BY_TYPE[class * 100 + sub]
+end
+-- A kind's glow color as r, g, b (the profile's choice, else the default).
+function ns:BagKindColor(key)
+	local hex = ns.db and ns.db["glowColor_" .. key] or (ns.BAG_KIND[key] and ns.BAG_KIND[key].color) or "ffffff"
+	local r, g, b = hex:match("^(%x%x)(%x%x)(%x%x)$")
+	if not r then return 1, 1, 1 end
+	return tonumber(r, 16) / 255, tonumber(g, 16) / 255, tonumber(b, 16) / 255
+end
+
 -- (1.7.5-beta1, Shweep's report: the wheel skipped past too much content) One mouse wheel notch moves every
 -- BagSmith list a set distance: two rows of a list, one row of icons. The game's scroll frames move half the visible
 -- height a notch, which in a tall window skipped past whole sections. step is pixels, or a function that returns

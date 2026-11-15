@@ -456,6 +456,13 @@ local validators = {
 		return out
 	end,
 }
+-- (1.8.0-beta5) Special bags' inner glow: each kind off until turned on, in its own color (Init.lua, ns.BAG_KINDS).
+for _, k in ipairs(ns.BAG_KINDS or {}) do
+	DEFAULTS["glow_" .. k.key] = false
+	DEFAULTS["glowColor_" .. k.key] = k.color
+	validators["glowColor_" .. k.key] = validators.accent
+end
+DEFAULTS.glowItems = false   -- the glow on items in those bags too, not only on empty slots
 
 local copy = ns.Copy
 validators.bankCols = validators.cols

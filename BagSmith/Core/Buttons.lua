@@ -550,6 +550,38 @@ function Buttons:RefreshItemLevels()
 end
 ns:OnSignal("SETTINGS_CHANGED", function(key) if key == nil or key == "iconItemLevel" or key == "iconItemLevelColor" then Buttons:RefreshItemLevels() end end)
 
+-- (1.8.0-beta5, a player's request via Shweep) Special bags' inner glow: a soft edge inside an icon cell in a special
+-- bag (a quiver, a herb bag, ...: Init.lua, ns.BAG_KINDS), in that kind's color. Each kind is off until turned on
+-- (Settings > Item Icons > Special Bags); empty slots only, unless "Also on Items". Live bags only: another character's
+-- saved bags and list rows have none. A plain texture, so it changes in combat too.
+Buttons.GLOW_ART = "Interface\\AddOns\\BagSmith\\Media\\ui-glow-inner.tga"
+function Buttons:BagGlow(b, rec)
+	local db = ns.db
+	local bag = (rec and rec.bag) or b.smithBag or b.bag
+	local live = not (rec and (rec.cached or rec.display))
+	local info = live and type(bag) == "number" and ns.bagInfo[bag]
+	local kind = b.mode == "cell" and info and info.kind
+	local empty = not (b.hasItem and rec and not rec.empty)
+	local on = kind and db and db["glow_" .. kind] and (empty or db.glowItems) and true or false
+	if on and not b.bagGlow then
+		b.bagGlow = b:CreateTexture(nil, "OVERLAY", nil, -8)   -- under the rarity border, the count and the corner marks
+		b.bagGlow:SetTexture(Buttons.GLOW_ART)
+		b.bagGlow:SetAllPoints(b)
+	end
+	if b.bagGlow then
+		if on then b.bagGlow:SetVertexColor(ns:BagKindColor(kind)) end
+		b.bagGlow:SetShown(on)
+	end
+	b.glowKind = on and kind or nil
+end
+function Buttons:RefreshGlows()
+	local function each(b) self:BagGlow(b, b.rec) end
+	for _, b in ipairs(self.all) do each(b) end
+	for _, pool in pairs(self.mirrors) do for _, b in pairs(pool) do each(b) end end
+	for _, b in ipairs(self.recent) do each(b) end
+end
+ns:OnSignal("SETTINGS_CHANGED", function(key) if key == nil or (type(key) == "string" and key:find("^glow")) then Buttons:RefreshGlows() end end)
+
 -- Faint alternating row background, list mode only.
 function Buttons:SetStripe(b, on)
 	if not b.stripe then
@@ -1312,6 +1344,7 @@ function Buttons:Fill(b, rec, opts)
 	if ns.Pawn then ns.Pawn:Decorate(b, rec) end
 	b.inFill = nil
 	if ns.Corners then ns.Corners:Apply(b, true) end   -- (1.5.0) icon corners: which mark shows where
+	self:BagGlow(b, rec)   -- (1.8.0-beta5)
 	self:ApplyIconCrop(b)
 end
 
@@ -1393,6 +1426,7 @@ function Buttons:Blank(b, rec)
 	b.newDot:Hide()
 	b:SetAlpha(1)
 	if b.kebab and not InCombatLockdown() then b.kebab:Hide() end
+	Buttons:BagGlow(b, rec)   -- (1.8.0-beta5) an empty slot in a special bag
 end
 
 -- Hide every frame we own (out of combat only).

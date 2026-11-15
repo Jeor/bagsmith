@@ -10,7 +10,12 @@ New:
   for this character and counted from then on.
 - Gear the Disenchant Helper has no table for (above item level 99) learns from your own disenchants: it says "Still
   learning" until it has 20 results for that range, then shows your own.
+- Special bags (quivers, ammo pouches, soul bags, herb, enchanting, engineering, mining, leatherworking and cooking
+  bags, tackle boxes, trinket bags and reagent bags): each kind can glow softly inside its slots, in a color you choose
+  (Settings > Item Icons > Special Bags). Every glow is off until you turn it on.
 Changed:
+- Your free-slot count shows only the slots anything fits in: a quiver or a herb bag's room no longer counts. A small
+  + says there's more room in special bags, and hovering the count lists it for each kind of bag.
 - The Disenchant Helper's summary in chat reads as one sentence, like "1 item disenchanted: Greater Magic Essence x2,
   worth about 7s 60c at current AH prices."
 Fixed:
