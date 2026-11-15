@@ -106,3 +106,23 @@ end)()
 	_G.CreateFont = oldCreate
 	for t, f in pairs(saved) do _G[t] = f end
 end)()
+
+;(function()
+	-- (1.8.0-beta20, Shweep) /bs new reset brings Settings' NEW tags back too
+	package.loaded.mock = nil
+	local M = require("mock")
+	_G.BagSmithCharDB = { version = 1, firstSeen = {} }
+	_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = {} }, whatsNewSeen = "1.8.0", newSeen = { ["1.8"] = { look = true, icons = true, profile = true } } }
+	local n = M.loadAddon("BagSmith")
+	n.version = "1.8.0-beta20"
+	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
+	local P = n.SettingsPanel
+	local function tag(page) for _, b in ipairs(P.navButtons) do if b.page == page then return b.newTag ~= nil and b.newTag:IsShown() end end end
+	P:Show()
+	check(not tag("look") and not tag("icons"), "(setup) all seen: no tags")
+	SlashCmdList.BAGSMITH("new reset")
+	check(BagSmithDB.newSeen["1.8"] == nil, "/bs new reset forgets the pages seen this release")
+	check(tag("look") and tag("icons") and tag("profile"), "and with Settings open, the tags show at once")
+	check(BagSmithDB.whatsNewSeen ~= "1.8.0", "What's New is reset as before")
+	check((n.errors or 0) == 0, "no errors")
+end)()

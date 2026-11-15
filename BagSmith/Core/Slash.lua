@@ -335,7 +335,9 @@ local commands = {
 		rest = tostring(rest or ""):lower()
 		if rest:match("^reset") then
 			ns.WhatsNew:ResetForTesting(rest:find("skipped") ~= nil)
-			ns:Print("What's New will show the next time you open your bags.")
+			-- (1.8.0-beta20) and Settings' NEW tags come back, as just after an update
+			if ns.SettingsPanel and ns.SettingsPanel.ResetNewForTesting then ns.SettingsPanel:ResetNewForTesting() end
+			ns:Print("What's New will show the next time you open your bags, and Settings shows its NEW tags again.")
 		else
 			ns.WhatsNew:ShowLatest()
 		end

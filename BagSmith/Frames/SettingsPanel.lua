@@ -76,6 +76,12 @@ function Panel:MarkAllNewSeen()
 	local N = self.NEW
 	for page in pairs(N and N.pages or {}) do self:MarkPageSeen(page) end
 end
+-- (1.8.0-beta20) /bs new reset: this release's tags show again, as just after an update (at once, if Settings is open).
+function Panel:ResetNewForTesting()
+	local N = self.NEW
+	if N and type(BagSmithDB) == "table" and type(BagSmithDB.newSeen) == "table" then BagSmithDB.newSeen[N.release] = nil end
+	if self.frame and self.frame:IsShown() then self:SnapshotNew(); self:SyncNav(); self:Refresh() end
+end
 -- The tags showing while Settings is open: what was seen when it opened.
 function Panel:SnapshotNew()
 	local N, t = self.NEW, {}
