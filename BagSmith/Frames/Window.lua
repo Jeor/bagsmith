@@ -242,12 +242,13 @@ function ns:ToggleTravel()
 end
 local TRAVEL_HOLDS = {
 	{ "bank", "BANKFRAME_OPENED", "BANKFRAME_CLOSED", "travelLeaveBank" },
+	{ "guildbank", nil, nil, "travelLeaveGuildBank" },   -- (1.8.0-beta23) its window, followed in Hooks: see below
 	{ "ah", "AUCTION_HOUSE_SHOW", "AUCTION_HOUSE_CLOSED", "travelLeaveAH" },
 	{ "vendor", "MERCHANT_SHOW", "MERCHANT_CLOSED", "travelLeaveVendor" },
 	{ "taxi", nil, nil, "travelLeaveTaxi" },   -- flight paths: see checkTaxi below
 	{ "trade", "TRADE_SHOW", "TRADE_CLOSED", "travelLeaveTrade" },
 }
-local TRAVEL_WHERE = { bank = "at the bank", ah = "at the auction house", vendor = "at the vendor", taxi = "on a flight path", trade = "trading" }
+local TRAVEL_WHERE = { bank = "at the bank", guildbank = "at the guild bank", ah = "at the auction house", vendor = "at the vendor", taxi = "on a flight path", trade = "trading" }
 -- The signpost's tooltip: what Travel Mode is, or why Auto Travel Mode has it off.
 function ns:TravelTip()
 	for _, h in ipairs(TRAVEL_HOLDS) do
@@ -298,13 +299,22 @@ for _, h in ipairs(TRAVEL_HOLDS) do if h[2] then
 		if ns.ui.travelHold[h[1]] then ns.ui.travelHold[h[1]] = nil; ns:ApplyTravel(); ns:RefreshViews(true) end
 	end)
 end end
+-- (1.8.0-beta23) The guild bank has no event BagSmith relies on: Hooks follows its window and signals these.
+ns:OnSignal("GUILD_BANK_OPENED", function()
+	if ns.db and ns.db.travelMode and ns.db.travelLeaveGuildBank and not ns.ui.travelHold.guildbank then
+		ns.ui.travelHold.guildbank = true; ns:ApplyTravel(); ns:RefreshViews(true)
+	end
+end)
+ns:OnSignal("GUILD_BANK_CLOSED", function()
+	if ns.ui.travelHold.guildbank then ns.ui.travelHold.guildbank = nil; ns:ApplyTravel(); ns:RefreshViews(true) end
+end)
 ns:OnSignal("SETTINGS_CHANGED", function(key)
 	-- Turning an Auto Travel Mode setting off while it's holding lets go.
 	for _, h in ipairs(TRAVEL_HOLDS) do
 		if (key == nil or key == h[4]) and not ns.db[h[4]] and ns.ui.travelHold[h[1]] then ns.ui.travelHold[h[1]] = nil end
 	end
 	if key == "travelLeaveTaxi" or key == "travelMode" then checkTaxi() end   -- turned on mid-flight: off now
-	if key == nil or key == "travelMode" or key == "travelLeaveBank" or key == "travelLeaveAH" or key == "travelLeaveVendor" or key == "travelLeaveTaxi" or key == "travelLeaveTrade" or key == "skin" then ns:ApplyTravel() end
+	if key == nil or key == "travelMode" or key == "travelLeaveBank" or key == "travelLeaveGuildBank" or key == "travelLeaveAH" or key == "travelLeaveVendor" or key == "travelLeaveTaxi" or key == "travelLeaveTrade" or key == "skin" then ns:ApplyTravel() end
 end)
 
 -- After a profile change (switch, reset, copy, delete): a window whose

@@ -152,6 +152,23 @@ function Hooks:Install()
 	for _, ev in ipairs({ "MERCHANT_SHOW", "MAIL_SHOW", "TRADE_SHOW", "AUCTION_HOUSE_SHOW" }) do ns:On(ev, autoShow) end
 	for _, ev in ipairs({ "MERCHANT_CLOSED", "MAIL_CLOSED", "TRADE_CLOSED", "AUCTION_HOUSE_CLOSED" }) do ns:On(ev, autoHide) end
 
+	-- (1.8.0-beta23, Shweep, after FlareUI's notes) The guild bank: Forever doesn't open the bags with it, as it does at a
+	-- vendor. BagSmith follows its window (Blizzard's, loaded on demand) the way it follows a vendor: shown, the bags
+	-- open; closed, they close again, unless they were open already. The window rather than an event: its events differ
+	-- between clients, and this is how FlareUI does it on Forever.
+	local function followGuildBank()
+		local f = _G.GuildBankFrame
+		if type(f) ~= "table" or not f.HookScript or Hooks.guildBankFollowed then return end
+		Hooks.guildBankFollowed = true
+		-- Auto Travel Mode first (Window.lua), so the bags open full
+		f:HookScript("OnShow", function() ns:Fire("GUILD_BANK_OPENED"); autoShow() end)
+		f:HookScript("OnHide", function() autoHide(); ns:Fire("GUILD_BANK_CLOSED") end)
+	end
+	Hooks.FollowGuildBank = followGuildBank   -- for the tests
+	local loaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
+	if type(loaded) == "function" and loaded("Blizzard_GuildBankUI") then followGuildBank() end
+	ns:On("ADDON_LOADED", function(name) if name == "Blizzard_GuildBankUI" then followGuildBank() end end)
+
 end
 
 -- Re-evaluate every Blizzard bag frame against the current setting, so the

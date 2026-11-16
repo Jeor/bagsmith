@@ -68,6 +68,7 @@ local DEFAULTS = {
 	whatsNew = true,           -- show the What's New card after notable updates
 	travelMode = false,        -- Travel Mode (the signpost beside the close button): toolbar hidden, search in the title row
 	travelLeaveBank = true,    -- Auto Travel Mode: off while the bank is open, back on after
+	travelLeaveGuildBank = true,   -- ... the guild bank (1.8.0-beta23)
 	travelLeaveAH = true,      -- ... the auction house
 	travelLeaveVendor = true,  -- ... a vendor
 	travelLeaveTaxi = true,    -- ... a flight path (back on after landing)

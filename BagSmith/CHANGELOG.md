@@ -23,6 +23,8 @@ New:
   settings on it. A page's marks go once you've opened it, from the next time you open Settings. A new player sees
   none (everything is new to them), and searching Settings for "new" lists them all.
 - What's New's directions, like Settings > Style > Size, are links: click one to open Settings right there.
+- Your bags open with the guild bank, as they do at a vendor, and close with it unless you had them open already.
+- Auto Travel Mode: Leave Travel Mode at the Guild Bank (Settings > Automations & Actions, on by default).
 - /bs cpu: how much time BagSmith takes each frame, measured by the game over a few seconds (scroll or loot meanwhile
   to see what that costs).
 - Profiles: choose what the characters using a profile share (Settings > Profile, Shared Between Characters): Favorites,
