@@ -796,7 +796,7 @@ function Panel:Dropdown(key, label, choices, help)
 	s.btn:SetActive(false)
 	s.btn.label:SetText(cur and cur.label or "")
 	s.btn.chev:SetVertexColor(Skins:Color("text"))
-	ns.MenuFace(s.btn.label, cur and cur.path, "GameFontHighlightSmall")   -- (Game Font: the button's own face again)
+	ns.MenuFace(s.btn.label, cur and cur.path, "GameFontHighlightSmall")   -- (Default Font: the button's own face again)
 	self.y = self.y + s:GetHeight()
 end
 
@@ -1486,7 +1486,7 @@ pages.look = function(self, db)
 	-- (1.8.0, Shweep's plan of 10 Nov) the item windows' text: bags, bank, bag windows, the Loot and Disenchant Helpers
 	self:Step("textScale", "Text Size", 0.1, "%d%%", "How big the item text is in your bags, bank and individual bag windows and the Loot and Disenchant Helpers.")
 	do
-		local choices = ns.Fonts and ns.Fonts:Choices() or { { key = "", label = "Game Font" } }
+		local choices = ns.Fonts and ns.Fonts:Choices() or { { key = "", label = "Default Font" } }
 		for _, c in ipairs(choices) do c.path = ns.Fonts and ns.Fonts:PathOf(c.key) end
 		self:Dropdown("fontName", "Font", choices, "The same item text in another font: BagSmith's own, the game's, or one another addon shares.")
 	end

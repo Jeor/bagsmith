@@ -82,7 +82,7 @@ end
 
 -- The choices for the Font setting: the game's font first, then every font another addon shares, by name.
 function Fonts:Choices()
-	local out = { { key = "", label = "Game Font" } }
+	local out = { { key = "", label = "Default Font" } }   -- (1.8.0-beta21, Shweep: was "Game Font")
 	local lib = lsm()
 	if lib and lib.List then
 		local ok, list = pcall(lib.List, lib, "font")

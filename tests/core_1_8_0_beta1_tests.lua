@@ -61,14 +61,14 @@
 		n:Set("fontName", "Gone Font"); M.runTimers()
 		check(small.path == FRIZ, S .. "a font that isn't shared any more: the game's face")
 		n:Set("fontName", ""); M.runTimers()
-		check(small.path == FRIZ, S .. "Game Font: the game's face")
+		check(small.path == FRIZ, S .. "Default Font: the game's face")
 		-- (1.8.0-beta2) BagSmith's own fonts are shared through LibSharedMedia
 		check(LSM:Fetch("font", "Noto Sans", true) == "Interface\\AddOns\\BagSmith\\Media\\Fonts\\NotoSans-Regular.ttf"
 			and LSM:Fetch("font", "Roboto Condensed", true) and LSM:Fetch("font", "Inter", true), S .. "BagSmith shares its three fonts through LibSharedMedia")
 		local choices = F:Choices()
 		local names = {}
 		for _, c in ipairs(choices) do names[c.label] = true end
-		check(choices[1].label == "Game Font" and names["Noto Sans"] and names["Roboto Condensed"] and names["Inter"] and names["Nice Serif"] and names["Friz Quadrata TT"],
+		check(choices[1].label == "Default Font" and names["Noto Sans"] and names["Roboto Condensed"] and names["Inter"] and names["Nice Serif"] and names["Friz Quadrata TT"],
 			S .. "Font offers the game's, BagSmith's three, the game's own faces and other addons' (" .. #choices .. ")")
 		-- Settings: Style > Size has Text Size and a Font dropdown
 		local P = n.SettingsPanel
@@ -77,7 +77,7 @@
 		for _, w in ipairs(P.pools.step) do if w:IsShown() and w.key == "textScale" then stepRow = w end end
 		for _, w in ipairs(P.pools.dropdown) do if w:IsShown() and w.key == "fontName" then dropRow = w end end
 		check(stepRow and stepRow.value.text == "100" and stepRow.text.text == "Text Size", S .. "Style > Size: Text Size, 100%")
-		check(dropRow and dropRow.text.text == "Font" and dropRow.btn.label.text == "Game Font", S .. "and a Font dropdown showing Game Font")
+		check(dropRow and dropRow.text.text == "Font" and dropRow.btn.label.text == "Default Font", S .. "and a Font dropdown showing Default Font (\"Game Font\" until 1.8.0-beta21, by design)")
 		-- (1.8.0-beta2, Shweep: "like our alt selector") Modern: the picker's chevron; Classic: the game's dropdown art
 		if skin == "classic" then
 			check(dropRow.btn.ddArt and dropRow.btn.ddArt:IsShown() and not dropRow.btn.chev:IsShown() and not (dropRow.btn.classic and dropRow.btn.classic:IsShown()),
@@ -97,7 +97,7 @@
 			if r:IsShown() and r.text.text == "Nice Serif" then nice = r end
 			if r:IsShown() and r.check:IsShown() then ticked = r.text.text end
 		end
-		check(menu and menu:IsShown() and rows >= 3 and ticked == "Game Font", S .. "clicking it opens the menu, Game Font ticked (" .. rows .. " rows)")
+		check(menu and menu:IsShown() and rows >= 3 and ticked == "Default Font", S .. "clicking it opens the menu, Default Font ticked (" .. rows .. " rows)")
 		check(menu.listMax ~= nil and rows <= 15, S .. "a long list scrolls inside the menu instead of running off the screen (" .. rows .. " rows shown of " .. #F:Choices() .. ")")
 		check(nice, S .. "other addons' fonts are in it")
 		nice:GetScript("OnClick")(nice); M.runTimers()
@@ -106,7 +106,7 @@
 		check(dropRow.btn.label.text == "Nice Serif" and dropRow.btn.label.fpath == "Interface\\AddOns\\Other\\nice.ttf", S .. "the dropdown shows the font now in use, in its face")
 		n:Set("fontName", ""); M.runTimers()
 		for _, w in ipairs(P.pools.dropdown) do if w:IsShown() and w.key == "fontName" then dropRow = w end end
-		check(dropRow.btn.label.text == "Game Font" and dropRow.btn.label.fpath == FRIZ, S .. "back to Game Font: the button's face goes back too (beta2's bug: " .. tostring(dropRow.btn.label.fpath) .. ")")
+		check(dropRow.btn.label.text == "Default Font" and dropRow.btn.label.fpath == FRIZ, S .. "back to Default Font: the button's face goes back too (beta2's bug: " .. tostring(dropRow.btn.label.fpath) .. ")")
 		P:Hide()
 		-- a font the client can't load isn't offered
 		F.UsableCache = nil
@@ -156,5 +156,5 @@
 	local ok = pcall(function() ToggleAllBags(); M.runTimers() end)
 	check(ok and n.Fonts:Name("GameFontHighlightSmall") == "GameFontHighlightSmall", "without font objects: the game's templates, no error")
 	local ch = n.Fonts:Choices()
-	check(ch[1].label == "Game Font" and #ch >= 4, "Font still offers the game's and BagSmith's own (" .. #ch .. ")")
+	check(ch[1].label == "Default Font" and #ch >= 4, "Font still offers the game's and BagSmith's own (" .. #ch .. ")")
 end)()

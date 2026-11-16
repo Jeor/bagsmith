@@ -21,7 +21,7 @@ local Skins = ns.Skins
 local MENU_W, ROW_H, MENU_MAX = 220, 20, 300
 -- (1.8.0) it.font: the row's text in that font file, at the row's size. Without one, the text goes back to its font
 -- object's own face: a face set directly stays until set again (the font object alone doesn't undo it, beta2's bug:
--- Game Font kept the last font picked), and rows are reused.
+-- Default Font kept the last font picked), and rows are reused.
 function ns.MenuFace(fs, path, object)
 	if not (fs.SetFont and fs.GetFont) then return end
 	local obj = object and _G[object]
