@@ -150,9 +150,15 @@
 				n.ui.filters.text = q; n:RefreshViews(true); M.runTimers(); M.runTimers()
 				sized(V, 440)
 				local who = ("%s%s, Travel Mode, %s"):format(skin, de and " with the Disenchant button" or "", q == "" and "no search" or "searching (" .. tostring(V.subText.text) .. ")")
-				local sl, sr = span(V.search, V.frame)
 				local icon = firstIcon(V)
-				check(sl and sr and sr - sl >= 120 and sr <= icon + 0.01, who .. " at 440: the search box keeps at least 120 px and ends before the icons (" .. fmt(sr and sl and sr - sl) .. " px)")
+				-- (by design since 1.9.0-beta4: with the globe back in Travel Mode, the search may fold into its icon)
+				if V.searchFolded then
+					local _, ir = span(V.btnSearchFold, V.frame)
+					check(V.btnSearchFold:IsShown() and ir and ir <= icon + 0.01, who .. " at 440: the search folds into its icon, before the other icons")
+				else
+					local sl, sr = span(V.search, V.frame)
+					check(sl and sr and sr - sl >= 120 and sr <= icon + 0.01, who .. " at 440: the search box keeps at least 120 px and ends before the icons (" .. fmt(sr and sl and sr - sl) .. " px)")
+				end
 			end
 			n.ui.filters.text = ""
 		end

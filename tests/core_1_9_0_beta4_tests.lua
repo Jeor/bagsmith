@@ -144,3 +144,39 @@ end)()
 	check(not n.Popups.filter.realmsCheck:IsShown(), "outside Global Inventory the filter isn't offered")
 	check((n.errors or 0) == 0, "no errors")
 end)()
+
+;(function()
+	-- Travel Mode (Shweep): too narrow for the search box in the title row, the search folds into an icon; clicked, it
+	-- opens as its own full-width row under the title, the list below it; cleared and left, it folds back. The globe
+	-- shows in Travel Mode again.
+	package.loaded.mock = nil
+	local M = require("mock")
+	_G.BagSmithCharDB = { version = 1, firstSeen = {} }
+	_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = { travelMode = true } } }
+	local n = M.loadAddon("BagSmith")
+	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
+	n.Window:Show(); M.runTimers(); M.runTimers()
+	local V = n.Window.main
+	check(V:TravelOn() and V.btnGlobal:IsShown() and select(2, V.titleDivider:GetPoint(1)) == V.btnGlobal, "the globe shows in Travel Mode, the divider at its left")
+	V.title.w = 900; V:LayoutTitleRow()
+	check(not V.searchFolded and V.search:IsShown() and not V.btnSearchFold:IsShown(), "wide: the search box in the title row, as before")
+	V.title.w = 250; V:LayoutTitleRow()
+	check(V.searchFolded and not V.search:IsShown() and V.btnSearchFold:IsShown(), "narrow: the search folds into its icon")
+	V.btnSearchFold:GetScript("OnClick")(V.btnSearchFold); M.runTimers()
+	local p = {}
+	for i = 1, V.search:GetNumPoints() do local pt = { V.search:GetPoint(i) }; p[pt[1]] = pt end
+	check(V.searchOpen and V.search:IsShown() and p.TOPLEFT and p.TOPLEFT[2] == V.title and p.TOPRIGHT and p.TOPRIGHT[2] == V.title and p.TOPRIGHT[3] == "BOTTOMRIGHT", "clicked: the search opens as its own row under the title, full width")
+	check(select(2, V.header:GetPoint(1)) == V.search, "the list sits below it")
+	V.search:SetText("linen")
+	V.search:GetScript("OnEditFocusLost")(V.search)
+	check(V.searchOpen, "a search in use stays open")
+	V.search:SetText("")
+	V.search:GetScript("OnEditFocusLost")(V.search); M.runTimers()
+	check(not V.searchOpen and not V.search:IsShown() and V.btnSearchFold:IsShown(), "cleared and left: it folds back")
+	check(select(2, V.header:GetPoint(1)) == V.title, "and the list moves back up")
+	V.title.w = 900; V:LayoutTitleRow()
+	check(not V.searchFolded and V.search:IsShown() and not V.btnSearchFold:IsShown(), "wide again: the box is back in the title row")
+	n:Set("travelMode", false); M.runTimers(); M.runTimers()
+	check(not V.btnSearchFold:IsShown() and V.search:IsShown(), "out of Travel Mode: the usual search row")
+	check((n.errors or 0) == 0, "no errors")
+end)()

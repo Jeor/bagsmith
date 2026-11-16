@@ -200,11 +200,23 @@
 			n:Set("travelMode", true); MM.runTimers(); MM.runTimers()
 			V.subText:SetText("")
 			sized(V, 440)
-			local sl, sr = span(V.search, V.frame)
 			local _, tEnd = span(V.titleText, V.frame)
 			local cl = span(V.btnClean, V.frame)
-			check(sl >= tEnd and sr <= cl and sr - sl >= 120, ("%s Travel Mode at 440: the search box (%s px) sits between the title (%q) and the icons"):format(skin, fmt(sr - sl), tostring(V.titleText.text)))
-			check(V.titleText.text ~= "Bags (Travel Mode)", skin .. " Travel Mode at 440: the title shortens (" .. tostring(V.titleText.text) .. ")")
+			-- (by design since 1.9.0-beta4: the globe is back in Travel Mode, so at 440 the search may fold into an icon that
+			-- opens a full-width row of its own)
+			if V.searchFolded then
+				local il, ir = span(V.btnSearchFold, V.frame)
+				check(V.btnSearchFold:IsShown() and not V.search:IsShown() and il >= tEnd and ir <= cl, skin .. " Travel Mode at 440: the search folds into its icon, between the title and the icons")
+				V:OpenTravelSearch(true); MM.runTimers()
+				local sl, sr = span(V.search, V.frame)
+				check(V.search:IsShown() and sr - sl >= 120, skin .. " Travel Mode at 440: opened, the search is a full-width row (" .. fmt(sr - sl) .. " px)")
+				V.search:SetText(""); V:OpenTravelSearch(false); MM.runTimers()
+			else
+				local sl, sr = span(V.search, V.frame)
+				check(sl >= tEnd and sr <= cl and sr - sl >= 120, ("%s Travel Mode at 440: the search box (%s px) sits between the title (%q) and the icons"):format(skin, fmt(sr - sl), tostring(V.titleText.text)))
+			end
+			-- (by design since 1.9.0-beta4: with the search folded into its icon there's room for the full title)
+			check(V.searchFolded or V.titleText.text ~= "Bags (Travel Mode)", skin .. " Travel Mode at 440: the title shortens, unless the search folded (" .. tostring(V.titleText.text) .. ")")
 			sized(V, 900)
 			check(V.titleText.text == "Bags (Travel Mode)", skin .. " Travel Mode at 900: the full title")
 			n:Set("travelMode", false); MM.runTimers()

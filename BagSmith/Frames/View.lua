@@ -569,6 +569,15 @@ function View:Build()
 		end)
 		search:SetScript("OnEscapePressed", function(box) box:SetText(""); box:ClearFocus() end)
 		self.search = search
+		-- (1.9.0-beta4, Shweep) Travel Mode, too narrow for the search box in the title row: a search icon in its place;
+		-- clicked, search opens as its own full-width row under the title, and folds back once cleared and left
+		if self.isMain then
+			self.btnSearchFold = iconButton(self.title, "Interface\\AddOns\\BagSmith\\Media\\ui-search.tga", "Search", function() self:OpenTravelSearch(not self.searchOpen) end)
+			self.btnSearchFold:Hide()
+			search:HookScript("OnEditFocusLost", function(box)
+				if self.searchOpen and (box:GetText() or "") == "" then self:OpenTravelSearch(false) end
+			end)
+		end
 		self.btnFilter = textButton(f, "Filter", 64, function() ns.Popups:ToggleFilters(self) end)
 		self.btnFilter:SetHeight(TOOL_H - 4)
 		self.btnFilter:SetPoint("LEFT", search, "RIGHT", 6, 0)
@@ -1138,7 +1147,24 @@ end
 function View:PlaceSearch()
 	if not (self.search and self.btnFilter and self.title) then return end
 	self.search:ClearAllPoints()
-	if self:TravelOn() then
+	local fold = self.btnSearchFold
+	if fold and not (self:TravelOn() and self.searchFolded) then fold:Hide(); self.searchOpen = nil end
+	if self:TravelOn() and self.searchFolded and fold then
+		-- (1.9.0-beta4) folded: the icon where the search box would start; open, the box is its own row under the title
+		fold:ClearAllPoints()
+		if self.subText:IsShown() then fold:SetPoint("LEFT", self.subText, "RIGHT", 8, 0)
+		else fold:SetPoint("LEFT", self.subText, "LEFT", 0, 0) end
+		fold:Show(); if fold.SetActive then fold:SetActive(self.searchOpen and true or false) end
+		if self.searchOpen then
+			self.search:SetPoint("TOPLEFT", self.title, "BOTTOMLEFT", 4 + (self.belowShift or 0), -2)
+			self.search:SetPoint("TOPRIGHT", self.title, "BOTTOMRIGHT", 0, -2)
+			self.search:SetHeight(22)
+			self.search:Show()
+		else
+			self.search:Hide()
+		end
+	elseif self:TravelOn() then
+		self.search:Show()
 		-- The character picker is hidden in Travel Mode: search starts after the title. (1.5.5) It ends at Travel Mode's
 		-- Collapse All Sections button when that shows, else at the broom.
 		local T = self.btnLanesTravel
@@ -1149,6 +1175,7 @@ function View:PlaceSearch()
 		else self.search:SetPoint("RIGHT", self.btnClean, "LEFT", -8, 0) end
 		self.search:SetHeight(22)
 	else
+		self.search:Show()
 		local shift = self.belowShift or 0
 		-- (1.5.2) The bank's title row is empty in Classic and collapsed, so its search row sits level with the portrait:
 		-- there it starts at the title's left edge, clear of the portrait. Its right end stays with the Filter button.
@@ -1194,10 +1221,11 @@ function View:ApplyTravel()
 		-- (1.9.0-beta2) The globe steps aside in Travel Mode, the divider closing the gap: Travel Mode's search keeps its
 		-- room in the title row at 440 px. (Global Inventory turns Travel Mode off anyway; the folding search icon to come
 		-- brings it back.)
+		-- (1.9.0-beta4) the globe shows in Travel Mode again: the search folds into an icon when the row is too narrow
 		if self.btnGlobal then
-			self.btnGlobal:SetShown(not on)
+			self.btnGlobal:Show()
 			self.titleDivider:ClearAllPoints()
-			self.titleDivider:SetPoint("RIGHT", on and self.btnTravel or self.btnGlobal, "LEFT", -4, 0)
+			self.titleDivider:SetPoint("RIGHT", self.btnGlobal, "LEFT", -4, 0)
 		end
 		if ns.Classic and ns.Classic.SyncDropdown then ns.Classic.SyncDropdown(self) end
 		if self.btnBagBar then self.btnBagBar:SetShown(self.st.sheet ~= "Bank" and not ns.ui.owner) end   -- stays in Travel Mode
@@ -1447,6 +1475,15 @@ end
 -- (1.9.0-beta3, Shweep: "shortened last names regardless of width") The picker's name in full when it fits beside the
 -- class icon and the level; otherwise the surname as its initial ("Shweepy T."), cut short with "..." if even that
 -- doesn't fit.
+-- (1.9.0-beta4) Travel Mode's folded search: open (its own row under the title, focused) or closed.
+function View:OpenTravelSearch(on)
+	if not (self.search and self.searchFolded) then return end
+	if not on and (self.search:GetText() or "") ~= "" then on = true end   -- a search in use stays open
+	self.searchOpen = on and true or nil
+	self:PlaceSearch(); self:PlaceHeader()
+	if on and self.search.SetFocus then self.search:SetFocus() end
+	ns:RefreshViews(true)
+end
 function View:FitPickerName()
 	local b = self.charBtn
 	if not (b and b.label and b.fullName) then return end
@@ -1481,6 +1518,17 @@ function View:LayoutTitleRow()
 	-- What the row must keep after the note: the picker at its narrowest, or Travel Mode's search box.
 	local tail = travel and (12 + SEARCH_MIN + 8) or (picker and (10 + PICKER_MIN + reset) or 0)
 	local room = avail - right - 8
+	-- (1.9.0-beta4, Shweep) Travel Mode: if even the shortest title leaves no room for the search box, it folds into an icon
+	local folded = false
+	if travel then
+		local shortest = classic and 0 or (function() self.titleText:SetText(forms[#forms]); return textWidth(self.titleText) + 8 end)()
+		if lead + shortest + tail > room then folded = true; tail = 8 + 24 + 8 end
+	end
+	if folded ~= (self.searchFolded == true) then
+		self.searchFolded = folded or nil
+		if not folded then self.searchOpen = nil end
+		self:PlaceSearch(); self:PlaceHeader()
+	end
 	local function titleW(form)
 		if classic then return 0 end
 		self.titleText:SetText(form)
@@ -2316,6 +2364,7 @@ function View:PlaceHeader(travel)
 	if not self.header then return end
 	if travel == nil then travel = self.travelShown and true or false end
 	local base = (travel and self.title) or self.headerAnchor or self.tools
+	if travel and self.searchFolded and self.searchOpen and self.search then base = self.search end   -- (1.9.0-beta4) under the open search row
 	local shift = self.belowShift or 0
 	local above, gap = base, travel and -8 or -4
 	if self.bagBar and self.bagBarOpen then

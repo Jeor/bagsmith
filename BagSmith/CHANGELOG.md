@@ -3,8 +3,16 @@
 New:
 - Global Inventory: the globe beside Travel Mode shows every item on your characters on this realm in one list, with
   who has it and where (bags, bank, worn), one row per item with everyone's count together. Click an item more than
-  one character has to see each character's row (class icon and name first). Read only; closing BagSmith or the globe
-  again brings your bags back as they were.
+  one character has to see each character's row (class icon and name first). All Rows (the Merge button there) lists
+  each character and place instead. The Bank tab or icon shows only what's in banks, the Filter panel can include
+  your characters on other rulesets, and a value column and the title say what it's all worth. Its footer shows your
+  characters' gold, free slots and its own pinned currencies together. It keeps its own sort, sections, column widths
+  and pins for your whole account, apart from your profiles. Read only; closing BagSmith or the globe again brings
+  your bags back as they were.
+- The currency drawer says whose currencies it shows. In Global Inventory it lists every character's, with totals (hover
+  one for who has how many), and pins there are Global Inventory's own.
+- Travel Mode: when the window is too narrow for the search box in the title row, it folds into a search icon; click it
+  for a full-width search row.
 - Item tooltips show your inventory: any item's tooltip (your bags, the auction house, a vendor, a chat link, loot)
   lists how many your characters on this realm have, in their bags, bank and gear, with the total. You're listed
   first. Turn it off in Settings > General > Tooltips (Show Inventory in Item Tooltips).
