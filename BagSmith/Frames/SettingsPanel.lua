@@ -54,7 +54,7 @@ Panel.NEW = {
 	release = "1.9",
 	pages = { general = true, window = true, icons = true },
 	heads = {},
-	keys = { tipInventory = "general", bagSlotCount = "window", borderWeight = "icons" },
+	keys = { tipInventory = "general", tipAHPrice = "general", bagSlotCount = "window", borderWeight = "icons" },
 }
 Panel.NEW_COLOR = { 0.55, 0.78, 1 }   -- the soft blue of What's New's links
 local function release() return tostring(ns.version or ""):match("^(%d+%.%d+)") end
@@ -1460,6 +1460,8 @@ pages.general = function(self, db)
 	self:Head("Tooltips")   -- (1.9.0-beta2, Shweep) was "Tips"
 	-- (1.9.0-beta1, Shweep)
 	self:Check("tipInventory", "Show Inventory in Item Tooltips", "Any item's tooltip lists how many your characters on this realm have, in their bags, bank and gear, with the total.")
+	-- (1.9.0-beta2, Shweep)
+	self:Check("tipAHPrice", "Show AH Price in Item Tooltips", "Your items' tooltips show their auction house price each, and how old it is. Needs Auctionator or Blackthornes Tradeskills.")
 	-- (1.9.0-beta2, Shweep) "Show Help Tooltips" (was "Show Help Tips"), last in its card
 	self:Check("helpTips", "Show Help Tooltips", "Explains BagSmith's buttons, columns and marks when you point at them. Item tooltips always show.")
 	self:Head("Blizzard's Interface")

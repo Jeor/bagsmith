@@ -791,7 +791,9 @@ function View:Build()
 		mb:SetPoint("BOTTOMRIGHT", self.moneyText, "BOTTOMRIGHT", 4, -4)
 		mb:SetScript("OnClick", function() if ns.Drawer then ns.Drawer:Toggle() end end)
 		-- (1.9.0-beta1, Shweep) the tooltip lists your gold: each character's on this realm, Shift for the account
-		function mb:ShowGoldTip()
+		function mb:ShowGoldTip(again)
+			-- (beta2, Shweep: holding Shift reshaped it) shown again from scratch, as a fresh hover
+			if again then GameTooltip:Hide() end
 			GameTooltip:SetOwner(self, "ANCHOR_TOP")
 			if GameTooltip.ClearLines then GameTooltip:ClearLines() end
 			if ns.Inventory then ns.Inventory:AddGoldLines(GameTooltip) end

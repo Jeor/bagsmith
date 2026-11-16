@@ -42,6 +42,10 @@
 	check(t:find("Corwin|r Bags: 20", 1, true) and t:find("Brannoc|r Bags: 3, Bank: 2", 1, true), "each character's line, by name only")
 	check(not t:find("Elsewhere", 1, true) and not t:find("Forever", 1, true), "no other realm's characters, and no realm in a name")
 	check(t:find("UI-CHARACTERCREATE-CLASSES", 1, true), "with each character's class icon")
+	-- (beta2, Shweep: the character you're on had no icon) your own line: its class icon and class color
+	local mine = ""
+	for _, l in ipairs(GameTooltip.lines or {}) do if l:find("Aldren", 1, true) then mine = l end end
+	check(mine:find("UI-CHARACTERCREATE-CLASSES", 1, true) and mine:find("Aldren", 1, true) and not mine:find("|cffcccccc", 1, true), "your own line has its class icon and color: " .. mine)
 	check(not tipFor(424242):find("Inventory", 1, true), "an item nobody has: no block")
 	n:Set("tipInventory", false)
 	check(not tipFor(LINEN):find("Inventory", 1, true), "the setting off: no block")
@@ -68,11 +72,14 @@
 	check(g:find("Realm-wide gold " .. (123456 + 500000 + 1000) .. "c", 1, true), "Realm-wide gold: this realm's total: " .. g)
 	local me = g:find("123456c", 1, true)
 	check(me and g:find("Brannoc|r 500000c", 1, true) and me < g:find("Brannoc", 1, true) and g:find("Brannoc", 1, true) < g:find("Corwin", 1, true), "you first, then the most")
-	check(not g:find("Elsewhere", 1, true) and g:find("Hold Shift to show your account total", 1, true), "another realm's gold waits behind Shift")
+	check(not g:find("Elsewhere", 1, true) and g:find("Shift - See all Rulesets", 1, true), "another realm's gold waits behind Shift, and the tooltip says so (beta2's wording, Shweep)")
+	local first = GameTooltip.lines[2] or ""
+	check(first:find("UI-CHARACTERCREATE-CLASSES", 1, true) and first:find("123456c", 1, true), "your own gold line has its class icon (beta2)")
 	_G.IsShiftKeyDown = function() return true end
 	M.fire("MODIFIER_STATE_CHANGED", "LSHIFT", 1)
 	g = table.concat(GameTooltip.lines or {}, " | ")
 	check(g:find("Account-wide gold " .. (123456 + 500000 + 1000 + 9000000) .. "c", 1, true) and g:find("Elsewhere", 1, true), "Shift: the account, every realm: " .. g)
+	check(not g:find("Shift - See", 1, true), "holding Shift: the hint steps aside")
 	_G.IsShiftKeyDown = function() return false end
 	mb:GetScript("OnLeave")(mb)
 	check(n.Inventory.goldOwner == nil, "leaving the gold lets go")

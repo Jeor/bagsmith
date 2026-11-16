@@ -91,7 +91,9 @@ function Inv:Counts(itemID)
 			e.total = e.bags + e.bank + e.equipped
 			if key == me then
 				e.name = ns.DisplayName and ns:DisplayName("player") or (UnitName and UnitName("player")) or "?"
-				local _, class = UnitClass and UnitClass("player")
+				-- (beta2, Shweep: the character you're on showed no class icon) both of UnitClass's values: "x and f()" keeps only one
+				local class
+				if UnitClass then class = select(2, UnitClass("player")) end
 				e.class = class
 			else
 				e.name, e.class = data and data.name or key:match("^(.-) %- ") or key, data and data.class
@@ -179,7 +181,8 @@ function Inv:Gold(account)
 	local list, total = {}, 0
 	local function push(e) list[#list + 1] = e; total = total + e.gold end
 	local live = GetMoney and GetMoney() or 0
-	local _, myClass = UnitClass and UnitClass("player")
+	local myClass
+	if UnitClass then myClass = select(2, UnitClass("player")) end
 	push({ key = me, isMe = true, gold = live, class = myClass, name = ns.DisplayName and ns:DisplayName("player") or (UnitName and UnitName("player")) or "?" })
 	for key, data in pairs(BagSmithDB and BagSmithDB.cache or {}) do
 		if key ~= me and not ns:IsOwnKey(key) and type(data) == "table" and (account or data.realm == here) then
@@ -204,13 +207,26 @@ function Inv:AddGoldLines(tip)
 		local r, g, b = ns.ClassColor(e.class)
 		tip:AddDoubleLine(self.ClassIcon(e.class) .. hex(r, g, b) .. (e.name or "?") .. "|r", coins(e.gold), 1, 1, 1, 1, 1, 1)
 	end
+	-- (beta2, Shweep) what Shift does, always said, small and dim
 	if not account then
-		local more = false
-		local here = realm()
-		for key, data in pairs(BagSmithDB and BagSmithDB.cache or {}) do
-			if type(data) == "table" and data.realm ~= here and (tonumber(data.gold) or 0) > 0 then more = true end
-		end
-		if more then tip:AddLine("Hold Shift to show your account total", 0.6, 0.85, 0.6) end
+		tip:AddLine("Shift - See all Rulesets", 0.5, 0.5, 0.5)
+		Inv.SmallLine(tip)
+	end
+end
+-- The tooltip's last line in the small font; put back the next time the tooltip is cleared (its lines are reused).
+function Inv.SmallLine(tip)
+	local n = tip and tip.NumLines and tip:NumLines()
+	local name = tip and tip.GetName and tip:GetName()
+	local fs = n and name and _G[name .. "TextLeft" .. n]
+	if not (fs and fs.SetFontObject and _G.GameTooltipTextSmall) then return end
+	fs:SetFontObject(_G.GameTooltipTextSmall)
+	Inv.smallLines = Inv.smallLines or {}
+	Inv.smallLines[fs] = true
+	if not Inv.restoreHooked and tip.HookScript then
+		Inv.restoreHooked = true
+		local function restore() for line in pairs(Inv.smallLines) do if _G.GameTooltipText then line:SetFontObject(_G.GameTooltipText) end end; Inv.smallLines = {} end
+		tip:HookScript("OnHide", restore)
+		pcall(tip.HookScript, tip, "OnTooltipCleared", restore)
 	end
 end
 
@@ -226,7 +242,7 @@ ns:OnSignal("ADDON_READY", function()
 	ns:On("MODIFIER_STATE_CHANGED", function(key)
 		local owner = Inv.goldOwner
 		if owner and GameTooltip and GameTooltip.IsOwned and GameTooltip:IsOwned(owner) and owner.ShowGoldTip and tostring(key or ""):find("SHIFT") then
-			owner:ShowGoldTip()
+			owner:ShowGoldTip(true)
 		end
 	end)
 end)

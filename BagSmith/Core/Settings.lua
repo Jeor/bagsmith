@@ -71,6 +71,7 @@ local DEFAULTS = {
 	travelLeaveBank = true,    -- Auto Travel Mode: off while the bank is open, back on after
 	travelLeaveGuildBank = true,   -- ... the guild bank (1.8.0-beta23)
 	tipInventory = true,   -- (1.9.0-beta1) item tooltips list your characters' counts
+	tipAHPrice = true,     -- (1.9.0-beta2) an item's tooltip shows its AH price (with a price source); was only with the AH Price column
 	bagSlotCount = "exclude",   -- (1.9.0-beta1, Shweep) the footer's free count: "exclude" special bags (1.8) or "all" free slots
 	travelLeaveAH = true,      -- ... the auction house
 	travelLeaveVendor = true,  -- ... a vendor
