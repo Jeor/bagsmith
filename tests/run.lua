@@ -4482,8 +4482,9 @@ end)()
 		side = "Currency Drawer", combatFade = "Opacity", fadeMoving = "Opacity", combatLock = "Combat",
 	})
 	-- (1.6.0, by design) Auction Prices (Price Source, moved from Columns) and Tips (Show Help Tips) on General
-	grouped("general", "Opening BagSmith | Auction Prices | Tips | Blizzard's Interface | Notices", {
-		replaceBlizzardBags = "Opening BagSmith", minimap = "Opening BagSmith", priceSource = "Auction Prices", helpTips = "Tips",
+	-- (1.9.0-beta2, by design) the heading reads Tooltips (Shweep), with Show Inventory in Item Tooltips first
+	grouped("general", "Opening BagSmith | Auction Prices | Tooltips | Blizzard's Interface | Notices", {
+		replaceBlizzardBags = "Opening BagSmith", minimap = "Opening BagSmith", priceSource = "Auction Prices", helpTips = "Tooltips", tipInventory = "Tooltips",
 		replaceBank = "Blizzard's Interface", hideBlizzBagBar = "Blizzard's Interface",
 		quiet = "Notices", whatsNew = "Notices",
 	})

@@ -56,7 +56,7 @@ WN.ENTRIES = {
 		"|cfffac775Blackthornes Tradeskills Prices:|r BagSmith can now take auction prices from Blackthornes Tradeskills as well as Auctionator. It uses whichever you have; with both, pick one in Settings > General > Price Source.",
 		"|cfffac775Quest Starters:|r an item that begins a quest now wears a yellow \"!\" in the top left of its icon until you accept the quest. You can move it to another corner in Settings > Item Icons.",
 		"|cfffac775See-Through Windows:|r turn down Background Opacity to let the world show through your bags' frame (or the whole window), and turn on Fade While Moving to dim your bags while you run. Both are in Settings > Windows > Opacity.",
-		"|cfffac775Fewer Tips:|r know your way around? Turn off Show Help Tips in Settings > General to stop the tooltips on BagSmith's buttons and columns. Item tooltips stay.",
+		"|cfffac775Fewer Tips:|r know your way around? Turn off Show Help Tooltips in Settings > General to stop the tooltips on BagSmith's buttons and columns. Item tooltips stay.",
 		"|cfffac775Narrower Windows:|r your bags can now be as narrow as 440 pixels. Drag the corner in: the toolbar folds into a few small buttons, and List view sets a few columns aside until there's room for them again (you choose which in Settings > Bag Columns).",
 		"|cfffac775Smarter Disenchant Advice:|r the Disenchant Helper counts the AH's cut and leans toward disenchanting while you level Enchanting (Settings > Disenchant Helper).",
 	} },

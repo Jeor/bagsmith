@@ -1457,10 +1457,11 @@ pages.general = function(self, db)
 	self:Seg("priceSource", "Price Source", { { "auto", "Automatic" }, { "auctionator", "Auctionator" }, { "blackthornes", "Blackthornes" } },
 		"Which addon BagSmith gets auction prices from. Automatic uses the one you have, or Auctionator if you have both. " .. now)
 	-- (1.6.0) tips on BagSmith's own controls
-	self:Head("Tips")
-	self:Check("helpTips", "Show Help Tips", "Explains BagSmith's buttons, columns and marks when you point at them. Item tooltips always show.")
+	self:Head("Tooltips")   -- (1.9.0-beta2, Shweep) was "Tips"
 	-- (1.9.0-beta1, Shweep)
 	self:Check("tipInventory", "Show Inventory in Item Tooltips", "Any item's tooltip lists how many your characters on this realm have, in their bags, bank and gear, with the total.")
+	-- (1.9.0-beta2, Shweep) "Show Help Tooltips" (was "Show Help Tips"), last in its card
+	self:Check("helpTips", "Show Help Tooltips", "Explains BagSmith's buttons, columns and marks when you point at them. Item tooltips always show.")
 	self:Head("Blizzard's Interface")
 	if ns.Bank and ns.Bank.supported then
 		self:Check("replaceBank", "Replace the Bank Window", "Opens your bank in a BagSmith window instead of Blizzard's.")
