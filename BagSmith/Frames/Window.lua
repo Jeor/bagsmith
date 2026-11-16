@@ -232,6 +232,17 @@ end
 -- The signpost: on or off. While Auto Travel Mode has it held off (at a
 -- vendor, say), clicking it turns it on right away.
 function ns:ToggleTravel()
+	-- (1.9.0-beta4) the signpost in Global Inventory leaves it first (Travel Mode can't show inside it)
+	-- and turns Travel Mode on (it was off, or held off by Global Inventory)
+	local m = ns.Window and ns.Window.main
+	if ns.ui.global and m and m.SetGlobal then
+		m:SetGlobal(false)
+		ns.ui.travelHold = ns.ui.travelHold or {}
+		wipe(ns.ui.travelHold)
+		if not ns.db.travelMode then ns:Set("travelMode", true, true) end
+		ns:ApplyTravel(); ns:RefreshViews(true)
+		return
+	end
 	if ns.db.travelMode and ns:TravelHeld() then
 		wipe(ns.ui.travelHold)
 	else

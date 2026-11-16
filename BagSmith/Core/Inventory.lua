@@ -217,12 +217,69 @@ function Inv:Characters(all)
 	end
 	return out
 end
+-- (1.9.0-beta4, Shweep: "a hidden shared profile") Global Inventory's own settings, saved for the account
+-- (BagSmithDB.globalInv), outside every profile: sort, Sections or All, Totals or All Rows, other rulesets, its column
+-- widths, collapsed sections and its own pinned currencies (none at first). The first time, sort and sections start
+-- from the profile in use; after that nothing here touches a profile, and a profile never touches this.
+function Inv:Settings()
+	if type(BagSmithDB) ~= "table" then return { colWidths = {}, collapsed = {}, pins = {} } end
+	local g = BagSmithDB.globalInv
+	if type(g) ~= "table" then
+		local d = ns.db or {}
+		g = { sort = d.sort, grp = (d.grp == "bag") and "type" or d.grp, rows = false, allRealms = false, colWidths = {}, collapsed = {}, pins = {} }
+		BagSmithDB.globalInv = g
+	end
+	g.colWidths, g.collapsed, g.pins = g.colWidths or {}, g.collapsed or {}, g.pins or {}
+	return g
+end
+-- Your characters: { key, name, class, isMe, data }, this realm's (every realm's with all), you first.
+function Inv:CharKeys(all)
+	local me, here = ns:CharKey(), realm()
+	local myClass
+	if UnitClass then myClass = select(2, UnitClass("player")) end
+	local out = { { key = me, isMe = true, class = myClass, name = ns.DisplayName and ns:DisplayName("player") or "?", data = BagSmithDB and BagSmithDB.cache and BagSmithDB.cache[me] } }
+	local keys = {}
+	for key, data in pairs(BagSmithDB and BagSmithDB.cache or {}) do
+		if key ~= me and not ns:IsOwnKey(key) and type(data) == "table" and (all or data.realm == here) then keys[#keys + 1] = key end
+	end
+	table.sort(keys)
+	for _, key in ipairs(keys) do
+		local data = BagSmithDB.cache[key]
+		out[#out + 1] = { key = key, name = data.name or key, class = data.class, data = data }
+	end
+	return out
+end
+-- Free bag slots, totalled over your characters (as Bag Slot Count counts them: special bags only with All Free Slots;
+-- never the reagent bag or the keyring), and each character's: free, total, { { name, class, free, total } }.
+function Inv:FreeSlots(all)
+	local every = ns.db and ns.db.bagSlotCount == "all"
+	local free, total, list = 0, 0, {}
+	for _, c in ipairs(self:CharKeys(all)) do
+		local f, t = 0, 0
+		if c.isMe then
+			local g, gt, _, _, special = ns:FreeSlots()
+			f, t = g, gt
+			if every then for _, k in pairs(special or {}) do f, t = f + k.free, t + k.total end end
+		else
+			for bag, info in pairs(c.data and c.data.bags or {}) do
+				if type(info) == "table" and not info.reagent and tostring(bag) ~= tostring(ns.KEYRING) and (every or not info.kind) then
+					f, t = f + (tonumber(info.free) or 0), t + (tonumber(info.size) or 0)
+				end
+			end
+		end
+		free, total = free + f, total + t
+		list[#list + 1] = { name = c.name, class = c.class, free = f, total = t, isMe = c.isMe }
+	end
+	return free, total, list
+end
 -- The rows: Totals (one per item, every character and place together: rows = false) or All Rows (one per item,
--- character and place). Each is a display row: read only, with who (a name, or "N characters") and where.
-function Inv:GlobalRecords(rows, all)
+-- character and place). Each is a display row: read only, with who (a name, or "N characters") and where. only: the
+-- places to take (beta4: the Bank tab's bank-only filter), every place when nil.
+function Inv:GlobalRecords(rows, all, only)
 	local out, byKey, order = {}, {}, {}
 	for _, c in ipairs(self:Characters(all)) do
 		for _, place in ipairs(self.PLACES) do
+			if not only or only[place] then
 			for _, r in ipairs(c[place] or {}) do
 				if type(r) == "table" and r.itemID then
 					local k = rows and (r.itemID .. "|" .. c.key .. "|" .. place) or tostring(r.itemID)
@@ -241,6 +298,7 @@ function Inv:GlobalRecords(rows, all)
 					pc.places[place] = true
 					if not g.places[place] then g.places[place] = true; g.placeList[#g.placeList + 1] = place end
 				end
+			end
 			end
 		end
 	end

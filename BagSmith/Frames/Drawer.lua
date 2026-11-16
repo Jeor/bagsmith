@@ -81,7 +81,7 @@ function Drawer:Create()
 	-- Its border is thicker than Modern's, so the list, its scrollbar and the
 	-- Import button move in to clear it (Modern's spots are put back after).
 	f.classicSpec = {
-		title = function() return "Currencies" end,
+		title = function() return Drawer:Title() end,
 		close = function() Drawer:Hide() end,
 		hide = { f.title, close },
 		moves = {
@@ -139,6 +139,19 @@ local function row(f, i)
 	end)
 	r.star:SetScript("OnLeave", function() GameTooltip:Hide() end)
 	r.star:SetScript("OnClick", function(b) ns.Currency:ToggleFavorite(b:GetParent().key); Drawer:Refresh() end)
+	-- (1.9.0-beta4) In Global Inventory a row's tooltip says who has how many
+	r:EnableMouse(true)
+	r:SetScript("OnEnter", function(self)
+		if not (self.per and ns.TooltipsOK()) then return end
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddDoubleLine(self.nameText or "", "Total: " .. tostring(self.total or 0), 1, 0.82, 0, 0.55, 0.78, 1)
+		for _, p in ipairs(self.per) do
+			local cr, cg, cb = ns.ClassColor(p.class)
+			GameTooltip:AddDoubleLine((ns.Inventory and ns.Inventory.ClassIcon(p.class) or "") .. (p.name or "?"), tostring(p.count), cr, cg, cb, 1, 1, 1)
+		end
+		GameTooltip:Show()
+	end)
+	r:SetScript("OnLeave", function() GameTooltip:Hide() end)
 	ns.HoverWash(r.star, 0)
 	r.icon = r:CreateTexture(nil, "ARTWORK"); r.icon:SetSize(16, 16); r.icon:SetPoint("LEFT", r.star, "RIGHT", 4, 0)
 	r.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
@@ -155,15 +168,31 @@ local function row(f, i)
 	return r
 end
 
+-- (1.9.0-beta4, Shweep: "confirm whose currencies") The title names whose they are: yours, the character you're viewing,
+-- or Global Inventory's (every character's).
+function Drawer:Title()
+	if ns.ui.global and not ns.ui.owner then return "Global Currencies" end
+	local data = ns.ui.owner and BagSmithDB.cache[ns.ui.owner]
+	local name = data and data.name or (ns.DisplayName and ns:DisplayName("player")) or ""
+	local first = name:match("^(%S+)") or name
+	return first ~= "" and (first .. "'s Currencies") or "Currencies"
+end
 function Drawer:Refresh()
 	local f = self.frame
 	if not f or not f:IsShown() then return end
 	local owner = ns.ui.owner
+	local global = ns.ui.global and not owner
 	local favs, all = ns.Currency:Favorites(owner)
 	local favSet = {}
 	for _, e in ipairs(favs) do favSet[e.key] = true end
 	local main = ns.Window.main
-	f.hint:SetText(#favs > 0 and ("%d of %d pinned fit in the footer"):format(main.favShown or 0, #favs) or "Pin a currency to show it in the bag footer.")
+	f.title:SetText(self:Title())
+	if ns.Classic and ns.Classic.Retitle then ns.Classic:Retitle(f, f.title:GetText()) end
+	if global then
+		f.hint:SetText(#favs > 0 and "Pinned here: Global Inventory's footer, every character's total." or "Every character's currencies. Pin one for Global Inventory's footer.")
+	else
+		f.hint:SetText(#favs > 0 and ("%d of %d pinned fit in the footer"):format(main.favShown or 0, #favs) or "Pin a currency to show it in the bag footer.")
+	end
 	f.hint:SetTextColor(Skins:Color("muted"))
 
 	local y, ri, hi = 0, 0, 0
@@ -171,6 +200,7 @@ function Drawer:Refresh()
 		ri = ri + 1
 		local r = row(f, ri)
 		r.key, r.id = e.key, e.id
+		r.per, r.total, r.nameText = e.per, e.count, e.name   -- (beta4) Global Inventory's breakdown
 		r:SetWidth(rowWidth(f))
 		r.icon:SetTexture(e.icon)
 		local none = e.custom and (e.count or 0) == 0   -- a tracked item you have none of: dimmed
@@ -179,7 +209,7 @@ function Drawer:Refresh()
 		r.count:SetText(BreakUpLargeNumbers and BreakUpLargeNumbers(e.count) or e.count)
 		r.count:SetTextColor(Skins:Color(none and "muted" or "text"))
 		r.icon:SetDesaturated(none and true or false)
-		r.remove:SetShown(e.custom and not isFav and not owner and true or false)
+		r.remove:SetShown(e.custom and not isFav and not owner and not global and true or false)
 		r.star.tex:SetVertexColor(isFav and 0.98 or 0.4, isFav and 0.78 or 0.4, isFav and 0.46 or 0.4)
 		r.up:SetShown(isFav and not owner); r.down:SetShown(isFav and not owner)
 		r.star:SetShown(not owner)
@@ -208,9 +238,9 @@ function Drawer:Refresh()
 	for j = ri + 1, #f.rows do f.rows[j]:Hide() end
 	for j = hi + 1, #f.heads do f.heads[j]:Hide() end
 	f.child:SetSize(rowWidth(f), math.max(1, y))
-	f.import:SetShown(not owner)
-	f.add:SetShown(not owner); f.addHint:SetShown(not owner)
-	if owner then for _, s in ipairs(f.suggest) do s:Hide() end end
+	f.import:SetShown(not owner and not global)
+	f.add:SetShown(not owner and not global); f.addHint:SetShown(not owner and not global)
+	if owner or global then for _, s in ipairs(f.suggest) do s:Hide() end end
 	if ns.Classic and self.frame then ns.Classic:DressButtons(self.frame) end
 end
 

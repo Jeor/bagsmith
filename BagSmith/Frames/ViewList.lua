@@ -33,7 +33,11 @@ end
 
 function View:Records()
 	-- (1.9.0-beta2) Global Inventory: every item on your characters (display rows)
-	if self.isMain and ns.ui.global and ns.Inventory then return ns.Inventory:GlobalRecords(ns.ui.globalRows, ns.ui.globalAll), nil, false end
+	-- (1.9.0-beta4) its own settings: All Rows, Other Rulesets; the Bank tab (or icon) shows only what's in banks
+	if self.isMain and ns.ui.global and ns.Inventory then
+		local G = ns.Inventory:Settings()
+		return ns.Inventory:GlobalRecords(G.rows, G.allRealms, self.st.sheet == "Bank" and { bank = true } or nil), nil, false
+	end
 	-- Your own Gear Sets sheet: every set's slots, worn and banked included.
 	if self.kind == "main" and self.st.sheet == "GearSets" and not ns.ui.owner and ns.GearSets and ns.GearSets:Available() then
 		return ns.GearSets:SheetRecords(), nil, false
@@ -276,6 +280,11 @@ function View:ColumnPlan()
 		for _, k in ipairs({ "who", "w" }) do local at = ns.IndexOf(order, k); if at then table.remove(order, at) end end
 		local at = ns.IndexOf(order, "n") or 0
 		table.insert(order, at + 1, "who"); table.insert(order, at + 2, "w")
+		-- (1.9.0-beta4, Shweep) and a value: the AH Price with a price source, else the Vendor value
+		local val = (ns.AH and ns.AH:Available()) and "ah" or "v"
+		local vat = ns.IndexOf(order, val)
+		if vat then table.remove(order, vat) end
+		table.insert(order, at + 3, val)
 	end
 	local widths, fixed = {}, 0
 	for _, key in ipairs(order) do
@@ -292,7 +301,7 @@ function View:ColumnPlan()
 		-- brings them back (nothing saved changes). Only then does what's left shrink to fit.
 		for _, key in ipairs(self:AsideOrder()) do
 			if fixed <= width - ITEM_MIN then break end
-			local at = not (global and (key == "w" or key == "who")) and ns.IndexOf(order, key)
+			local at = not (global and (key == "w" or key == "who" or key == "ah" or key == "v")) and ns.IndexOf(order, key)
 			if at then
 				fixed = fixed - widths[key]; widths[key] = nil
 				table.remove(order, at); dropped[#dropped + 1] = key

@@ -840,6 +840,19 @@ local function loadDB(saved)
 		local d = saved.deShared
 		db.deShared = { version = finite(d.version) and d.version or 0, results = deResultsValidator(d.results) or {}, materials = deMaterialsValidator(d.materials) or {} }
 	end
+	-- (1.9.0-beta4) Global Inventory's own settings (outside every profile), checked as a profile's are
+	if type(saved) == "table" and type(saved.globalInv) == "table" then
+		local g = saved.globalInv
+		local out = { rows = g.rows == true, allRealms = g.allRealms == true, colWidths = {}, collapsed = {}, pins = {} }
+		if type(g.sort) == "string" and #g.sort <= 20 then out.sort = g.sort end
+		if g.grp == "type" or g.grp == "none" then out.grp = g.grp end
+		for k, w in pairs(type(g.colWidths) == "table" and g.colWidths or {}) do
+			if type(k) == "string" and #k <= 8 and finite(w) and w >= 10 and w <= 2000 then out.colWidths[k] = w end
+		end
+		for _, id in ipairs(type(g.collapsed) == "table" and g.collapsed or {}) do if type(id) == "string" and #id <= 100 then out.collapsed[#out.collapsed + 1] = id end end
+		for _, k in ipairs(type(g.pins) == "table" and g.pins or {}) do if type(k) == "string" and #k <= 40 then out.pins[#out.pins + 1] = k end end
+		db.globalInv = out
+	end
 	if type(saved) == "table" and type(saved.newSeen) == "table" then
 		local keep, releases = {}, 0
 		for rel, seen in pairs(saved.newSeen) do

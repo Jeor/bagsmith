@@ -47,6 +47,7 @@ local SHEET_KEYS = { grp = true, sort = true, view = true, mergeStacks = true }
 function View:SheetPrefs(create)
 	if not (ns.db.sheetViews and self.big and self.st and self.st.sheet and self.st.sheet ~= "All") then return nil end
 	if ns.ui.owner and not self.isBank then return nil end   -- browsing another character
+	if self.isMain and ns.ui.global then return nil end   -- (1.9.0-beta4) Global Inventory has its own settings
 	local all = ns.db.sheetPrefs
 	local win = self.isBank and "bank" or "bags"
 	all[win] = all[win] or (create and {} or nil)
@@ -61,7 +62,13 @@ local GLOBAL_PREF = { view = "list", mergeStacks = false }
 function View:Pref(key)
 	if self.isMain and ns.ui.global then
 		if GLOBAL_PREF[key] ~= nil then return GLOBAL_PREF[key] end
-		if key == "grp" then local g = ns.db.grp; return (g == "bag") and "type" or g end
+		-- (1.9.0-beta4) its own settings, for the account: sort, sections, column widths
+		local G = ns.Inventory and ns.Inventory:Settings()
+		if G then
+			if key == "sort" and G.sort then return G.sort end
+			if key == "grp" then local g = G.grp or ns.db.grp; return (g == "bag") and "type" or g end
+			if key == "colWidths" then return G.colWidths end
+		end
 	end
 	if SHEET_KEYS[key] then
 		local p = self:SheetPrefs(false)
@@ -76,6 +83,13 @@ local FRESH_KEYS = { sort = true, view = true, grp = true }
 function View:FreshLayout() self.freedSlots, self.lastOmitted, self.freedSeq = nil, nil, nil end
 function View:SetPref(key, value)
 	if FRESH_KEYS[key] then self:FreshLayout() end
+	-- (1.9.0-beta4) In Global Inventory: its own sort and sections; List and Merge are fixed there (Merge is All Rows)
+	if self.isMain and ns.ui.global and ns.Inventory then
+		local G = ns.Inventory:Settings()
+		if key == "sort" then G.sort = value; return true end
+		if key == "grp" then G.grp = (value == "bag") and "type" or value; return true end
+		if key == "view" or key == "mergeStacks" then return true end
+	end
 	if SHEET_KEYS[key] then
 		local p = self:SheetPrefs(true)
 		if p then
@@ -678,7 +692,14 @@ function View:Build()
 			self:SyncTools(); ns:RefreshViews(true)
 		end)
 		self.toolItems[#self.toolItems + 1] = { frame = self.btnSort, width = 96, gap = 8, w4 = 72 }
-		local function toggleMerge() self:SetPref("mergeStacks", not self:Pref("mergeStacks")); self:SyncTools(); ns:RefreshViews(true) end
+		local function toggleMerge()
+			-- (1.9.0-beta4) In Global Inventory, Merge is All Rows: a row per character and place instead of one per item
+			if ns.ui.global and ns.Inventory then
+				local G = ns.Inventory:Settings(); G.rows = not G.rows; ns.ui.globalOpen = nil
+				self:FreshLayout(); self:SyncTools(); ns:RefreshViews(true); return
+			end
+			self:SetPref("mergeStacks", not self:Pref("mergeStacks")); self:SyncTools(); ns:RefreshViews(true)
+		end
 		self.btnMerge = textButton(tools, "Merge Stacks", 92, toggleMerge)
 		self.btnMerge.tip = "Combine stacks of the same item into one, with the total count: one row in List view, one icon in Icons"
 		self.toolItems[#self.toolItems + 1] = { frame = self.btnMerge, width = 92, gap = 12, compactText = "Merge", fullText = "Merge Stacks", compactWidth = 56, hideAt = 4 }
@@ -1508,6 +1529,16 @@ function View:UpdateChrome(shown, total, bagInfo, cached)
 	elseif self.isBank then
 		sub = ns.atBank and "" or "saved view"
 	end
+	-- (1.9.0-beta4, Shweep) Global Inventory: what it's all worth (AH with a price source, else vendor)
+	if self.isMain and ns.ui.global then
+		local v, ah = 0, ns.AH and ns.AH:Available()
+		for _, r in ipairs(shown) do
+			local x = ah and ns.AH:StackValue(r)
+			if not x and not r.hasNoValue and r.sellPrice then x = r.sellPrice * (r.count or 1) end
+			v = v + (x or 0)
+		end
+		sub = v > 0 and ("worth about " .. ns.Money(v)) or ""
+	end
 	if #shown ~= total then sub = (sub ~= "" and sub .. ", " or "") .. ("%d of %d shown"):format(#shown, total) end
 	self.subText:SetText(sub)
 	if self.charBtn then
@@ -1530,6 +1561,11 @@ function View:UpdateChrome(shown, total, bagInfo, cached)
 			local gs = ns.GearSets and ns.GearSets:Available() and true or false
 			self.btnGearSets:SetShown(gs)
 			self.btnGearSets:SetActive(self.st.sheet == "GearSets")
+			-- (1.9.0-beta4, Shweep) greyed out in Global Inventory: your character's sets
+			local gbl = self.isMain and ns.ui.global
+			self.btnGearSets.baseTip = self.btnGearSets.baseTip or self.btnGearSets.tip
+			if gbl then self.btnGearSets:Disable(); self.btnGearSets:SetAlpha(0.45); self.btnGearSets.tip = "Gear Sets shows your character's sets. Leave Global Inventory to use them."
+			else self.btnGearSets:Enable(); self.btnGearSets:SetAlpha(1); self.btnGearSets.tip = self.btnGearSets.baseTip end
 			self:RefreshToolbar()
 		end
 		self.btnFilter:SetActive(ns.FilterCount(self.st.filters) > 0)
@@ -1583,7 +1619,16 @@ function View:SyncTools()
 			bb.tip = bb.baseTip
 		end
 	end
-	if self.btnMerge then self.btnMerge:SetActive(self:Pref("mergeStacks")); self.btnMerge.label:SetText((self.toolsLevel or 0) >= 2 and "Merge" or "Merge Stacks") end
+	if self.btnMerge then
+		if self.isMain and ns.ui.global and ns.Inventory then
+			self.btnMerge:SetActive(ns.Inventory:Settings().rows == true); self.btnMerge.label:SetText("All Rows")
+			self.btnMerge.baseTip = self.btnMerge.baseTip or self.btnMerge.tip
+			self.btnMerge.tip = "A row for each character and place, instead of one row per item"
+		else
+			self.btnMerge:SetActive(self:Pref("mergeStacks")); self.btnMerge.label:SetText((self.toolsLevel or 0) >= 2 and "Merge" or "Merge Stacks")
+			if self.btnMerge.baseTip then self.btnMerge.tip = self.btnMerge.baseTip end
+		end
+	end
 	if self.btnReagent then self.btnReagent:SetActive(sr and true or false) end
 	self:SyncSortLabel()
 	if self.btnGrpMenu then self:SyncGrpMenu() end
@@ -1662,6 +1707,7 @@ function View:UpdateTabs()
 	for _, t in ipairs(self.isBank and db.bankHiddenTabs or db.hiddenTabs) do hidden[t] = true end
 	-- No equipment sets on this client: no Gear Sets tab.
 	if not (ns.GearSets and ns.GearSets:Available()) then hidden.GearSets = true end
+	if self.isMain and ns.ui.global then hidden.GearSets = true end   -- (1.9.0-beta4, Shweep) not in Global Inventory
 	local order = self.isBank and db.bankTabOrder or db.tabOrder
 	-- Each tab's width: its label plus padding (Classic's art needs less than it had: 12 px, not 16).
 	self.tabMeasure = self.tabMeasure or self.tabs:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -1822,6 +1868,19 @@ end
 -- (beta10 feedback, Shweep: "not seeing that") Always shown, not only with special bags: the general slots, the
 -- reagent bag's when there is one, then each special bag's.
 function View:FreeTip()
+	-- (1.9.0-beta4) Global Inventory: each character's free slots, then the total
+	if self.isMain and ns.ui.global and ns.Inventory then
+		local free, total, list = ns.Inventory:FreeSlots(ns.Inventory:Settings().allRealms)
+		return function(tt, help)
+			if help then tt:AddLine(" ") end
+			if help then tt:AddLine("Free slots", 1, 0.82, 0) else ns.TipText(tt, "Free slots", 1, 0.82, 0) end
+			for _, c in ipairs(list) do
+				local r, g, b = ns.ClassColor(c.class)
+				tt:AddDoubleLine(ns.Inventory.ClassIcon(c.class) .. (c.name or "?"), ("%d / %d"):format(c.free, c.total), r, g, b, 1, 1, 1)
+			end
+			tt:AddDoubleLine("Total", ("%d / %d"):format(free, total), 1, 0.82, 0, 1, 1, 1)
+		end
+	end
 	local special = self.freeSpecial or {}
 	local g = self.freeGeneral
 	if not g then return nil end
@@ -1851,6 +1910,9 @@ function View:UpdateFooter(bagInfo)
 	local s = Skins:Current()
 	local owner = ns.ui.owner
 	local gold = owner and (BagSmithDB.cache[owner] and BagSmithDB.cache[owner].gold or 0) or GetMoney()
+	-- (1.9.0-beta4) Global Inventory: this ruleset's gold (every ruleset's with Other Rulesets)
+	local global = self.isMain and ns.ui.global and ns.Inventory
+	if global then gold = select(2, ns.Inventory:Gold(ns.Inventory:Settings().allRealms)) end
 	self.moneyText:SetText(GetMoneyString(gold or 0, true))
 
 	-- Free slots. (1.8.0-beta5) Special bags (a quiver, a herb bag, ...) count apart: the number is the slots anything
@@ -1878,6 +1940,11 @@ function View:UpdateFooter(bagInfo)
 		free, total, rfree, rtotal, special = ns:FreeSlots(self.kind == "main" and self.st.sheet ~= "Bank" and ns.BAGS or self:Bags())
 	end
 	if (self.isMain and self.st.sheet == "Bank") or self.isBank then rtotal = 0 end
+	-- (1.9.0-beta4) Global Inventory: your characters' free slots together (as Bag Slot Count counts them)
+	if global then
+		free, total = ns.Inventory:FreeSlots(ns.Inventory:Settings().allRealms)
+		rfree, rtotal, special = 0, 0, nil
+	end
 	self.freeSpecial = special
 	self.freeReagent = rtotal > 0 and { rfree, rtotal } or nil   -- (beta11) for the tooltip
 	-- A window showing only the reagent bag reports the reagent slots; one showing only special bags, theirs.
@@ -2024,6 +2091,7 @@ function View:SetGlobal(on)
 end
 
 function View:SetSheet(id)
+	if self.isMain and ns.ui.global and id == "GearSets" then return end   -- (1.9.0-beta4) your character's sets
 	local wasCustom = not ns.TAB_LABEL[self.st.sheet]
 	self.st.sheet = id
 	local custom
@@ -2077,6 +2145,7 @@ function ns.CollapsedList(view)
 	return ns.db.remember and ns.db.collapsed or ns.ui.collapsed
 end
 function View:CollapsedList()
+	if self.isMain and ns.ui.global and ns.Inventory then return ns.Inventory:Settings().collapsed end   -- (1.9.0-beta4)
 	local p = self:SheetPrefs(true)
 	if p then p.collapsed = p.collapsed or {}; return p.collapsed end
 	return ns.CollapsedList(self)
