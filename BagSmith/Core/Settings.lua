@@ -50,6 +50,7 @@ local DEFAULTS = {
 	bankGrp = "type", bankSort = "quality", bankView = "list", bankMerge = false,   -- the bank window's own
 	reagentWindow = false,     -- also show the reagent bag in its own window (set with bagWindows by "When the Main Window Opens")
 	border = "all",            -- all | unc | off
+	borderWeight = "normal",   -- normal | bold
 	rtext = true, newdot = true, dense = false,
 	-- layout
 	view = "list",             -- list | icons
@@ -305,7 +306,7 @@ local validators = {
 	deResultsVersion = function(v) return finite(v) and v or nil end,
 	deOfferDeclined = function(v) return v == true or false end,
 	bankSheets = sheetsValidator,
-	skin = oneOf("modern", "classic"), border = oneOf("all", "unc", "off"),
+	skin = oneOf("modern", "classic"), border = oneOf("all", "unc", "off"), borderWeight = oneOf("normal", "bold"),
 	accent = function(v) v = type(v) == "string" and v:lower():gsub("^#", "") or ""; return v:match("^%x%x%x%x%x%x$") and v or nil end,
 	iconItemLevelColor = function(v) v = type(v) == "string" and v:lower():gsub("^#", "") or ""; return v:match("^%x%x%x%x%x%x$") and v or nil end,
 	view = oneOf("list", "icons"), side = oneOf("left", "right"),

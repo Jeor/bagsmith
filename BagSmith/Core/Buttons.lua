@@ -142,24 +142,77 @@ end
 
 Buttons.PixelSize = pixelSize   -- (1.7.3-beta3) also the resize outline's line (Frames/Outline.lua)
 
--- Leave room around the existing numeric anchors instead of moving the text
--- inward. Measure the margin in screen pixels, independent of UI/bag scale.
--- Rows keep their compact frame so dense lists do not overlap adjacent rows.
+-- Reinforce only the part of the Classic bevel outside the item artwork.
+-- Both layers share their bounds and texture coordinates at every scale.
+function Buttons:UpdateClassicBoldGeometry(b)
+	if not b.classicBoldActive then return end
+	local x, y, w, h = b.icon:GetRect()
+	if not (x and y and w and h and w > 0 and h > 0) then return end
+	local pixel = pixelSize(b)
+	-- The base frame and reinforcement share the expanded bounds. Expanding
+	-- only the reinforcement produces two bevel contours at each corner.
+	local thick = b.classicBorderOutset or 0
+	if b.boldW == w and b.boldH == h and b.boldPixel == pixel and b.boldOutset == thick then return end
+	b.boldW, b.boldH, b.boldPixel, b.boldOutset = w, h, pixel, thick
+	-- Crop four disjoint strips from the same full-frame texture.
+	local frameW, frameH = w + 2 * thick, h + 2 * thick
+	local rects = {
+		{-thick, -thick, w + 2 * thick, thick},
+		{-thick, h, w + 2 * thick, thick},
+		{-thick, 0, thick, h},
+		{w, 0, thick, h},
+	}
+	for i, rect in ipairs(rects) do
+		local part = b.classicBold[i]
+		part.boldVisible = thick > 0 and rect[3] > 0 and rect[4] > 0
+		part:ClearAllPoints()
+		part:SetPoint("BOTTOMLEFT", b.icon, "BOTTOMLEFT", rect[1], rect[2])
+		part:SetSize(math.max(pixel, rect[3]), math.max(pixel, rect[4]))
+		part:SetTexCoord((rect[1] + thick) / frameW, (rect[1] + rect[3] + thick) / frameW,
+			1 - (rect[2] + rect[4] + thick) / frameH, 1 - (rect[2] + thick) / frameH)
+		if part.boldVisible then part:Show() else part:Hide() end
+	end
+end
+
+function Buttons:DrawClassicFrame(b, frame, r, g, bl, a)
+	frame:SetVertexColor(r, g, bl, a)
+	frame:Show()
+	if not (ns.db and ns.db.borderWeight == "bold") then return end
+	if not b.classicBold then
+		b.classicBold = {}
+		for i = 1, 4 do
+			local part = b:CreateTexture(nil, "OVERLAY", nil, 2)
+			part:SetTexture("Interface\\Common\\WhiteIconFrame")
+			part:SetBlendMode("ADD")
+			if part.SetRoundLayoutToNearestPixel then part:SetRoundLayoutToNearestPixel(false) end
+			b.classicBold[i] = part
+		end
+	end
+	b.classicBoldActive = true
+	self:UpdateClassicBoldGeometry(b)
+	for _, part in ipairs(b.classicBold) do
+		part:SetVertexColor(r, g, bl, a)
+		if part.boldVisible then part:Show() else part:Hide() end
+	end
+end
+
 function Buttons:UpdateClassicBorderGeometry(b)
 	if (ns.db and ns.db.skin or "modern") ~= "classic" then return end
 	local pixel = pixelSize(b)
 	local gap = (ns.View and ns.View.C and ns.View.C.GAP) or 6
 	-- Reserve two pixels for separation and independent icon-origin rounding.
 	-- Tiny scales reduce the margin rather than joining neighboring frames.
-	local margin = math.max(0, math.min(2, math.floor((math.floor(gap / pixel) - 2) / 2)))
+	local maxMargin = ns.db and ns.db.borderWeight == "bold" and 3 or 2
+	local margin = math.max(0, math.min(maxMargin, math.floor((math.floor(gap / pixel) - 2) / 2)))
 	local outset = b.mode == "cell" and margin * pixel or 0
-	if b.classicBorderOutset == outset then return end
+	if b.classicBorderOutset == outset then self:UpdateClassicBoldGeometry(b); return end
 	for _, frame in ipairs({ b.qFrame, b.defaultFrame }) do
 		frame:ClearAllPoints()
 		frame:SetPoint("TOPLEFT", b.icon, "TOPLEFT", -outset, outset)
 		frame:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", outset, -outset)
 	end
 	b.classicBorderOutset = outset
+	self:UpdateClassicBoldGeometry(b)
 end
 
 -- Always derive from the layout's original rectangle, never from yesterday's
@@ -294,18 +347,24 @@ function Buttons:UpdateModernBorderGeometry(b)
 	local x, y, width, height = b.icon:GetRect()
 	if not (x and y and width and height) then return end
 	local pixel = pixelSize(b)
-	if b.borderX == x and b.borderY == y and b.borderW == width and b.borderH == height and b.borderPixel == pixel then return end
+	local thickness = pixel * ((ns.db and ns.db.borderWeight == "bold") and 2 or 1)
+	local outset = (ns.db and ns.db.skin == "classic" and b.mode == "row") and pixel or 0
+	if b.borderX == x and b.borderY == y and b.borderW == width and b.borderH == height and b.borderPixel == pixel
+		and b.borderThickness == thickness and b.borderOutset == outset then return end
 	b.borderX, b.borderY, b.borderW, b.borderH, b.borderPixel = x, y, width, height, pixel
+	b.borderThickness, b.borderOutset = thickness, outset
 	local left = math.floor(x / pixel + 0.5) * pixel
 	local bottom = math.floor(y / pixel + 0.5) * pixel
 	local x0, y0 = left - x, bottom - y
 	local w = math.max(2 * pixel, math.floor((x + width) / pixel + 0.5) * pixel - left)
 	local h = math.max(2 * pixel, math.floor((y + height) / pixel + 0.5) * pixel - bottom)
+	x0, y0, w, h = x0 - outset, y0 - outset, w + 2 * outset, h + 2 * outset
+	thickness = math.min(thickness, w / 2, h / 2)
 	-- Side strips exclude corners, so translucent borders never double up.
-	placeBorderEdge(b.modernBorder[1], b.icon, x0, y0 + h - pixel, w, pixel)
-	placeBorderEdge(b.modernBorder[2], b.icon, x0, y0, w, pixel)
-	placeBorderEdge(b.modernBorder[3], b.icon, x0, y0 + pixel, pixel, h - 2 * pixel)
-	placeBorderEdge(b.modernBorder[4], b.icon, x0 + w - pixel, y0 + pixel, pixel, h - 2 * pixel)
+	placeBorderEdge(b.modernBorder[1], b.icon, x0, y0 + h - thickness, w, thickness)
+	placeBorderEdge(b.modernBorder[2], b.icon, x0, y0, w, thickness)
+	placeBorderEdge(b.modernBorder[3], b.icon, x0, y0 + thickness, thickness, h - 2 * thickness)
+	placeBorderEdge(b.modernBorder[4], b.icon, x0 + w - thickness, y0 + thickness, thickness, h - 2 * thickness)
 end
 
 function Buttons:DrawModernBorder(b, r, g, bl, a)
@@ -342,8 +401,9 @@ end
 local function drawIndicatorFrame(self, b, kind)
 	local r, g, bl = ns:BagKindColor(kind)
 	local a = tonumber(ns.db["glowAlpha_" .. kind]) or 1
-	if (ns.db.skin or "modern") == "modern" then
+	if (ns.db.skin or "modern") == "modern" or (b.mode == "row" and ns.db.borderWeight == "bold") then
 		self:DrawModernBorder(b, r, g, bl, a)
+		b.qRing:Hide(); b.qFrame:Hide()
 	elseif b.mode == "row" then
 		-- (beta12) a Classic list row's thin ring, in the kind's color
 		local pixel = pixelSize(b)
@@ -354,12 +414,14 @@ local function drawIndicatorFrame(self, b, kind)
 		b.qRing:Show(); b.qFrame:Hide()
 	else
 		self:UpdateClassicBorderGeometry(b)
-		b.qFrame:SetVertexColor(r, g, bl, a)
-		b.qFrame:Show(); b.qRing:Hide()
+		self:DrawClassicFrame(b, b.qFrame, r, g, bl, a)
+		b.qRing:Hide()
 	end
 end
 
 function Buttons:ApplyQuality(b, rec)
+	b.classicBoldActive = nil
+	for _, part in ipairs(b.classicBold or {}) do part:Hide() end
 	self:UpdateIconGeometry(b)
 	self:UpdateClassicBorderGeometry(b)
 	if b.defaultFrame then b.defaultFrame:Hide() end
@@ -404,7 +466,7 @@ function Buttons:ApplyQuality(b, rec)
 		if not quest and (q < 2 or not colored) then
 			if classicCell then
 				b.qFrame:Hide(); b.qRing:Hide()
-				if b.defaultFrame then b.defaultFrame:Show() end
+				if b.defaultFrame then self:DrawClassicFrame(b, b.defaultFrame, 0.72, 0.72, 0.72, 1) end
 				return
 			end
 			-- The textured frame loses thin edges when reduced to list size.
@@ -419,8 +481,11 @@ function Buttons:ApplyQuality(b, rec)
 	elseif classicCell then
 		-- WhiteIconFrame is the clipped, silver bag outline. The template's
 		-- initial IconBorder can instead contain a dark inset frame.
-		b.qFrame:SetVertexColor(r, g, bl, 1)
-		b.qFrame:Show(); b.qRing:Hide()
+		self:DrawClassicFrame(b, b.qFrame, r, g, bl, 1)
+		b.qRing:Hide()
+	elseif ns.db and ns.db.borderWeight == "bold" then
+		b.qRing:Hide(); b.qFrame:Hide()
+		self:DrawModernBorder(b, r, g, bl, 0.95)
 	else
 		-- Classic rows use a compact ring with the same quest/rarity rules.
 		b.qRing:ClearAllPoints()
@@ -724,7 +789,7 @@ function Buttons:RefreshSkin()
 	for _, pool in pairs(self.mirrors) do for _, b in pairs(pool) do each(b) end end
 	for _, b in ipairs(self.recent) do each(b) end
 end
-ns:OnSignal("SETTINGS_CHANGED", function(key) if key == nil or key == "skin" or key == "border" or key == "questFrame" then Buttons:RefreshSkin() end end)
+ns:OnSignal("SETTINGS_CHANGED", function(key) if key == nil or key == "skin" or key == "border" or key == "questFrame" or key == "borderWeight" then Buttons:RefreshSkin() end end)
 -- The item-level setting redraws every placed button's level text in place (no layout pass needed).
 function Buttons:RefreshItemLevels()
 	local function each(b) self:ItemLevel(b, b.hasItem and b.rec or nil) end
@@ -1298,6 +1363,8 @@ function Buttons:TemplateLeftovers(b)
 		"ilvlText", "pawnArrow", "linkMark", "linkCount", "stripe", "bagGlow" }) do if b[k] then known[b[k]] = true end end
 	for _, k in ipairs(COL_KEYS) do if b[k] then known[b[k]] = true end end
 	for _, sep in ipairs(b.seps or {}) do known[sep] = true end
+	for _, edge in ipairs(b.modernBorder or {}) do known[edge] = true end
+	for _, edge in ipairs(b.classicBold or {}) do known[edge] = true end
 	if b.GetHighlightTexture then local h = b:GetHighlightTexture(); if h then known[h] = true end end
 	local names = {}
 	for k, v in pairs(b) do if type(v) == "table" and type(k) == "string" then names[v] = names[v] or k end end
