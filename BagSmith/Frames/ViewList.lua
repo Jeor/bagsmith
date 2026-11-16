@@ -1355,6 +1355,19 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 		end
 	end
 
+	-- (1.9.0-beta3) Global Inventory's accordion: an open item's row per character goes right under it, after sorting,
+	-- so no sort can part them
+	if self.isMain and ns.ui.global and ns.ui.globalOpen and next(ns.ui.globalOpen) then
+		local open = ns.ui.globalOpen
+		for _, lane in ipairs(lanes) do
+			local out, any = {}, false
+			for _, r in ipairs(lane.items or {}) do
+				out[#out + 1] = r
+				if r.globalKids and open[r.itemID] then any = true; for _, k in ipairs(r.globalKids) do out[#out + 1] = k end end
+			end
+			if any then lane.items = out end
+		end
+	end
 	-- Icon Split View (optional, icon view): two columns of sections that fill
 	-- left to right, top to bottom; each pair is top-aligned and the row is as
 	-- tall as its taller section. Falls back to one column when a half can't

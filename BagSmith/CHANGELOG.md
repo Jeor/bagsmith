@@ -2,8 +2,9 @@
 
 New:
 - Global Inventory: the globe beside Travel Mode shows every item on your characters on this realm in one list, with
-  who has it and where (bags, bank, worn), one row per item with everyone's count together. Read only; closing BagSmith
-  or the globe again brings your bags back as they were.
+  who has it and where (bags, bank, worn), one row per item with everyone's count together. Click an item more than
+  one character has to see each character's row (class icon and name first). Read only; closing BagSmith or the globe
+  again brings your bags back as they were.
 - Item tooltips show your inventory: any item's tooltip (your bags, the auction house, a vendor, a chat link, loot)
   lists how many your characters on this realm have, in their bags, bank and gear, with the total. You're listed
   first. Turn it off in Settings > General > Tooltips (Show Inventory in Item Tooltips).
@@ -18,8 +19,9 @@ New:
 Changed:
 - Settings > General > Tooltips (was Tips): Show Inventory in Item Tooltips, Show AH Price in Item Tooltips (its own
   setting now, no longer tied to the AH Price column) and Show Help Tooltips (was Show Help Tips).
-- The bags window's title reads Bags, and the character picker shows a surname as its initial ("Shweepy T."), to make
-  room in the title row.
+- The bags window's title reads Bags, and the character picker shows a surname as its initial ("Shweepy T.") when the
+  full name doesn't fit, to make room in the title row.
+- Settings: text and buttons sit clear of the line above them.
 - The Disenchant Helper's estimate for green items up to level 15 follows what they give on WoW Forever: more often an
   essence, and no shard.
 

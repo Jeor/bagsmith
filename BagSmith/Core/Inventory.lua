@@ -233,6 +233,12 @@ function Inv:GlobalRecords(rows, all)
 					end
 					g.count = g.count + (tonumber(r.count) or 1)
 					if not g.chars[c.key] then g.chars[c.key] = c; g.charList[#g.charList + 1] = c end
+					-- (beta3) each character's own count and places, for the accordion
+					g.per = g.per or {}
+					local pc = g.per[c.key]
+					if not pc then pc = { count = 0, places = {} }; g.per[c.key] = pc end
+					pc.count = pc.count + (tonumber(r.count) or 1)
+					pc.places[place] = true
 					if not g.places[place] then g.places[place] = true; g.placeList[#g.placeList + 1] = place end
 				end
 			end
@@ -251,6 +257,25 @@ function Inv:GlobalRecords(rows, all)
 		for _, p in ipairs(self.PLACES) do if g.places[p] then labels[#labels + 1] = self.PLACE_LABEL[p] end end
 		rec.where = table.concat(labels, ", ")
 		rec.displayWhy = "In Global Inventory: every item on your characters, read only."
+		-- (1.9.0-beta3, Shweep) the accordion: an item more than one character has opens into a row per character (their
+		-- class icon and name first, indented; their count and places)
+		if not rows and #g.charList > 1 then
+			rec.displayWhy = "Click to see each character's."
+			local kids = {}
+			for _, c in ipairs(g.charList) do
+				local pc = g.per[c.key]
+				local kid = {}
+				for key, v in pairs(rec) do kid[key] = v end
+				kid.globalChild, kid.globalKids, kid.who, kid.whoClass = true, nil, c.name, c.class
+				kid.count = pc.count
+				local where = {}
+				for _, p in ipairs(self.PLACES) do if pc.places[p] then where[#where + 1] = self.PLACE_LABEL[p] end end
+				kid.where = table.concat(where, ", ")
+				kid.displayWhy = ("%s has %d (%s)."):format(c.name or "?", pc.count, kid.where)
+				kids[#kids + 1] = kid
+			end
+			rec.globalKids = kids
+		end
 		out[#out + 1] = rec
 	end
 	return out

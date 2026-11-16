@@ -500,6 +500,7 @@ end
 local function near(a, b) return math.abs(a - b) < 0.00001 end
 function Buttons:ApplyIconCrop(b)
 	if not b.icon then return end
+	if b.globalChildIcon then return end   -- (1.9.0-beta3) a Global Inventory character row's class icon keeps its own coordinates
 	if (ns.db and ns.db.skin or "modern") == "modern" then
 		local a, c, d, e, f, g, h, i = b.icon:GetTexCoord()
 		if not (near(a, 0.08) and near(c, 0.08) and near(d, 0.08) and near(e, 0.92)
@@ -903,7 +904,7 @@ function Buttons:ApplyColumns(b, plan, rowH)
 			fs:Show()
 		end
 		if col.key == "n" then
-			b.iconLayoutX = col.iconX
+			b.iconLayoutX, b.iconBaseX, b.nameBaseX, b.nameBaseW, b.nameShifted = col.iconX, col.iconX, col.x, col.width, nil
 			b.icon:ClearAllPoints(); b.icon:SetPoint("LEFT", b, "LEFT", col.iconX, 0)
 			Buttons:PlaceKebab(b, plan.kebab and col.kebabX or nil)
 		end
@@ -1212,10 +1213,16 @@ local function decorateCached(b)
 	addText(b)
 	b:RegisterForClicks("AnyUp")
 	b:SetScript("OnClick", function(self, button)
-		if button == "LeftButton" and IsAltKeyDown() and self.rec and ns.Sections then
+		if button == "LeftButton" and IsAltKeyDown() and self.rec and not self.rec.global and ns.Sections then
 			ns.Sections:ItemMenu(self.rec, self)
 		elseif self.rec and self.rec.link and IsModifiedClick("CHATLINK") then
 			if ChatEdit_InsertLink then ChatEdit_InsertLink(self.rec.link) end
+		elseif button == "LeftButton" and self.rec and self.rec.globalKids then
+			-- (1.9.0-beta3) Global Inventory: open or close the item's row per character
+			ns.ui.globalOpen = ns.ui.globalOpen or {}
+			local id = self.rec.itemID
+			ns.ui.globalOpen[id] = (not ns.ui.globalOpen[id]) or nil
+			ns:RefreshViews(true)
 		elseif button == "RightButton" then
 			-- (the Gear Sets sheet's display-only rows say where the item is)
 			ns:Print(self.rec and self.rec.displayWhy or "Viewing another character. Log in as them to use items.")
@@ -1426,7 +1433,7 @@ local function decorateMirror(b)
 		C_Container.PickupContainerItem(self.bag, self:GetID())
 	end
 	b:SetScript("OnClick", function(self, button)
-		if button == "LeftButton" and IsAltKeyDown() and self.rec and ns.Sections then ns.Sections:ItemMenu(self.rec, self) return end
+		if button == "LeftButton" and IsAltKeyDown() and self.rec and not self.rec.global and ns.Sections then ns.Sections:ItemMenu(self.rec, self) return end
 		if button == "RightButton" then
 			if self.rec then ns:Print("Right-click items in the main window to use them.") end
 			return
@@ -1563,7 +1570,24 @@ function Buttons:ItemLevel(b, rec)
 		b.ilvlText:SetText(tostring(rec.ilvl)); b.ilvlText:Show()
 	else b.ilvlText:SetText(""); b.ilvlText:Hide() end
 end
+-- (1.9.0-beta3) A Global Inventory character row: the class icon in the icon's place and the name beside it, both
+-- indented (nested under their item); a row going back to an item gets its icon's crop and places back first.
+local CHILD_INDENT = 14
+local function globalChildPlaces(b, child)
+	if b.mode ~= "row" then return end
+	if b.iconBaseX then b.iconLayoutX = b.iconBaseX + (child and CHILD_INDENT or 0) end
+	if b.nameBaseX and (child or b.nameShifted) then
+		b.colName:ClearAllPoints(); b.colName:SetPoint("LEFT", b, "LEFT", b.nameBaseX + (child and CHILD_INDENT or 0), 0)
+		b.colName:SetWidth(math.max(10, (b.nameBaseW or 100) - (child and CHILD_INDENT or 0)))
+		b.nameShifted = child or nil
+	end
+end
 function Buttons:Fill(b, rec, opts)
+	if b.globalChildIcon and not rec.globalChild then
+		b.globalChildIcon, b.modernCropActive = nil, nil
+		b.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+	end
+	globalChildPlaces(b, rec.globalChild)
 	b.rec, b.hasItem, b.readable = rec, true, rec.isReadable
 	local db = ns.db
 	self:ItemLevel(b, rec)
@@ -1598,7 +1622,13 @@ function Buttons:Fill(b, rec, opts)
 		b.colValue:SetText((rec.hasNoValue or not rec.sellPrice) and "" or ns.Money(rec.sellPrice * rec.count))
 		b.colWhere:SetText(rec.where or "")
 		-- (1.9.0-beta2) Global Inventory's Who: a character in their class color, or how many characters
-		b.colWho:SetText(rec.who or "")
+		-- (beta3) an item with a row per character: a chevron, right when closed, down when open
+		local who = rec.who or ""
+		if rec.globalKids then
+			local open = ns.ui.globalOpen and ns.ui.globalOpen[rec.itemID]
+			who = ("|TInterface\\AddOns\\BagSmith\\Media\\%s:10:10|t %s"):format(open and "ui-chev-down.tga" or "ui-chev-right.tga", who)
+		end
+		b.colWho:SetText(who)
 		if rec.whoClass then b.colWho:SetTextColor(ns.ClassColor(rec.whoClass)) else b.colWho:SetTextColor(0.84, 0.83, 0.79) end
 		b.colAge:SetText(ns.AgeText(rec.firstSeen))
 		-- AH Price: the stack's value from Auctionator's last scan, "-" when it has none.
@@ -1611,7 +1641,8 @@ function Buttons:Fill(b, rec, opts)
 		end
 	end
 	b.newDot:SetShown(db.newdot and rec.isNew or false)
-	if b.kebab and b.kebabOn and not InCombatLockdown() then b.kebab:SetShown(not rec.empty); kebabAlpha(b) end
+	-- (1.9.0-beta3, Shweep) no item menu in Global Inventory: it's read only, and the menu's actions are your character's
+	if b.kebab and b.kebabOn and not InCombatLockdown() then b.kebab:SetShown(not rec.empty and not rec.global); kebabAlpha(b) end
 	b:SetAlpha(opts and opts.dim and 0.3 or 1)
 	b.inFill = true
 	if ns.Junk then ns.Junk:Decorate(b, rec) end
@@ -1622,6 +1653,16 @@ function Buttons:Fill(b, rec, opts)
 	if ns.Corners then ns.Corners:Apply(b, true) end   -- (1.5.0) icon corners: which mark shows where
 	self:BagGlow(b, rec)   -- (1.8.0-beta5)
 	self:ApplyIconCrop(b)
+	if rec.globalChild and b.mode == "row" then
+		local c = CLASS_ICON_TCOORDS and rec.whoClass and CLASS_ICON_TCOORDS[rec.whoClass]
+		b.icon:SetTexture(c and "Interface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES" or nil)
+		if c then b.icon:SetTexCoord(c[1], c[2], c[3], c[4]) end
+		b.globalChildIcon = true
+		b.colName:SetText(rec.who or "?"); b.colName:SetTextColor(ns.ClassColor(rec.whoClass))
+		b.colName.baseColor = { ns.ClassColor(rec.whoClass) }
+		b.colWho:SetText("")
+		if b.kebab then b.kebab:Hide() end
+	end
 end
 
 

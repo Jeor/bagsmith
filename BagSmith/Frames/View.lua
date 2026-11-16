@@ -1179,7 +1179,7 @@ function View:ApplyTravel()
 			self.titleDivider:SetPoint("RIGHT", on and self.btnTravel or self.btnGlobal, "LEFT", -4, 0)
 		end
 		if ns.Classic and ns.Classic.SyncDropdown then ns.Classic.SyncDropdown(self) end
-		if self.btnBagBar then self.btnBagBar:SetShown(self.st.sheet ~= "Bank" and not ns.ui.owner) end   -- stays in Travel Mode
+		if self.btnBagBar then self.btnBagBar:SetShown(self.st.sheet ~= "Bank" and not ns.ui.owner and not ns.ui.global) end   -- stays in Travel Mode
 		if self.btnLanesTravel then self.btnLanesTravel:SetShown(on and #(self.laneIds or {}) > 0) end   -- (1.5.5)
 		self:PlaceSearch()
 		local above = on and self.title or self.tools
@@ -1557,7 +1557,8 @@ function View:SyncTools()
 	if self.btnBags then self.btnBags:SetActive(self.isBank and (ns.ui.bankBagWindows or false) or sb) end
 	-- Browsing another character: bag windows show your own bags, so the
 	-- bags and reagent buttons are greyed out and explain why.
-	local browsing = ns.ui.owner and not self.isBank
+	-- (1.9.0-beta3, Shweep) and in Global Inventory
+	local browsing = (ns.ui.owner or (self.isMain and ns.ui.global)) and not self.isBank
 	for _, b in ipairs({ self.btnBags, self.btnReagent }) do
 		if b and b.isCount then
 			b.baseTip = b.baseTip or b.tip
@@ -1907,7 +1908,7 @@ function View:UpdateFooter(bagInfo)
 		b:ClearAllPoints()
 		local left = (self.btnReagent and self.btnReagent:IsShown()) and self.btnReagent or self.btnBags
 		b:SetPoint("RIGHT", left, "LEFT", -6, 0)
-		b:SetShown(self.st.sheet ~= "Bank" and not owner)
+		b:SetShown(self.st.sheet ~= "Bank" and not owner and not ns.ui.global)   -- (1.9.0-beta3, Shweep) not in Global Inventory
 		b:SetActive(ns.db.bagBar and true or false)
 		self:ColorBagBarButton()
 	end
@@ -1995,6 +1996,7 @@ function View:SetGlobal(on)
 		if self.search and self.search.SetFocus and self.frame:IsShown() then self.search:SetFocus() end
 	else
 		ns.ui.global = nil
+		ns.ui.globalOpen = nil   -- (beta3) the accordion starts closed next time
 		ns.ui.travelHold.global = nil
 		local s = self.globalSaved or {}
 		self.globalSaved = nil

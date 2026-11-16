@@ -516,13 +516,14 @@ end
 
 -- color (optional, 1.6.0): a skin colour name for a line that needs weight ("heading"); muted otherwise.
 function Panel:Text(text, color)
-	local w = acquire(self, "text", function(p) local w = CreateFrame("Frame", nil, p); w:SetSize(ROW_W, 20); w.text = fs(w); w.text:SetPoint("TOPLEFT", 2, -2); return w end)
+	-- (1.9.0-beta3, Shweep: text pushed up to the line above) 6 px above and below, as a setting's label has
+	local w = acquire(self, "text", function(p) local w = CreateFrame("Frame", nil, p); w:SetSize(ROW_W, 20); w.text = fs(w); w.text:SetPoint("TOPLEFT", 2, -6); return w end)
 	if w.info then w.info:Hide(); w.othersLine = nil end   -- (1.5.0-beta6) a reused row loses the Icon Corners line's info icon
 	w.emphasis = color
 	w.text:SetText(text); w.text:SetTextColor(Skins:Color(color or "muted"))
 	local h = wrapText(w.text, rowW - 4)
-	w:SetHeight(h + 8)
-	self.y = self.y + h + 10
+	w:SetHeight(h + 12)
+	self.y = self.y + h + 12
 end
 
 -- (1.6.0) A small sub-heading inside a card, in the heading colour (the Opacity card's Always, While Moving, In Combat).
@@ -1373,7 +1374,9 @@ function Panel:Button(label, onClick, width)
 	b.label:SetText(label); b.onClick = onClick
 	b:SetWidth(width or math.max(80, b.label:GetStringWidth() + 20))
 	b:SetActive(false)
-	self.y = self.y + 26
+	-- (1.9.0-beta3, Shweep) clear of the line above: 4 px above and below
+	b:ClearAllPoints(); b:SetPoint("TOPLEFT", self.frame.child, "TOPLEFT", rowX, -(self.y + 4))
+	self.y = self.y + 30
 end
 -- Several buttons on one row (1.2.0): { { label, onClick }, ... }, laid out left to right.
 function Panel:Buttons(list)
@@ -1383,10 +1386,10 @@ function Panel:Buttons(list)
 		b.label:SetText(spec[1]); b.onClick = spec[2]
 		b:SetWidth(spec[3] or math.max(80, b.label:GetStringWidth() + 20))
 		b:SetActive(false)
-		b:ClearAllPoints(); b:SetPoint("TOPLEFT", self.frame.child, "TOPLEFT", rowX + x, -rowY)
+		b:ClearAllPoints(); b:SetPoint("TOPLEFT", self.frame.child, "TOPLEFT", rowX + x, -(rowY + 4))   -- (1.9.0-beta3) 4 px clear
 		x = x + b:GetWidth() + 6
 	end
-	self.y = rowY + 26
+	self.y = rowY + 30
 end
 
 function Panel:Edit(placeholder, onEnter)
