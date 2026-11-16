@@ -16,6 +16,7 @@ local PAD, HEADER_H, LANE_H, GAP, COLW, COLPAD, NUMERIC, COLKEY = C.PAD, C.HEADE
 ------------------------------------------------------------------------
 function View:IsCached()
 	if ns.ui.owner then return true end
+	if self.isMain and ns.ui.global then return true end   -- (1.9.0-beta2) Global Inventory: read only
 	if self.isMain and self.st.sheet == "Bank" then return true end   -- main's Bank sheet is always the saved view
 	if self.isBank and not ns.atBank then return true end
 	return false
@@ -31,6 +32,8 @@ function View:Bags()
 end
 
 function View:Records()
+	-- (1.9.0-beta2) Global Inventory: every item on your characters (display rows)
+	if self.isMain and ns.ui.global and ns.Inventory then return ns.Inventory:GlobalRecords(ns.ui.globalRows, ns.ui.globalAll), nil, false end
 	-- Your own Gear Sets sheet: every set's slots, worn and banked included.
 	if self.kind == "main" and self.st.sheet == "GearSets" and not ns.ui.owner and ns.GearSets and ns.GearSets:Available() then
 		return ns.GearSets:SheetRecords(), nil, false
@@ -140,7 +143,7 @@ function View:Filtered()
 	self.hiddenNow, self.hiddenSecs = hidden, secs
 	-- (the Gear Sets tab never merges: each row is one set's slot, and one
 	-- item in two sets is two rows, not a stack of two)
-	if self:Pref("mergeStacks") and self.kind ~= "bag" and self.st.sheet ~= "GearSets" then
+	if self:Pref("mergeStacks") and self.kind ~= "bag" and self.st.sheet ~= "GearSets" and not (self.isMain and ns.ui.global) then
 		-- Merge once; the total counts distinct items, not stacks.
 		local all = {}
 		for _, r in ipairs(records) do if pred(r) then all[#all + 1] = r end end
@@ -267,6 +270,13 @@ function View:ColumnPlan()
 		end
 		if not ns.IndexOf(order, "n") then table.insert(order, 1, "n") end
 	end
+	-- (1.9.0-beta2, Shweep) Global Inventory: Who and Where always, right after the item
+	local global = self.isMain and ns.ui.global
+	if global then
+		for _, k in ipairs({ "who", "w" }) do local at = ns.IndexOf(order, k); if at then table.remove(order, at) end end
+		local at = ns.IndexOf(order, "n") or 0
+		table.insert(order, at + 1, "who"); table.insert(order, at + 2, "w")
+	end
 	local widths, fixed = {}, 0
 	for _, key in ipairs(order) do
 		if key ~= "n" then
@@ -282,7 +292,7 @@ function View:ColumnPlan()
 		-- brings them back (nothing saved changes). Only then does what's left shrink to fit.
 		for _, key in ipairs(self:AsideOrder()) do
 			if fixed <= width - ITEM_MIN then break end
-			local at = ns.IndexOf(order, key)
+			local at = not (global and (key == "w" or key == "who")) and ns.IndexOf(order, key)
 			if at then
 				fixed = fixed - widths[key]; widths[key] = nil
 				table.remove(order, at); dropped[#dropped + 1] = key

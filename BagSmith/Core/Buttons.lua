@@ -23,7 +23,7 @@ Buttons.cached, Buttons.lanes = {}, {}   -- keyed by host frame
 Buttons.created = false
 
 local ICON_ROW = 20
-local COL_KEYS = { "colName", "colQty", "colLevel", "colReq", "colType", "colSlot", "colBind", "colValue", "colWhere", "colAge", "colAH" }
+local COL_KEYS = { "colName", "colWho", "colQty", "colLevel", "colReq", "colType", "colSlot", "colBind", "colValue", "colWhere", "colAge", "colAH" }
 Buttons.COL_KEYS = COL_KEYS
 
 local QCOL = {}
@@ -1597,6 +1597,9 @@ function Buttons:Fill(b, rec, opts)
 		b.colBind:SetText(ns:BindText(rec))
 		b.colValue:SetText((rec.hasNoValue or not rec.sellPrice) and "" or ns.Money(rec.sellPrice * rec.count))
 		b.colWhere:SetText(rec.where or "")
+		-- (1.9.0-beta2) Global Inventory's Who: a character in their class color, or how many characters
+		b.colWho:SetText(rec.who or "")
+		if rec.whoClass then b.colWho:SetTextColor(ns.ClassColor(rec.whoClass)) else b.colWho:SetTextColor(0.84, 0.83, 0.79) end
 		b.colAge:SetText(ns.AgeText(rec.firstSeen))
 		-- AH Price: the stack's value from Auctionator's last scan, "-" when it has none.
 		if ns.AH:Available() then

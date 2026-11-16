@@ -55,7 +55,14 @@ function View:SheetPrefs(create)
 	if not p and create then p = { collapsed = {} }; all[win][self.st.sheet] = p end
 	return p
 end
+-- (1.9.0-beta2) Global Inventory reads as a list of every item, unmerged, by section (never by bag): the window's own
+-- choices are overridden while it shows, not changed, so they're as they were when it's left.
+local GLOBAL_PREF = { view = "list", mergeStacks = false }
 function View:Pref(key)
+	if self.isMain and ns.ui.global then
+		if GLOBAL_PREF[key] ~= nil then return GLOBAL_PREF[key] end
+		if key == "grp" then local g = ns.db.grp; return (g == "bag") and "type" or g end
+	end
 	if SHEET_KEYS[key] then
 		local p = self:SheetPrefs(false)
 		if p and p[key] ~= nil then return p[key] end
@@ -81,11 +88,11 @@ end
 
 local PAD, TITLE_H, TOOL_H, HEADER_H, TAB_H, FOOTER_H, LANE_H, GAP = 12, 26, 26, 20, 22, 26, 26, 6
 local MONEY_X = 10   -- the gold's distance from the footer's left edge
-local COLW = { c = 0.07, il = 0.07, rq = 0.06, t = 0.16, sl = 0.11, bd = 0.07, v = 0.12, w = 0.14, age = 0.08, ah = 0.12, jk = 0.05, fv = 0.05, cc = 0.05 }
+local COLW = { who = 0.14, c = 0.07, il = 0.07, rq = 0.06, t = 0.16, sl = 0.11, bd = 0.07, v = 0.12, w = 0.14, age = 0.08, ah = 0.12, jk = 0.05, fv = 0.05, cc = 0.05 }
 local COLPAD = 10   -- gap kept clear at the right edge of every column
 local BAR_ROOM = 22 -- the scrollbar's lane at the right of a list; given back to the list when nothing scrolls
 local NUMERIC = { c = true, il = true, rq = true, v = true, age = true, ah = true }
-local COLKEY = { c = "colQty", il = "colLevel", rq = "colReq", t = "colType", sl = "colSlot", bd = "colBind", v = "colValue", w = "colWhere", age = "colAge", ah = "colAH", jk = "colJunk", fv = "colFav", cc = "colCurr" }
+local COLKEY = { who = "colWho", c = "colQty", il = "colLevel", rq = "colReq", t = "colType", sl = "colSlot", bd = "colBind", v = "colValue", w = "colWhere", age = "colAge", ah = "colAH", jk = "colJunk", fv = "colFav", cc = "colCurr" }
 -- Shared with ViewList.lua and Scroll.lua.
 View.C = { TITLE_H = TITLE_H, FOOTER_H = FOOTER_H, PAD = PAD, HEADER_H = HEADER_H, LANE_H = LANE_H, GAP = GAP, COLW = COLW, COLPAD = COLPAD, NUMERIC = NUMERIC, COLKEY = COLKEY, TAB_H = TAB_H }
 
@@ -474,7 +481,11 @@ function View:Build()
 		-- controls (Travel Mode, close) on the other.
 		self.titleDivider = title:CreateTexture(nil, "ARTWORK")
 		self.titleDivider:SetSize(1, 16)
-		self.titleDivider:SetPoint("RIGHT", self.btnTravel, "LEFT", -4, 0)
+		-- (1.9.0-beta2, Shweep) Global Inventory: left of Travel Mode, the divider moving to its left
+		self.btnGlobal = iconButton(title, MEDIA .. "ui-globe.tga", "Global Inventory", function() self:SetGlobal(not ns.ui.global) end)
+		self.btnGlobal.tipSub = function() return ns.ui.global and "Click to go back to your bags." or "Every item on your characters on this realm, in one list." end
+		self.btnGlobal:SetPoint("RIGHT", self.btnTravel, "LEFT", 0, 0)
+		self.titleDivider:SetPoint("RIGHT", self.btnGlobal, "LEFT", -4, 0)
 		self.btnSettings = iconButton(title, MEDIA .. "ui-cog.tga", "Settings", function() ns.SettingsPanel:Toggle() end)
 		self.btnSettings:SetPoint("RIGHT", self.titleDivider, "LEFT", -4, 0)
 		self.btnCurrency = iconButton(title, MEDIA .. "ui-wallet.tga", "Currencies", function() ns.Drawer:Toggle() end)
@@ -761,6 +772,7 @@ function View:Build()
 	end
 	headerLabel("n", "Item")
 	for _, c in ipairs(ns.COLS) do headerLabel(c[1], c[2]) end
+	headerLabel("who", "Who")   -- (1.9.0-beta2) Global Inventory's own column
 
 	-- Sheet tabs (main and bank)
 	if self.big then
@@ -968,6 +980,8 @@ function View:Build()
 		self.sizing = false; self.refreshWanted = nil; self:CancelOutlineResize()
 		if ns.ready then PlaySound(SOUNDKIT.IG_BACKPACK_CLOSE) end
 		if self.isBank and ns.Bank then ns.Bank:OnWindowHidden() end
+		-- (1.9.0-beta2, Shweep) closing BagSmith leaves Global Inventory: the bags come back as they were
+		if self.isMain and ns.ui.global then self:SetGlobal(false) end
 		if self.isMain then ns:OnMainHidden() end
 	end)
 
@@ -1155,6 +1169,14 @@ function View:ApplyTravel()
 		self.btnFilter:SetShown(not on)
 		if self.charBtn then self.charBtn:SetShown(not on) end
 		if self.charReset then self.charReset:SetShown(not on and ns.ui.owner ~= nil) end
+		-- (1.9.0-beta2) The globe steps aside in Travel Mode, the divider closing the gap: Travel Mode's search keeps its
+		-- room in the title row at 440 px. (Global Inventory turns Travel Mode off anyway; the folding search icon to come
+		-- brings it back.)
+		if self.btnGlobal then
+			self.btnGlobal:SetShown(not on)
+			self.titleDivider:ClearAllPoints()
+			self.titleDivider:SetPoint("RIGHT", on and self.btnTravel or self.btnGlobal, "LEFT", -4, 0)
+		end
 		if ns.Classic and ns.Classic.SyncDropdown then ns.Classic.SyncDropdown(self) end
 		if self.btnBagBar then self.btnBagBar:SetShown(self.st.sheet ~= "Bank" and not ns.ui.owner) end   -- stays in Travel Mode
 		if self.btnLanesTravel then self.btnLanesTravel:SetShown(on and #(self.laneIds or {}) > 0) end   -- (1.5.5)
@@ -1347,6 +1369,7 @@ end
 function View:TitleForms()
 	if self.isBank then return { "Bank" } end
 	if not self.isMain then return { self.opts.title or "" } end
+	if ns.ui.global then return { "Global Inventory", "Global Inv" } end   -- (1.9.0-beta2, Shweep's names)
 	local saved = self.st.sheet == "Bank"
 	-- (1.9.0-beta2, Shweep) "Bags", no longer "Your Bags": room in the title row for the globe
 	local base, short = saved and "Bank (Saved)" or "Bags", saved and "Bank" or "Bags"
@@ -1936,6 +1959,41 @@ end
 ------------------------------------------------------------------------
 -- Actions
 ------------------------------------------------------------------------
+-- (1.9.0-beta2) Global Inventory on or off. On: another character's view and Travel Mode step aside, a saved-bank or
+-- Gear Sets tab goes to All, and the search starts empty and focused. Off (the globe again, or closing the window):
+-- the tab, the search and the scroll come back as they were.
+function View:SetGlobal(on)
+	if not self.isMain then return end
+	on = on and true or false
+	if on == (ns.ui.global == true) then return end
+	if on then
+		self.globalSaved = { sheet = self.st.sheet, text = self.st.filters and self.st.filters.text or "",
+			scroll = self.scroll and self.scroll:GetVerticalScroll() or 0 }
+		if ns.ui.owner then self:SetOwner(nil) end
+		ns.ui.global = true
+		ns.ui.travelHold.global = true
+		if self.st.sheet == "Bank" or self.st.sheet == "GearSets" then self.st.sheet = "All" end
+		if self.st.filters then self.st.filters.text = "" end
+		if self.search then self.search:SetText("") end
+		self:FreshLayout()
+		ns:ApplyTravel(); ns:RefreshViews(true)
+		if self.search and self.search.SetFocus and self.frame:IsShown() then self.search:SetFocus() end
+	else
+		ns.ui.global = nil
+		ns.ui.travelHold.global = nil
+		local s = self.globalSaved or {}
+		self.globalSaved = nil
+		if s.sheet then self.st.sheet = s.sheet end
+		if self.st.filters then self.st.filters.text = s.text or "" end
+		if self.search then self.search:SetText(s.text or ""); if self.search.ClearFocus then self.search:ClearFocus() end end
+		self:FreshLayout()
+		ns:ApplyTravel(); ns:RefreshViews(true)
+		if self.scroll and s.scroll then self.scroll:SetVerticalScroll(s.scroll) end
+	end
+	if self.btnGlobal and self.btnGlobal.SetActive then self.btnGlobal:SetActive(ns.ui.global == true) end
+	self:UpdateTitle()
+end
+
 function View:SetSheet(id)
 	local wasCustom = not ns.TAB_LABEL[self.st.sheet]
 	self.st.sheet = id
@@ -2044,7 +2102,7 @@ function ns:NoteCleanup()
 	end)
 end
 function View:CleanUp()
-	if ns.ui.owner then ns:Print("You can only clean up your own bags."); return end
+	if ns.ui.owner or ns.ui.global then ns:Print("You can only clean up your own bags."); return end
 	if InCombatLockdown() or UnitIsDead("player") then ns:Print("Can't clean up right now."); return end
 	ns:NoteCleanup()
 	-- The bank window (whatever sheet it shows) or the Bags window's Bank sheet.

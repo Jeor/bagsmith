@@ -172,6 +172,91 @@ function Inv:InstallTooltipHook()
 end
 
 ------------------------------------------------------------------------
+-- Global Inventory (1.9.0-beta2): every item on your characters, as read-only rows
+------------------------------------------------------------------------
+-- A worn item as a record (the game's item info when it has it).
+local function wornRecord(e)
+	local id = tonumber(e.itemID)
+	local rec = { itemID = id, link = e.link, count = 1, quality = 1, name = (e.link and e.link:match("%[(.-)%]")) or ("item " .. tostring(id)) }
+	local info = C_Item and C_Item.GetItemInfo or GetItemInfo
+	if type(info) == "function" then
+		local ok, name, _, quality, ilvl, minLevel, iType, iSub, _, equipLoc, icon, sellPrice, classID, subclassID = pcall(info, e.link or id)
+		if ok and name then
+			rec.name, rec.quality, rec.ilvl, rec.minLevel, rec.itemType, rec.itemSubType = name, quality, ilvl, minLevel, iType, iSub
+			rec.equipLoc, rec.icon, rec.sellPrice, rec.classID, rec.subclassID = equipLoc, icon, sellPrice, classID, subclassID
+		end
+	end
+	if not rec.icon and GetItemIcon then rec.icon = GetItemIcon(id) end
+	rec.isBound = true
+	rec.ownCat = (ns.Sections and ns.Sections:OwnCategory(rec)) or ns:Categorize(rec)
+	rec.cat = ns.Sections and ns.Sections:Apply(rec, rec.ownCat) or rec.ownCat
+	return rec
+end
+Inv.WornRecord = wornRecord
+-- Each character's lists: { key, name, class, isMe, bags = {...}, bank = {...}, equipped = {...} }, this realm's
+-- (every realm's with all = true), you first.
+function Inv:Characters(all)
+	local me, here = ns:CharKey(), realm()
+	local out = {}
+	local myClass
+	if UnitClass then myClass = select(2, UnitClass("player")) end
+	local bank = (ns.bankItems and #ns.bankItems > 0) and ns.bankItems or select(1, ns:CachedRecords(me, true))
+	local worn = {}
+	for _, e in ipairs(Inv.Worn()) do worn[#worn + 1] = wornRecord(e) end
+	out[1] = { key = me, isMe = true, class = myClass, name = ns.DisplayName and ns:DisplayName("player") or "?", bags = ns.items or {}, bank = bank or {}, equipped = worn }
+	local keys = {}
+	for key, data in pairs(BagSmithDB and BagSmithDB.cache or {}) do
+		if key ~= me and not ns:IsOwnKey(key) and type(data) == "table" and (all or data.realm == here) then keys[#keys + 1] = key end
+	end
+	table.sort(keys)
+	for _, key in ipairs(keys) do
+		local data = BagSmithDB.cache[key]
+		local e = { key = key, class = data.class, name = data.name or key, bags = select(1, ns:CachedRecords(key, false)) or {}, bank = select(1, ns:CachedRecords(key, true)) or {}, equipped = {} }
+		for _, w in ipairs(data.equipped or {}) do if type(w) == "table" and w.itemID then e.equipped[#e.equipped + 1] = wornRecord(w) end end
+		out[#out + 1] = e
+	end
+	return out
+end
+-- The rows: Totals (one per item, every character and place together: rows = false) or All Rows (one per item,
+-- character and place). Each is a display row: read only, with who (a name, or "N characters") and where.
+function Inv:GlobalRecords(rows, all)
+	local out, byKey, order = {}, {}, {}
+	for _, c in ipairs(self:Characters(all)) do
+		for _, place in ipairs(self.PLACES) do
+			for _, r in ipairs(c[place] or {}) do
+				if type(r) == "table" and r.itemID then
+					local k = rows and (r.itemID .. "|" .. c.key .. "|" .. place) or tostring(r.itemID)
+					local g = byKey[k]
+					if not g then
+						g = { rep = r, count = 0, chars = {}, charList = {}, places = {}, placeList = {} }
+						byKey[k] = g; order[#order + 1] = k
+					end
+					g.count = g.count + (tonumber(r.count) or 1)
+					if not g.chars[c.key] then g.chars[c.key] = c; g.charList[#g.charList + 1] = c end
+					if not g.places[place] then g.places[place] = true; g.placeList[#g.placeList + 1] = place end
+				end
+			end
+		end
+	end
+	for _, k in ipairs(order) do
+		local g = byKey[k]
+		local rec = {}
+		for key, v in pairs(g.rep) do rec[key] = v end
+		rec.bag, rec.slot, rec.guid, rec.members, rec.merged, rec.stacks = nil, nil, nil, nil, nil, nil
+		rec.count = g.count
+		rec.display, rec.cached, rec.global, rec.maxStack, rec.isNew = true, true, true, 1, nil
+		if #g.charList == 1 then rec.who, rec.whoClass = g.charList[1].name, g.charList[1].class
+		else rec.who = ("%d characters"):format(#g.charList) end
+		local labels = {}
+		for _, p in ipairs(self.PLACES) do if g.places[p] then labels[#labels + 1] = self.PLACE_LABEL[p] end end
+		rec.where = table.concat(labels, ", ")
+		rec.displayWhy = "In Global Inventory: every item on your characters, read only."
+		out[#out + 1] = rec
+	end
+	return out
+end
+
+------------------------------------------------------------------------
 -- Gold
 ------------------------------------------------------------------------
 -- Your gold: { key, name, class, gold, isMe } for this realm's characters (or every realm's, account = true), you first

@@ -48,6 +48,7 @@
 #           before it (Shweep); the chevron moves to r4. Nothing else changed
 # (1.8.0-beta12, by design, Shweep) the bags window's gold is a button (it opens the currency drawer): a new
 # footer child, main.8.1, so the footer's other children are numbered one higher. Nothing else changed (checked).
+#   1.9.0-beta2  the globe (Global Inventory) in the title row, between the divider and Travel Mode: checked to differ only by its insertion (later siblings renumbered), then re-recorded
 title | w=nil h=26 shown=true | TOPLEFT,window,TOPLEFT,12,-12 ; TOPRIGHT,window,TOPRIGHT,-12,-12
 scroll | w=nil h=nil shown=true | TOPLEFT,header,BOTTOMLEFT,0,-2 ; BOTTOMRIGHT,tabs,TOPRIGHT,0,4
 tabs | w=nil h=22 shown=true | BOTTOMLEFT,window,BOTTOMLEFT,12,40 ; BOTTOMRIGHT,window,BOTTOMRIGHT,-12,40
@@ -97,10 +98,11 @@ look main.2.3.r1 color=0.62,0.60,0.55,1.00
 look main.2.4.r1 color=0.62,0.60,0.55,1.00
 look main.2.5.r1 color=0.62,0.60,0.55,1.00
 look main.2.6.r1 color=0.62,0.60,0.55,1.00
-look main.2.7 bg=0.15,0.14,0.13,1.00 border=0.23,0.22,0.20,1.00
-look main.2.7.r1 text=0.56,0.55,0.51,1.00
-look main.2.7.r3 text=0.56,0.55,0.51,1.00
-look main.2.7.r4 color=0.62,0.60,0.55,1.00
+look main.2.7.r1 color=0.62,0.60,0.55,1.00
+look main.2.8 bg=0.15,0.14,0.13,1.00 border=0.23,0.22,0.20,1.00
+look main.2.8.r1 text=0.56,0.55,0.51,1.00
+look main.2.8.r3 text=0.56,0.55,0.51,1.00
+look main.2.8.r4 color=0.62,0.60,0.55,1.00
 look main.4 bg=0.15,0.14,0.13,1.00 border=0.23,0.22,0.20,1.00
 look main.4.r1 text=0.56,0.55,0.51,1.00
 look main.5.r1 text=0.56,0.55,0.51,1.00

@@ -35,6 +35,7 @@ end
 ns.COLS = { { "c", "Qty" }, { "il", "iLvl" }, { "rq", "Req lvl" }, { "t", "Type" }, { "sl", "Slot" }, { "bd", "Bind" }, { "v", "Vendor" }, { "w", "Where" }, { "age", "Age" }, { "ah", "AH Price" }, { "fv", "Favorite" }, { "cc", "Currency" }, { "jk", "Junk" } }
 ns.COL_LABEL = {}
 for _, c in ipairs(ns.COLS) do ns.COL_LABEL[c[1]] = c[2] end
+ns.COL_LABEL.who = "Who"   -- (1.9.0-beta2) Global Inventory's own column (not offered in Bag Columns)
 ns.BASE_TABS = { "All", "Gear", "Consumables", "TradeGoods", "Quest", "Junk", "GearSets", "Bank" }
 ns.TAB_LABEL = { All = "All", Gear = "Gear", GearSets = "Gear Sets", Consumables = "Consumables", TradeGoods = "Trade Goods", Quest = "Quest", Junk = "Junk", Bank = "Bank" }
 -- Tabs the bank window doesn't have (its own Bank tab is the window itself; gear sets are equipped from your bags).
