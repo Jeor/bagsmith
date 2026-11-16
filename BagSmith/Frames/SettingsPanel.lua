@@ -1642,7 +1642,8 @@ end
 pages.dehelper = function(self, db)
 	self:Head("Disenchant Helper")
 	self:Text("Lists the gear in your bags worth disenchanting, with what each is worth, and takes you through it one click at a time. It never disenchants on its own.")
-	self:Text("Estimates start from typical disenchant results. After 20 disenchants of the same kind of item, BagSmith uses your own results instead. Each character keeps its own.")
+	-- (1.9.0-beta3, Shweep) shared by your characters since beta1
+	self:Text("Estimates start from typical disenchant results. After 20 disenchants of the same kind of item, BagSmith uses your own results instead. Your characters share them, so a disenchant on any of them counts for all.")
 	self:Check("deEnabled", "Disenchant Helper", "Adds the Disenchant Helper button by the Gear Sets shield. /bs de and its keybinding open it too.")
 	self:Indented(function()
 		self:Step("deMargin", "Disenchant Must Beat Selling By", 0.05, "%d%%", "Disenchanting is only recommended when the materials are worth this much more than selling.")
