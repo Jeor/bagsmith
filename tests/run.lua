@@ -3185,9 +3185,9 @@ end)()
 		for _, pool in pairs(P.pools) do for _, w in ipairs(pool) do if w:IsShown() and w.key == key then return true end end end
 		return false
 	end
-	check(onPage("recentSection") and onPage("recentWindow") and not onPage("splitView"), "Recent Items is on the Dynamic Sections page (Split View moved to Style in 0.14)")
+	check(onPage("recentSection") and onPage("recentWindow") and not onPage("iconLayout"), "Recent Items is on the Dynamic Sections page (Split View moved to Style in 0.14)")
 	P:ShowPage("look")
-	check(onPage("splitView") and onPage("emptySlots") and not onPage("recentSection") and not onPage("iconColumns"), "Split View and Show Empty Slots are on the Style page; Recent Items isn't")
+	check(onPage("iconLayout") and onPage("emptySlots") and not onPage("recentSection") and not onPage("iconColumns"), "Split View and Show Empty Slots are on the Style page; Recent Items isn't")
 	P:Hide()
 end)()
 
@@ -8733,7 +8733,7 @@ end)()
 	local function checksOn(page)
 		P:ShowPage(page)
 		local t = {}
-		for _, w in ipairs(P.pools.check) do if w:IsShown() then t[w.key] = true end end
+		for _, pool in ipairs({P.pools.check, P.pools.dropdown or {}}) do for _, w in ipairs(pool) do if w:IsShown() then t[w.key] = true end end end
 		return t
 	end
 	local function headsOn(page)
@@ -8746,7 +8746,7 @@ end)()
 		return names
 	end
 	local look, sections = checksOn("look"), checksOn("sections")
-	check(look.splitView and look.emptySlots and not sections.splitView and not sections.emptySlots, "Icon Split View and Show Empty Slots live on the Style page now")
+	check(look.iconLayout and look.emptySlots and not sections.iconLayout and not sections.emptySlots, "Icon Split View and Show Empty Slots live on the Style page now")
 	local heads = headsOn("sections")
 	local pos = {}
 	for i, h in ipairs(heads) do pos[h] = i end
@@ -8820,7 +8820,8 @@ end)()
 	local byKey = {}
 	for _, w in ipairs(checks) do byKey[w.key] = w end
 	check(byKey.dense and byKey.dense.points[1][4] == 10, "rows sit inside the card (inset)")
-	check(byKey.dense and byKey.splitView and byKey.emptySlots, "Compact Rows, Split View and Show Empty Slots are on the Style page")
+	local layouts = shown("dropdown"); for _, w in ipairs(layouts) do byKey[w.key] = w end
+	check(byKey.dense and byKey.iconLayout and byKey.emptySlots, "Compact Rows, Split View and Show Empty Slots are on the Style page")
 	local rowsInCards = 0
 	for kind, pool in pairs(P.pools) do
 		if kind ~= "head" and kind ~= "card" and kind ~= "sep" then for _, w in ipairs(pool) do if w:IsShown() then rowsInCards = rowsInCards + 1 end end end

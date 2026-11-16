@@ -513,6 +513,20 @@ local function headerCoin(h)
 	return b
 end
 local function writeHeaderValues(infos)
+	-- Compact categories keep totals on the heading's tooltip. Specials still
+	-- use their existing notes and controls, with a full row to fit them.
+	local regular = {}
+	for _, i in ipairs(infos) do
+		local h = i.h
+		h.compactValues = i.compact and { v = i.v, ah = i.ah } or nil
+		if i.compact and not i.emptyCustom and not i.emptySet then
+			h.sub:Hide(); h.vLabel:Hide(); h.vAmt:Hide(); h.aLabel:Hide(); h.aAmt:Hide()
+			if h.valCoin then h.valCoin:Hide() end
+		else
+			regular[#regular + 1] = i
+		end
+	end
+	infos = regular
 	local anyAH = false
 	for _, i in ipairs(infos) do if i.ah then anyAH = true end end
 	-- Room the name and its count take on the left.
@@ -955,6 +969,8 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 	if not cached and not mirror then for _, b in ipairs(bags) do Buttons:AttachBag(b, host) end end
 
 	local grp = self:Pref("grp")
+	local compact = iconMode and self.big and grp == "type" and db.compactCategories == true
+	self.compactCategories = compact and true or false
 	-- The reagent bag is a place, not a type: its own section applies only when
 	-- Sections is All. By Type sorts its items by type (and your moves); By
 	-- Bag shows every bag as a section anyway.
@@ -1361,13 +1377,30 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 	-- fit MIN_HALF_ICONS icons. Recent pairs like any other section.
 	local COL_GAP, MIN_HALF_ICONS = 16, 4
 	local halfW = math.floor((width - COL_GAP) / 2)
-	local twoCol = iconMode and self.big and grp ~= "none" and db.splitView
+	local twoCol = not compact and iconMode and self.big and grp ~= "none" and db.splitView
 		and math.floor((halfW + GAP) / (cell + GAP)) >= MIN_HALF_ICONS
 	self.twoColumn = twoCol and true or false
 	local recentIdx = 0
 
 	local headerInfos = {}
-	local function placeLane(lane, x0, colW, y0)
+	local shardActions = {}
+	local function hasShardAction(lane)
+		if shardActions[lane] ~= nil then return shardActions[lane] end
+		local shardHere = false
+		if not lane.recent and not cached and ns.MakeRoom and ns.MakeRoom:IsWarlock() then
+			for _, r in ipairs(lane.items) do
+				-- (1.7.2-beta1) a merged row of shards counts any of its members in an ordinary bag
+				for _, s in ipairs(r.itemID == 6265 and (r.members or { r }) or {}) do
+					if s.bag and ns.MakeRoom:BagFamily(s.bag) == 0 then shardHere = true; break end
+				end
+				if shardHere then break end
+			end
+			if shardHere then local _, can = ns.MakeRoom:Shards(); shardHere = can > 0 end
+		end
+		shardActions[lane] = shardHere
+		return shardHere
+	end
+	local function placeLane(lane, x0, colW, y0, across)
 		local y = y0
 		if lane.pinnedSection and db.pinnedHighlight then
 			pinIdx = pinIdx + 1
@@ -1381,6 +1414,11 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 			self.laneIds[#self.laneIds + 1] = lane.id
 			open = not collapsedSet[lane.id]
 			local h = Buttons:GetLane(host, laneIdx)
+			-- Pooled headers return to their natural title width outside compact mode.
+			if h.compactTitle then
+				h.text:SetWidth(0); h.text:SetWordWrap(h.compactWrap ~= false)
+				h.compactTitle, h.compactWrap = nil, nil
+			end
 			local value = 0
 			for _, r in ipairs(lane.items) do if r.sellPrice and not r.hasNoValue then value = value + r.sellPrice * r.count end end
 			h.laneId = lane.id
@@ -1412,7 +1450,7 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 			h.showAH = nil
 			-- The values are written after every header is placed, in one
 			-- format for the whole window (see writeHeaderValues above).
-			local info = { h = h, colW = colW, recent = lane.recent, emptyCustom = lane.emptyCustom, emptyHint = lane.emptyCustom and iconMode, emptySet = lane.noteOnly, setNote = lane.setNote }
+			local info = { h = h, colW = colW, recent = lane.recent, emptyCustom = lane.emptyCustom, emptyHint = lane.emptyCustom and iconMode, emptySet = lane.noteOnly, setNote = lane.setNote, compact = compact }
 			if not lane.recent then
 				info.v = value > 0 and ns.Money(value) or "-"
 				if ns.AH:Available() and ns.IndexOf(self:Pref("cols"), "ah") then
@@ -1457,6 +1495,18 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 						btn.dropLit = true; btn.accent:SetVertexColor(1, 1, 1, 1)
 						return
 					end
+					if btn.compactValues and ns.TooltipsOK() then
+						GameTooltip:SetOwner(btn, "ANCHOR_TOP")
+						ns.TipText(GameTooltip, btn.text:GetText() or "", 1, 1, 1)
+						local values = btn.compactValues
+						if values.v then ns.TipLine(GameTooltip, "V: " .. values.v, 0.9, 0.9, 0.9) end
+						if values.ah then ns.TipLine(GameTooltip, "AH: " .. values.ah, 0.9, 0.9, 0.9) end
+						if btn.laneId == "~recent" then
+							ns.TipLine(GameTooltip, "Recent items also appear in their usual sections.", nil, nil, nil, true)
+						end
+						GameTooltip:Show()
+						return
+					end
 					if not ns.HelpTipsOK() then return end
 					GameTooltip:SetOwner(btn, "ANCHOR_TOP")
 					if btn.laneId == "~recent" then
@@ -1485,6 +1535,7 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 					h.clearRecent:SetHeight(18)
 					h.clearRecent:SetScript("OnEnter", nil)
 				end
+				if compact then h.clearRecent.label:SetText("Clear Recent"); h.clearRecent:SetWidth(86) end
 				-- Right after the count: "Recent (23) [Clear Recent]".
 				h.clearRecent.tip = (db.newdot and db.newdotClearRecent) and "Empties the Recent list and clears the green dots." or "Empties the Recent list."
 				h.clearRecent:ClearAllPoints()
@@ -1494,17 +1545,7 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 				h.clearRecent:Hide()
 			end
 			-- Warlocks: Clear Shards on the section holding Soul Shards in ordinary bags.
-			local shardHere = false
-			if not lane.recent and not cached and ns.MakeRoom and ns.MakeRoom:IsWarlock() then
-				for _, r in ipairs(lane.items) do
-					-- (1.7.2-beta1) a merged row of shards counts any of its members in an ordinary bag
-					for _, s in ipairs(r.itemID == 6265 and (r.members or { r }) or {}) do
-						if s.bag and ns.MakeRoom:BagFamily(s.bag) == 0 then shardHere = true; break end
-					end
-					if shardHere then break end
-				end
-				if shardHere then local _, can = ns.MakeRoom:Shards(); shardHere = can > 0 end
-			end
+			local shardHere = hasShardAction(lane)
 			if shardHere then
 				if not h.clearShards then
 					h.clearShards = ns.TextButton(h, "Clear Shards", 86, function() ns.MakeRoom:ShowShards() end)
@@ -1546,6 +1587,17 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 			elseif h.wornTag then
 				h.wornTag:Hide()
 			end
+			if compact then
+				local actions = (h.clearRecent and h.clearRecent:IsShown() and h.clearRecent:GetWidth() + 8 or 0)
+					+ (h.clearShards and h.clearShards:IsShown() and h.clearShards:GetWidth() + 8 or 0)
+					+ (h.equipSet and h.equipSet:IsShown() and h.equipSet:GetWidth() + 8 or 0)
+					+ (h.wornTag and h.wornTag:IsShown() and h.wornTag:GetStringWidth() + 10 or 0)
+				local room = math.max(1, colW - shift - 6 - h.count:GetStringWidth() - actions - 4)
+				if h.text:GetStringWidth() > room then
+					h.compactWrap = not h.text.CanWordWrap or h.text:CanWordWrap()
+					h.text:SetWidth(room); h.text:SetWordWrap(false); h.compactTitle = true
+				end
+			end
 			h:ClearAllPoints()
 			h:SetSize(colW, LANE_H)
 			h:SetPoint("TOPLEFT", host, "TOPLEFT", x0, -y)
@@ -1567,7 +1619,7 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 				return Buttons:Get(r.bag, r.slot)
 			end
 			if iconMode then
-				local perRow = math.max(1, math.floor((colW - 2 * gutter + GAP) / (cell + GAP)))
+				local perRow = across or math.max(1, math.floor((colW - 2 * gutter + GAP) / (cell + GAP)))
 				for i, r in ipairs(lane.items) do
 					local b = buttonFor(r)
 					if b then
@@ -1611,26 +1663,56 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 		return y
 	end
 
-	local inRow, rowTop, rowBottom = false, y, y
-	for _, lane in ipairs(lanes) do
-		-- (1.7.0-beta2, Shweep) Full-Width Recent: in Split View, Recent spans both columns, a row of its own
-		if twoCol and lane.recent and db.splitViewRecentWide then
-			if inRow then y = rowBottom; inRow = false end
-			y = placeLane(lane, 0, width, y)
-		elseif not twoCol then
-			if inRow then y = rowBottom; inRow = false end
-			y = placeLane(lane, 0, width, y)
-		elseif not inRow then
-			rowTop = y
-			rowBottom = placeLane(lane, 0, halfW, rowTop)
-			inRow = true
-		else
-			rowBottom = math.max(rowBottom, placeLane(lane, halfW + COL_GAP, halfW, rowTop))
-			y = rowBottom
-			inRow = false
+	if compact then
+		-- Measure in the same font objects as the existing name and count.
+		if not self.compactMeasure then
+			self.compactMeasure = host:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontNormal"))
+			self.compactCountMeasure = host:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall"))
+			self.compactMeasure:Hide(); self.compactCountMeasure:Hide()
 		end
+		local boxes = {}
+		for i, lane in ipairs(lanes) do
+			local n = 0
+			for _, r in ipairs(lane.items) do
+				if not r.empty then n = n + 1 end
+			end
+			self.compactMeasure:SetText(lane.label)
+			self.compactCountMeasure:SetText(lane.pinnedSection and ("(%d)   |TInterface\\AddOns\\BagSmith\\Media\\ui-pin.tga:12:12|t Pinned"):format(n) or ("(%d)"):format(n))
+			boxes[i] = { count = #lane.items,
+				minWidth = 20 + self.compactMeasure:GetStringWidth() + 6 + self.compactCountMeasure:GetStringWidth() + 4 + (hasShardAction(lane) and 94 or 0) + (lane.recent and 94 or 0),
+				fullWidth = (lane.recent and db.splitViewRecentWide) or lane.gearSet or lane.noteOnly or lane.emptyCustom }
+		end
+		for rowIndex, row in ipairs(ns.CompactCategories.Rows(boxes, width, cell, GAP, gutter, COL_GAP, LANE_H + 4 + 2 + 8)) do
+			if rowIndex > 1 then y = y + 8 end
+			local x, bottom = 0, y
+			for _, p in ipairs(row) do
+				bottom = math.max(bottom, placeLane(lanes[p.index], x, p.width, y, p.across))
+				x = x + p.width + COL_GAP
+			end
+			y = bottom
+		end
+	else
+		local inRow, rowTop, rowBottom = false, y, y
+		for _, lane in ipairs(lanes) do
+			-- (1.7.0-beta2, Shweep) Full-Width Recent: in Split View, Recent spans both columns, a row of its own
+			if twoCol and lane.recent and db.splitViewRecentWide then
+				if inRow then y = rowBottom; inRow = false end
+				y = placeLane(lane, 0, width, y)
+			elseif not twoCol then
+				if inRow then y = rowBottom; inRow = false end
+				y = placeLane(lane, 0, width, y)
+			elseif not inRow then
+				rowTop = y
+				rowBottom = placeLane(lane, 0, halfW, rowTop)
+				inRow = true
+			else
+				rowBottom = math.max(rowBottom, placeLane(lane, halfW + COL_GAP, halfW, rowTop))
+				y = rowBottom
+				inRow = false
+			end
+		end
+		if inRow then y = rowBottom end
 	end
-	if inRow then y = rowBottom end
 	for i = pinIdx + 1, #pinPool do pinPool[i]:Hide() end
 	writeHeaderValues(headerInfos)
 	self.animate = false
