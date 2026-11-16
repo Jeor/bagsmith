@@ -1,3 +1,8 @@
+-- (by design since 1.9.0-beta1) these sets test the NEW-tag mechanism with 1.8's list, which the panel's own list (each
+-- release's) replaced
+local NEW18 = { release = "1.8", pages = { look = true, icons = true, profile = true },
+	heads = { ["Special Bag Slot Indicators"] = "icons", ["Shared Between Characters"] = "profile" },
+	keys = { textScale = "look", fontName = "look", questFrame = "icons" } }
 ;(function()
 	-- ======== 1.8.0-beta19 (Shweep, after reading FlareUI 6.8.2) ========
 	-- A first install shows no NEW tags (nothing is new to a new player); searching "new" finds what 1.8 added, all
@@ -9,6 +14,7 @@
 	local M = require("mock")
 	_G.BagSmithCharDB = nil; _G.BagSmithDB = nil
 	local n = M.loadAddon("BagSmith")
+	n.SettingsPanel.NEW = NEW18
 	n.version = "1.8.0-beta19"
 	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
 	local P = n.SettingsPanel
@@ -46,6 +52,7 @@
 	_G.BagSmithCharDB = { version = 1, firstSeen = {} }
 	_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = {} }, whatsNewSeen = "1.7.5" }
 	n = M.loadAddon("BagSmith")
+	n.SettingsPanel.NEW = NEW18
 	n.version = "1.8.0-beta19"
 	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
 	check(BagSmithDB.newSeen == nil or not next(BagSmithDB.newSeen["1.8"] or {}), "updating from 1.7.5: nothing marked seen")
@@ -91,6 +98,7 @@ end)()
 	_G.BagSmithCharDB = { version = 1, firstSeen = {} }
 	_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = { view = "list" } } }
 	local n = M.loadAddon("BagSmith")
+	n.SettingsPanel.NEW = NEW18
 	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
 	ToggleAllBags(); M.runTimers()
 	local F = n.Fonts
@@ -114,6 +122,7 @@ end)()
 	_G.BagSmithCharDB = { version = 1, firstSeen = {} }
 	_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = {} }, whatsNewSeen = "1.8.0", newSeen = { ["1.8"] = { look = true, icons = true, profile = true } } }
 	local n = M.loadAddon("BagSmith")
+	n.SettingsPanel.NEW = NEW18
 	n.version = "1.8.0-beta20"
 	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
 	local P = n.SettingsPanel

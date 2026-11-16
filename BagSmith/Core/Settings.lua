@@ -70,6 +70,8 @@ local DEFAULTS = {
 	travelMode = false,        -- Travel Mode (the signpost beside the close button): toolbar hidden, search in the title row
 	travelLeaveBank = true,    -- Auto Travel Mode: off while the bank is open, back on after
 	travelLeaveGuildBank = true,   -- ... the guild bank (1.8.0-beta23)
+	tipInventory = true,   -- (1.9.0-beta1) item tooltips list your characters' counts
+	bagSlotCount = "exclude",   -- (1.9.0-beta1, Shweep) the footer's free count: "exclude" special bags (1.8) or "all" free slots
 	travelLeaveAH = true,      -- ... the auction house
 	travelLeaveVendor = true,  -- ... a vendor
 	travelLeaveTaxi = true,    -- ... a flight path (back on after landing)
@@ -310,7 +312,7 @@ local validators = {
 	skin = oneOf("modern", "classic"), border = oneOf("all", "unc", "off"), borderWeight = oneOf("normal", "bold"),
 	accent = function(v) v = type(v) == "string" and v:lower():gsub("^#", "") or ""; return v:match("^%x%x%x%x%x%x$") and v or nil end,
 	iconItemLevelColor = function(v) v = type(v) == "string" and v:lower():gsub("^#", "") or ""; return v:match("^%x%x%x%x%x%x$") and v or nil end,
-	view = oneOf("list", "icons"), side = oneOf("left", "right"),
+	view = oneOf("list", "icons"), side = oneOf("left", "right"), bagSlotCount = oneOf("exclude", "all"),
 	bagPoints = function(v)
 		if type(v) ~= "table" then return nil end
 		local out = {}
@@ -830,6 +832,12 @@ local function loadDB(saved)
 	-- (a first install) stays empty and is marked seen once loaded.
 	if type(saved) == "table" then db.whatsNewSeen = type(saved.whatsNewSeen) == "string" and saved.whatsNewSeen or "0.0.0" end
 	-- (1.8.0-beta18) The Settings pages whose "NEW" tags this account has opened, per release ({ ["1.8"] = { look = true } }).
+	-- (1.9.0-beta1) The Disenchant Helper's log, shared by your characters: results and learned materials, checked as the
+	-- per-character ones are.
+	if type(saved) == "table" and type(saved.deShared) == "table" then
+		local d = saved.deShared
+		db.deShared = { version = finite(d.version) and d.version or 0, results = deResultsValidator(d.results) or {}, materials = deMaterialsValidator(d.materials) or {} }
+	end
 	if type(saved) == "table" and type(saved.newSeen) == "table" then
 		local keep, releases = {}, 0
 		for rel, seen in pairs(saved.newSeen) do
@@ -873,6 +881,18 @@ local function loadDB(saved)
 							end
 							data[key] = good
 						end
+					end
+					-- (1.9.0-beta1) what each character wears: { slot, itemID, link, count }, anything else dropped
+					if data.equipped ~= nil then
+						local good = {}
+						if type(data.equipped) == "table" then
+							for _, r in ipairs(data.equipped) do
+								if type(r) == "table" and type(r.itemID) == "number" and type(r.slot) == "number" and (r.link == nil or type(r.link) == "string") then
+									good[#good + 1] = { slot = r.slot, itemID = r.itemID, link = r.link, count = 1 }
+								else repaired = true end
+							end
+						else repaired = true end
+						data.equipped = good
 					end
 					for _, key in ipairs({ "bags", "bankBags", "currencies" }) do
 						if data[key] ~= nil and type(data[key]) ~= "table" then data[key] = nil; repaired = true end

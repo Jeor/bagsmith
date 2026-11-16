@@ -2,14 +2,16 @@
 	-- 1.2.0-beta12: the beta11 audit's findings, asserting the corrected behavior (they fail on beta11)
 	local DEID = 13262
 	local function deepcopy(t) if type(t) ~= "table" then return t end local o = {}; for k, v in pairs(t) do o[k] = deepcopy(v) end return o end
-	local function boot(charDB, extra)
+	local function boot(charDB, extra, accountDB)
 		package.loaded.mock = nil
 		local M = require("mock")
 		M.put(0, 1, { id = 7001, name = "Sturdy Boots", q = 2, count = 1, class = 4, subclass = 1, price = 500, ilvl = 23, equip = "INVTYPE_FEET" })
 		M.put(0, 2, { id = 7002, name = "Worn Dagger", q = 2, count = 1, class = 2, subclass = 15, price = 800, ilvl = 33, equip = "INVTYPE_WEAPON" })
 		M.put(0, 3, { id = 7005, name = "Plain Tunic", q = 2, count = 1, class = 4, subclass = 1, price = 300, ilvl = 24, equip = "INVTYPE_CHEST" })
 		_G.BagSmithCharDB = charDB or { version = 1, firstSeen = {} }
-		_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = { skin = "modern", deEnabled = true } } }
+		-- (1.9.0-beta1, by design) the learned results live in the account's save, shared by your characters: a reload
+		-- carries it as the game does (accountDB), a fresh boot starts it empty
+		_G.BagSmithDB = accountDB or { version = 2, chars = {}, cache = {}, profiles = { Default = { skin = "modern", deEnabled = true } } }
 		_G.IsSpellKnown = function(id) return id == DEID end
 		_G.GetSpellInfo = function(id) if id == DEID then return "Disenchant" end end
 		_G.RegisterStateDriver = function() end
@@ -29,9 +31,10 @@
 	DE:OfferAnswer("never")
 	for _ = 1, 20 do DE:Record("2:5:w", { { id = 11082, count = 2 } }) end
 	check(DE:Never()[7005] == true and n.cdb.deOfferDeclined == true and DE:Log()["2:5:w"].n == 20 and n.cdb.deResultsVersion == DE.LOG_VERSION, "(session one) a never'd item, a declined offer and twenty results on record")
-	local saved = deepcopy(_G.BagSmithCharDB)
-	-- session two: the saved character database comes back through normal initialization
-	M, n = boot(saved)
+	local saved, savedAccount = deepcopy(_G.BagSmithCharDB), deepcopy(_G.BagSmithDB)
+	-- session two: the saved character database comes back through normal initialization (and the account's, by design
+	-- since 1.9.0-beta1: the learned results are there)
+	M, n = boot(saved, nil, savedAccount)
 	DE = n.Disenchant
 	check(DE:Never()[7005] == true, "the never list survives a reload")
 	check(n.cdb.deOfferDeclined == true and DE:OfferDue() == false, "the declined offer survives a reload")

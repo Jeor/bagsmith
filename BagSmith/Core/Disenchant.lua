@@ -75,6 +75,10 @@ DE.UNCOMMON = {
 	{ 56, 60, M.illusionDust, 1, 2, M.lesserEternal, 1, 2, M.largeBrilliant },
 	{ 61, 99, M.illusionDust, 2, 5, M.greaterEternal, 1, 2, M.largeBrilliant },
 }
+-- (1.9.0-beta1) Item level 5 to 15 on Forever, from a player's 60 disenchants of green armor: Strange Dust 63%, Lesser
+-- Magic Essence 37%, never a shard (classic's own tables give no shard below 16 either). Armor 65/35, weapons 20/80 (no
+-- weapon results yet: classic's essence-first odds, without the shard). Each bracket's chances: dust, essence, shard.
+DE.UNCOMMON_CHANCES = { [1] = { a = { 0.65, 0.35, 0 }, w = { 0.20, 0.80, 0 } } }
 -- Rare: one shard. Epic: the bracket's shard below 56, a Nexus Crystal from 56.
 DE.SHARD = {
 	{ 5, 25, M.smallGlimmering }, { 26, 30, M.largeGlimmering }, { 31, 35, M.smallGlowing }, { 36, 40, M.largeGlowing },
@@ -122,11 +126,13 @@ function DE:Expectation(rec)
 		local i, b = bracket(self.UNCOMMON, ilvl)
 		if not b then return nil, self:FallbackKey(rec) end
 		local weapon = self.IsWeapon(rec)
+		local odds = self.UNCOMMON_CHANCES[i]
+		odds = odds and odds[weapon and "w" or "a"] or (weapon and { 0.20, 0.75, 0.05 } or { 0.75, 0.20, 0.05 })
 		local out = {
-			{ b[3], weapon and 0.20 or 0.75, b[4], b[5] },   -- dust
-			{ b[6], weapon and 0.75 or 0.20, b[7], b[8] },   -- essence
-			{ b[9], 0.05, 1, 1 },                             -- shard
+			{ b[3], odds[1], b[4], b[5] },   -- dust
+			{ b[6], odds[2], b[7], b[8] },   -- essence
 		}
+		if odds[3] > 0 then out[#out + 1] = { b[9], odds[3], 1, 1 } end   -- shard (none below item level 16)
 		return out, ("2:%d:%s"):format(i, weapon and "w" or "a")
 	elseif q == 3 then
 		local i, b = bracket(self.SHARD, ilvl)
@@ -150,15 +156,54 @@ end
 -- Your own results
 ------------------------------------------------------------------------
 DE.LOG_VERSION = 3   -- records written before the provenance rules (betas 5 to 10) or by beta12's double-counting window read are dropped once
-function DE:Log()
-	if not ns.cdb then return {} end
-	if type(ns.cdb.deResults) ~= "table" then ns.cdb.deResults = {} end
-	if (tonumber(ns.cdb.deResultsVersion) or 0) ~= self.LOG_VERSION then
-		if next(ns.cdb.deResults) then ns:Print("Disenchant Helper: the learned results from the beta builds were cleared (they could include loot that was not the helper's); estimates start from the typical results again.") end
-		ns.cdb.deResults = {}
-		ns.cdb.deResultsVersion = self.LOG_VERSION
+-- (1.9.0-beta1, Shweep: "share it between a player's characters") One log for all your characters, in the account's save
+-- (BagSmithDB.deShared: the results per bracket and the learned materials). What a disenchant gives doesn't depend on
+-- the character or the realm, so every character adds to it and reads from it. A character's own log from before 1.9
+-- (BagSmithCharDB.deResults, deMaterials) is added in once, the first time it's read, and emptied: it can't be added twice.
+local function shared()
+	if type(BagSmithDB) ~= "table" then return nil end
+	local s = BagSmithDB.deShared
+	if type(s) ~= "table" then s = {}; BagSmithDB.deShared = s end
+	if type(s.results) ~= "table" then s.results = {} end
+	if type(s.materials) ~= "table" then s.materials = {} end
+	if (tonumber(s.version) or 0) ~= DE.LOG_VERSION then s.results = {}; s.version = DE.LOG_VERSION end
+	return s
+end
+DE.Shared = shared
+function DE:MergeCharacter()
+	local s = shared()
+	if not (s and ns.cdb) then return end
+	local own = ns.cdb.deResults
+	if type(own) == "table" and next(own) then
+		if (tonumber(ns.cdb.deResultsVersion) or 0) == self.LOG_VERSION then
+			for key, e in pairs(own) do
+				if type(key) == "string" and type(e) == "table" then
+					local t = s.results[key]
+					if type(t) ~= "table" then t = { n = 0, mats = {}, seen = {} }; s.results[key] = t end
+					t.mats, t.seen = t.mats or {}, t.seen or {}
+					t.n = (t.n or 0) + (tonumber(e.n) or 0)
+					for id, c in pairs(e.mats or {}) do t.mats[id] = (t.mats[id] or 0) + c end
+					for id, c in pairs(e.seen or {}) do t.seen[id] = (t.seen[id] or 0) + c end
+				end
+			end
+			ns:Debug("Disenchant Helper: this character's results were added to the log your characters share")
+		else
+			ns:Print("Disenchant Helper: the learned results from the beta builds were cleared (they could include loot that was not the helper's); estimates start from the typical results again.")
+		end
 	end
-	return ns.cdb.deResults
+	ns.cdb.deResults, ns.cdb.deResultsVersion = {}, self.LOG_VERSION
+	if type(ns.cdb.deMaterials) == "table" then for id in pairs(ns.cdb.deMaterials) do s.materials[id] = true end end
+	ns.cdb.deMaterials = {}
+end
+function DE:Log()
+	local s = shared()
+	if not s then return {} end
+	local c = ns.cdb
+	if c and ((type(c.deResults) == "table" and next(c.deResults)) or (type(c.deMaterials) == "table" and next(c.deMaterials))
+		or (tonumber(c.deResultsVersion) or 0) ~= self.LOG_VERSION) then
+		self:MergeCharacter()
+	end
+	return s.results
 end
 -- Record one cast's loot (a list of { id, count }) against its bracket key.
 function DE:Record(key, loot)
@@ -189,12 +234,13 @@ local MATERIAL = {}
 for _, id in pairs(M) do MATERIAL[id] = true end
 DE.MATERIAL = MATERIAL
 -- (1.8.0) Materials the table doesn't list (a server can add new ones), learned by item ID from the cast's own loot
--- window and kept per character beside the learned results (ns.cdb.deMaterials: item ID -> true). From then on the loot
+-- window and kept beside the learned results, shared by your characters (1.9.0-beta1: BagSmithDB.deShared.materials). From then on the loot
 -- chat counts them too. Forgetting the learned results keeps them: they say what a material is, not what to expect.
 function DE:LearnedMaterials()
-	if not ns.cdb then return {} end
-	if type(ns.cdb.deMaterials) ~= "table" then ns.cdb.deMaterials = {} end
-	return ns.cdb.deMaterials
+	local s = shared()
+	if not s then return {} end
+	self:Log()   -- (1.9.0-beta1) a character's own learned materials join the shared ones first
+	return s.materials
 end
 function DE:LearnMaterial(id)
 	id = tonumber(id)
@@ -1834,8 +1880,11 @@ function DE:OfferAnswer(what)
 	self.lastOfferAnswer = what
 end
 function DE:AskAgain() if ns.cdb then ns.cdb.deOfferDeclined = nil end end
--- Forget what this character's disenchants taught the helper: the estimates go back to the typical results.
+-- Forget what your characters' disenchants taught the helper (1.9.0-beta1: the shared log): the estimates go back to the
+-- typical results.
 function DE:ResetLearned()
+	local sh = shared()
+	if sh then sh.results = {} end
 	if ns.cdb then ns.cdb.deResults = {} end
 	if self.frame and self.frame:IsShown() then self:Refresh() end
 end

@@ -1,3 +1,21 @@
+## 1.9.0
+
+New:
+- Item tooltips show your inventory: any item's tooltip (your bags, the auction house, a vendor, a chat link, loot)
+  lists how many your characters on this realm have, in their bags, bank and gear, with the total. You're listed
+  first. Turn it off in Settings > General (Show Inventory in Item Tooltips).
+- Hover your gold in the bags window to see each of your characters' gold on this realm and the total. Hold Shift for
+  your whole account.
+- Your characters share what the Disenchant Helper learns: every disenchant on any of them improves the estimates for
+  all of them. Each character's results so far are added in once.
+- Bag Slot Count (Settings > Windows): count only the slots anything fits in (Exclude Special Bags, as in 1.8) or every
+  free slot (All Free Slots).
+- Icon Border Weight (Settings > Item Icons): Normal or Bold item borders, in both looks and both views. Thanks to
+  Jeor!
+Changed:
+- The Disenchant Helper's estimate for green items up to level 15 follows what they give on WoW Forever: more often an
+  essence, and no shard.
+
 ## 1.8.0
 
 New:

@@ -1,3 +1,8 @@
+-- (by design since 1.9.0-beta1) these sets test the NEW-tag mechanism with 1.8's list, which the panel's own list (each
+-- release's) replaced
+local NEW18 = { release = "1.8", pages = { look = true, icons = true, profile = true },
+	heads = { ["Special Bag Slot Indicators"] = "icons", ["Shared Between Characters"] = "profile" },
+	keys = { textScale = "look", fontName = "look", questFrame = "icons" } }
 ;(function()
 	-- ======== 1.8.0-beta18 (Shweep): What's New's directions are links; Settings marks what's new ========
 	-- A "Settings > Page > Heading" in a bullet shows in soft blue and opens Settings there; the 1.8 card's titles
@@ -7,6 +12,7 @@
 	_G.BagSmithCharDB = { version = 1, firstSeen = {} }
 	_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = {} } }
 	local n = M.loadAddon("BagSmith")
+	n.SettingsPanel.NEW = NEW18
 	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
 	local WN, P = n.WhatsNew, n.SettingsPanel
 	local L = WN.Linkify
@@ -84,6 +90,7 @@ end)()
 	_G.BagSmithCharDB = { version = 1, firstSeen = {} }
 	_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = {} } }
 	local n = M.loadAddon("BagSmith")
+	n.SettingsPanel.NEW = NEW18
 	n.version = "1.8.0-beta18"
 	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
 	local P = n.SettingsPanel
@@ -123,6 +130,7 @@ end)()
 	M = require("mock")
 	_G.BagSmithDB = saved
 	n = M.loadAddon("BagSmith")
+	n.SettingsPanel.NEW = NEW18
 	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers()
 	local ns18 = BagSmithDB.newSeen and BagSmithDB.newSeen["1.8"]
 	check(ns18 and ns18.look == true and ns18.profile == true and ns18.bad == nil and ns18["no spaces"] == nil, "kept: the pages seen; dropped: anything else")

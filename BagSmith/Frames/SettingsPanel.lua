@@ -48,11 +48,13 @@ end
 -- the left, and the headings and settings on them. A page's tags go once it has been opened, from the next time
 -- Settings opens (so they don't vanish while you look). Kept per account (BagSmithDB.newSeen), per release; a release
 -- other than NEW.release shows none, so the list is replaced each release. heads and keys name the page they're on.
+-- (1.9.0-beta1) 1.9's list (1.8's: Style, Item Icons and Profile; Special Bag Slot Indicators, Shared Between Characters;
+-- Text Size, Font, Gold Frame for Quest Items).
 Panel.NEW = {
-	release = "1.8",
-	pages = { look = true, icons = true, profile = true },
-	heads = { ["Special Bag Slot Indicators"] = "icons", ["Shared Between Characters"] = "profile" },
-	keys = { textScale = "look", fontName = "look", questFrame = "icons" },
+	release = "1.9",
+	pages = { general = true, window = true, icons = true },
+	heads = {},
+	keys = { tipInventory = "general", bagSlotCount = "window", borderWeight = "icons" },
 }
 Panel.NEW_COLOR = { 0.55, 0.78, 1 }   -- the soft blue of What's New's links
 local function release() return tostring(ns.version or ""):match("^(%d+%.%d+)") end
@@ -1457,6 +1459,8 @@ pages.general = function(self, db)
 	-- (1.6.0) tips on BagSmith's own controls
 	self:Head("Tips")
 	self:Check("helpTips", "Show Help Tips", "Explains BagSmith's buttons, columns and marks when you point at them. Item tooltips always show.")
+	-- (1.9.0-beta1, Shweep)
+	self:Check("tipInventory", "Show Inventory in Item Tooltips", "Any item's tooltip lists how many your characters on this realm have, in their bags, bank and gear, with the total.")
 	self:Head("Blizzard's Interface")
 	if ns.Bank and ns.Bank.supported then
 		self:Check("replaceBank", "Replace the Bank Window", "Opens your bank in a BagSmith window instead of Blizzard's.")
@@ -1660,7 +1664,7 @@ pages.dehelper = function(self, db)
 	end)
 	local learned = ns.Disenchant and ns.Disenchant:LearnedCount() or 0
 	if learned > 0 then
-		self:Text(("This character's disenchants on record: %d."):format(learned))
+		self:Text(("Disenchants on record, shared by all your characters: %d."):format(learned))   -- (1.9.0-beta1)
 		self:Button("Forget Learned Results", function(btn)
 			ns.Confirm(btn, ("Forget all %d recorded disenchants? Estimates go back to the typical results."):format(learned), function() ns.Disenchant:ResetLearned(); self:Refresh() end)
 		end)
@@ -1703,6 +1707,9 @@ pages.window = function(self, db)
 	else
 		self:Step("fixW", "Width", 20, "%d"); self:Step("fixH", "Height", 20, "%d")
 	end
+	-- (1.9.0-beta1, Shweep) 1.8's count left special bags out; players choose
+	self:Seg("bagSlotCount", "Bag Slot Count", { { "exclude", "Exclude Special Bags" }, { "all", "All Free Slots" } },
+		"The free-slot count in the corner of your bags. Exclude Special Bags counts only slots anything fits in, not a quiver's or a herb bag's. Hover the count to see every bag's room either way.")
 	-- (1.7.0-beta2, Shweep)
 	self:Check("lockWindows", "Lock Windows", "Your bags, bank and individual bag windows and the Loot and Disenchant Helpers can't be moved or resized.")
 	-- (1.6.0) one Opacity card, in three parts (Shweep): what's always see-through, what dims while moving, what dims in

@@ -790,13 +790,19 @@ function View:Build()
 		mb:SetPoint("TOPLEFT", self.moneyText, "TOPLEFT", -4, 4)
 		mb:SetPoint("BOTTOMRIGHT", self.moneyText, "BOTTOMRIGHT", 4, -4)
 		mb:SetScript("OnClick", function() if ns.Drawer then ns.Drawer:Toggle() end end)
-		mb:SetScript("OnEnter", function(b)
-			if not ns.HelpTipsOK() then return end
-			GameTooltip:SetOwner(b, "ANCHOR_TOP"); ns.TipText(GameTooltip, "Your Currencies")
-			ns.TipLine(GameTooltip, "Click to open or close the currency drawer.", 0.8, 0.8, 0.8, true)
+		-- (1.9.0-beta1, Shweep) the tooltip lists your gold: each character's on this realm, Shift for the account
+		function mb:ShowGoldTip()
+			GameTooltip:SetOwner(self, "ANCHOR_TOP")
+			if GameTooltip.ClearLines then GameTooltip:ClearLines() end
+			if ns.Inventory then ns.Inventory:AddGoldLines(GameTooltip) end
+			if ns.HelpTipsOK() then
+				GameTooltip:AddLine(" ")
+				ns.TipLine(GameTooltip, "Click to open or close the currency drawer.", 0.8, 0.8, 0.8, true)
+			end
 			GameTooltip:Show()
-		end)
-		mb:SetScript("OnLeave", function() GameTooltip:Hide() end)
+		end
+		mb:SetScript("OnEnter", function(b) if ns.Inventory then ns.Inventory.goldOwner = b end; b:ShowGoldTip() end)
+		mb:SetScript("OnLeave", function() if ns.Inventory then ns.Inventory.goldOwner = nil end; GameTooltip:Hide() end)
 		self.moneyButton = mb
 	end
 	-- Leave room for the resize grip in the corner of the main window.
@@ -1824,11 +1830,18 @@ function View:UpdateFooter(bagInfo)
 		for _, k in pairs(special) do free, total = free + k.free, total + k.total end
 		special, self.freeSpecial = nil, nil
 	end
+	-- (1.9.0-beta1, Shweep) Bag Slot Count: All Free Slots counts the special bags' room in the number too (the tooltip
+	-- still lists it by kind, and there's no "+")
+	local plus = special ~= nil
+	if special and ns.db and ns.db.bagSlotCount == "all" then
+		for _, k in pairs(special) do free, total = free + k.free, total + k.total end
+		plus = false
+	end
 	self.freeGeneral = { free, total }
 	local txt = ("%d / %d"):format(free, total)
 	if free <= 0 then txt = "|cfff09595" .. txt .. "|r" elseif free <= 4 then txt = "|cfffac775" .. txt .. "|r" end
 	-- a quiet "+": there's more room in special bags (the tooltip says where)
-	if special and not self.titleCount then txt = txt .. " |cff9d9d9d+|r" end
+	if plus and not self.titleCount then txt = txt .. " |cff9d9d9d+|r" end
 	if self.titleCount then
 		self.titleCount:SetText(txt)
 		self.titleCount:SetTextColor(Skins:Color("muted"))
@@ -2009,6 +2022,7 @@ function ns:ApplyWindowLock()
 	if de and de.grip then ns:Safely("lockWindows:de", function() de.grip:SetShown(not ns:WindowsLocked()) end) end
 end
 ns:OnSignal("SETTINGS_CHANGED", function(key) if key == nil or key == "lockWindows" then ns:ApplyWindowLock() end end)
+ns:OnSignal("SETTINGS_CHANGED", function(key) if key == "bagSlotCount" then ns:RefreshViews(true) end end)   -- (1.9.0-beta1) the footer's count
 
 -- A Clean Up rearranges the bags on purpose, for some seconds: the windows don't hold their layout under the pointer
 -- meanwhile, and lay out once more when it's done (1.4.1).
