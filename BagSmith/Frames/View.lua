@@ -1167,8 +1167,9 @@ function View:ApplyTravel()
 		if on and ns.Popups then ns.Popups:HideAll() end
 		self.tools:SetShown(not on)
 		self.btnFilter:SetShown(not on)
-		if self.charBtn then self.charBtn:SetShown(not on) end
-		if self.charReset then self.charReset:SetShown(not on and ns.ui.owner ~= nil) end
+		-- (1.9.0-beta3, Shweep) no picker in Global Inventory: it already shows every character
+		if self.charBtn then self.charBtn:SetShown(not on and not ns.ui.global) end
+		if self.charReset then self.charReset:SetShown(not on and not ns.ui.global and ns.ui.owner ~= nil) end
 		-- (1.9.0-beta2) The globe steps aside in Travel Mode, the divider closing the gap: Travel Mode's search keeps its
 		-- room in the title row at 440 px. (Global Inventory turns Travel Mode off anyway; the folding search icon to come
 		-- brings it back.)
@@ -1422,6 +1423,19 @@ function View:FollowNote()
 	end
 	if self:TravelOn() then self:PlaceSearch() end
 end
+-- (1.9.0-beta3, Shweep: "shortened last names regardless of width") The picker's name in full when it fits beside the
+-- class icon and the level; otherwise the surname as its initial ("Shweepy T."), cut short with "..." if even that
+-- doesn't fit.
+function View:FitPickerName()
+	local b = self.charBtn
+	if not (b and b.label and b.fullName) then return end
+	local full = b.fullName
+	local inset = (self.classicApplied and self.classicDropdown) and View.PICKER_ARROW_CLASSIC or View.PICKER_ARROW
+	local levelW = self.charLevel and textWidth(self.charLevel) or 0
+	local room = (b:GetWidth() or 0) - 6 - 14 - 5 - levelW - inset - 5
+	b.label:SetText(full)
+	if room > 0 and textWidth(b.label) > room then b.label:SetText(ns.ShortName(full) or full) end
+end
 function View:LayoutTitleRow()
 	if not (self.isMain and self.title and self.titleText) then return end
 	local avail = self.title:GetWidth() or 0
@@ -1474,6 +1488,7 @@ function View:LayoutTitleRow()
 		self.charBtn:SetWidth(PICKER_W)
 	end
 	self:FollowNote()
+	self:FitPickerName()
 	if not classic then self.titleText:SetText(forms[chosen]) end
 	self.titleFit = { form = chosen, picker = pw, sub = self.subText:IsShown() and subW or nil, room = room, right = right }
 end
@@ -1499,9 +1514,9 @@ function View:UpdateChrome(shown, total, bagInfo, cached)
 		local data = ns.ui.owner and BagSmithDB.cache[ns.ui.owner] or BagSmithDB.cache[ns:CharKey()]
 		local name, class, level = data and data.name or ns:DisplayName("player"), data and data.class, data and data.level or UnitLevel("player")
 		if not class then local _, c = UnitClass("player"); class = c end
-		-- (1.9.0-beta2, Shweep) a surname as its initial ("Shweepy T."): room in the title row; the full name in the list
-		self.charBtn.label:SetText(ns.ShortName(name) or "?")
-		self.charBtn.fullName = name
+		-- (1.9.0-beta2, Shweep) a surname as its initial ("Shweepy T.") when the full name doesn't fit (beta3: only then)
+		self.charBtn.fullName = name or "?"
+		self:FitPickerName()
 		self.charBtn.label:SetTextColor(ns.ClassColor(class))
 		if self.charLevel then self.charLevel:SetText(tostring(level or 0)) end
 		if CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[class] then
