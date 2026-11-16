@@ -9,8 +9,13 @@ wallet, close, chevrons, sort arrows, plus, minus, pencil, leaf, new-item dot)
 are original to BagSmith.
 
 Fonts (Media/Fonts, 1.8.0): Noto Sans (The Noto Project Authors), Roboto Condensed (The Roboto
-Project Authors) and Inter (The Inter Project Authors), each licensed under the SIL Open Font License 1.1
-(OFL-*.txt beside them). BagSmith ships a Regular weight of each, cut to Latin characters.
+Project Authors), Inter (The Inter Project Authors), Asap Condensed (The Asap Project Authors), Barlow
+Condensed (The Barlow Project Authors), Cabin Condensed (The Cabin Project Authors), Fira Sans Extra
+Condensed (The Mozilla Foundation and Telefonica S.A.) and Marcellus (Brian J. Bonislawsky, Astigmatic),
+each licensed under the SIL Open Font License 1.1 (OFL-*.txt beside them), and Roboto Condensed Bold
+(Google Inc.), licensed under the Apache License 2.0 (LICENSE-Apache-2.0-RobotoCondensed-Bold.txt). All
+are cut to Latin characters except Marcellus, which is shipped unmodified. The six added in 1.8.0-beta22
+are the ones FlareUI (by Malkkav) ships, shared under the same names.
 
 Techniques for taint-free bag replacement and combat-safe button pooling
 follow the approach used by Bagnon (Jaliborc) and lessons documented by

@@ -95,10 +95,12 @@
 		for _, r in ipairs(menu and menu.rows or {}) do
 			if r:IsShown() and r.text.text and r.text.text ~= "" then rows = rows + 1 end
 			if r:IsShown() and r.text.text == "Nice Serif" then nice = r end
-			if r:IsShown() and r.check:IsShown() then ticked = r.text.text end
+			-- (by design since 1.8.0-beta22: radio marks always show; the chosen one is filled)
+			if r:IsShown() and r.check:IsShown() and (not r.radio or (r.check.texCoord and r.check.texCoord[1] == 0.25)) then ticked = r.text.text end
 		end
 		check(menu and menu:IsShown() and rows >= 3 and ticked == "Default Font", S .. "clicking it opens the menu, Default Font ticked (" .. rows .. " rows)")
-		check(menu.listMax ~= nil and rows <= 15, S .. "a long list scrolls inside the menu instead of running off the screen (" .. rows .. " rows shown of " .. #F:Choices() .. ")")
+		-- (by design since 1.8.0-beta22: twenty at a time, as FlareUI's)
+		check((menu.listMax ~= nil) == (#F:Choices() > 20) and rows <= 20, S .. "a long list scrolls inside the menu instead of running off the screen (" .. rows .. " rows shown of " .. #F:Choices() .. ")")
 		check(nice, S .. "other addons' fonts are in it")
 		nice:GetScript("OnClick")(nice); M.runTimers()
 		check(n.db.fontName == "Nice Serif" and not menu:IsShown(), S .. "picking one sets it and closes the menu")

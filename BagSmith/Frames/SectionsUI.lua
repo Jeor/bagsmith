@@ -106,7 +106,8 @@ function ns.ShowMenu(items, anchor, keepPlace)
 	-- How many section rows fit: the screen, less every fixed row (title,
 	-- gaps), both arrows and the padding. At most 12; if not even 3 fit, the
 	-- whole menu scrolls instead (below), so every action stays reachable.
-	local LIST_MAX = 12
+	-- (1.8.0-beta22, after FlareUI) a menu may ask for a taller list (items.listRows: the Font list, 20)
+	local LIST_MAX = items.listRows or 12
 	if first then
 		local fixedH = pad * 2 + 32
 		for i, it in ipairs(items) do
@@ -117,7 +118,7 @@ function ns.ShowMenu(items, anchor, keepPlace)
 		local tallest = ROW_H
 		for i = first, last do if items[i].wrap then tallest = ROW_H + 12 end end
 		local room = math.floor((screenH - fixedH) / tallest)
-		if room < 3 then first = nil else LIST_MAX = math.min(12, room) end
+		if room < 3 then first = nil else LIST_MAX = math.min(items.listRows or 12, room) end
 	end
 	if first and (last - first + 1) > LIST_MAX then
 		local count = last - first + 1
@@ -205,7 +206,16 @@ function ns.ShowMenu(items, anchor, keepPlace)
 			r.text:SetWordWrap(it.wrap and true or false)
 			r:SetHeight((it.big and ROW_H + 4 or ROW_H) + (it.wrap and 12 or 0))
 			r.text:SetText(it.text or "")
-			r.check:SetShown(it.checked and true or false)
+			-- (1.8.0-beta22, after FlareUI) a pick-one list (it.radio) shows round marks, the chosen one filled; a toggle a tick
+			if it.radio then
+				r.check:SetTexture("Interface\\Buttons\\UI-RadioButton")
+				if it.checked then r.check:SetTexCoord(0.25, 0.5, 0, 1) else r.check:SetTexCoord(0, 0.25, 0, 1) end
+				r.check:SetSize(14, 14); r.check:Show()
+			else
+				r.check:SetTexture("Interface\\Buttons\\UI-CheckBox-Check"); r.check:SetTexCoord(0, 1, 0, 1)
+				r.check:SetSize(12, 12); r.check:SetShown(it.checked and true or false)
+			end
+			r.radio = it.radio and true or nil
 			r.fn = (not it.disabled and not it.title) and it.onClick or nil
 			r:EnableMouse(r.fn ~= nil)
 			if it.color then r.text:SetTextColor(it.color[1], it.color[2], it.color[3])

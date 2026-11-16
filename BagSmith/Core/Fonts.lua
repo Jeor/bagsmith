@@ -6,8 +6,8 @@
 	Each of the game's font templates those windows use gets a BagSmith copy (BagSmithFont_<template>, made from the
 	game's on first use), and their text is created from the copy (ns.Fonts:Name). Text Size (ns.db.textScale, 80% to
 	150%) scales the copies; Font (ns.db.fontName) swaps the typeface for one shared through LibSharedMedia. (1.8.0-beta2,
-	Shweep) BagSmith bundles LibSharedMedia and shares three fonts of its own through it (Media/Fonts: Noto Sans, Roboto
-	Condensed, Inter; SIL OFL), so they're in other addons' font lists too, and every font another addon shares is in
+	Shweep) BagSmith bundles LibSharedMedia and shares fonts of its own through it (Media/Fonts: Noto Sans, Roboto
+	Condensed, Inter; and from beta22 the six FlareUI ships), so they're in other addons' font lists too, and every font another addon shares is in
 	BagSmith's. A font the client can't load (LibSharedMedia also lists the game's own, not all on every client) isn't
 	offered, and a font that's no longer there falls back to the game's. Changing a font object updates every text made from it, so a change is live; windows lay out again to
 	measure the new widths. The number fonts on item icons stay as they are: they're sized to the icon.
@@ -45,22 +45,61 @@ do
 	end
 end
 
--- (1.8.0-beta2) Whether the client can load a font file: a scratch text is set to it and asked what it got (a file that
--- isn't there leaves the text as it was). Remembered per file. A client that can't be asked takes the file as usable.
-local usable, probe = {}, nil
-local function norm(p) return (tostring(p or "")):lower():gsub("/", "\\") end
+-- (1.8.0-beta22, Shweep) Six more, the ones FlareUI ships, under FlareUI's own names so a choice made with either addon
+-- keeps working with the other (SIL OFL 1.1; Roboto Condensed Bold Apache 2.0; all but Marcellus cut to Latin, which
+-- keeps its name only unmodified). Shared once every addon has loaded, and only a name nobody shares yet: with FlareUI
+-- on, its own copies (Cyrillic too) stay the ones used, and nothing is listed twice.
+Fonts.MORE = {
+	{ "Asap Condensed", MEDIA .. "AsapCondensed-Regular.ttf" },
+	{ "Barlow Condensed", MEDIA .. "BarlowCondensed-Regular.ttf" },
+	{ "Cabin Condensed", MEDIA .. "CabinCondensed-Regular.ttf" },
+	{ "Fira Condensed", MEDIA .. "FiraSansExtraCondensed-Regular.ttf" },
+	{ "Marcellus", MEDIA .. "Marcellus-Regular.ttf" },
+	{ "Roboto Condensed Bold", MEDIA .. "RobotoCondensed-Bold.ttf" },
+}
+function Fonts:ShareMore()
+	local lib = lsm()
+	if not (lib and lib.Register) then return end
+	local western = lib.LOCALE_BIT_western or 128
+	local added = false
+	for _, f in ipairs(self.MORE) do
+		local have = lib.IsValid and lib:IsValid("font", f[1])
+		if not have then
+			local ok, res = pcall(lib.Register, lib, "font", f[1], f[2], western)
+			if ok and res then added = true end
+		end
+	end
+	-- a saved choice of one of them takes effect now (the windows' text was made before it was shared)
+	if added and ns.db and type(ns.db.fontName) == "string" then
+		for _, f in ipairs(self.MORE) do if f[1] == ns.db.fontName and self.Apply then self:Apply() break end end
+	end
+end
+if ns.On then
+	ns:On("PLAYER_LOGIN", function() Fonts:ShareMore() end)
+	ns:On("PLAYER_ENTERING_WORLD", function() Fonts:ShareMore() end)   -- (a no-op once shared)
+end
+
+-- (1.8.0-beta2) Whether the client can load a font file. (1.8.0-beta22, Shweep's /run on Forever) Each file is asked on
+-- a text of its own that has never had a font: one scratch text switched from another font could still report the old
+-- one, so every file the game hadn't drawn yet looked missing (BagSmith's own fonts, FlareUI's, Morpheus...) and stayed
+-- so all session, and choosing one did nothing. The game's own answer decides: a file it can't load leaves the text
+-- with no font. Only a yes is remembered, so a no is asked again. A client that can't be asked takes the file as usable.
+local usable, probes = {}, {}
 function Fonts:Usable(path)
 	if type(path) ~= "string" or path == "" then return false end
-	if usable[path] ~= nil then return usable[path] end
-	if not probe and UIParent and UIParent.CreateFontString then probe = UIParent:CreateFontString(nil, "OVERLAY"); if probe.Hide then probe:Hide() end end
-	if not (probe and probe.SetFont and probe.GetFont) then return true end
-	local fallback = STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
-	if norm(path) == norm(fallback) then usable[path] = true; return true end
-	pcall(probe.SetFont, probe, fallback, 12, "")
+	if usable[path] then return true end
+	if not (UIParent and UIParent.CreateFontString) then return true end
+	local probe = probes[path]
+	if not probe then
+		probe = UIParent:CreateFontString(nil, "OVERLAY")
+		if probe.Hide then probe:Hide() end
+		probes[path] = probe
+	end
+	if not (probe.SetFont and probe.GetFont) then return true end
 	local ok, res = pcall(probe.SetFont, probe, path, 12, "")
 	local got = probe:GetFont()
-	usable[path] = ok and res ~= false and norm(got) == norm(path)
-	return usable[path]
+	if ok and res ~= false and got ~= nil then usable[path] = true; return true end
+	return false
 end
 
 function Fonts:Scale()

@@ -28,7 +28,7 @@ WN.ENTRIES = {
 	{ v = "1.8.0", heading = "BagSmith 1.8", items = {
 		-- (1.8.0-beta8, Shweep: friendlier wording for all four; beta18: titles renamed, Quick Tip removed, and each
 		-- "Settings > ..." names the heading it opens to)
-		"|cfffac775Fonts:|r make the text in your bags, bank and helpers bigger or smaller, and pick a font you like. BagSmith now comes with three fonts of its own (Noto Sans, Roboto Condensed and Inter), and you'll find them in your other addons too. Try it in Settings > Style > Size.",
+		"|cfffac775Fonts:|r make the text in your bags, bank and helpers bigger or smaller, and pick a font you like. BagSmith now comes with nine fonts of its own, like Inter, Fira Condensed and Marcellus, and you'll find them in your other addons too. Try it in Settings > Style > Size.",
 		"|cfffac775A Disenchant Helper That Learns:|r the first time a disenchant gives you something it hasn't seen, it remembers it. For higher-level gear, it learns from your own results as you go.",
 		"|cfffac775Special Bag Indicators:|r your free-slot count now shows the space anything can go in. Hover it to see what's left in your quiver, herb bag, soul bag and more. Want them to stand out? Give each kind of bag its own color, as a soft glow or a colored frame, in Settings > Item Icons > Special Bag Slot Indicators.",
 		-- (1.8.0-beta16, Shweep) the icon work (Jeor's PR #9), the gold quest frames

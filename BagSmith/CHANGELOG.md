@@ -3,9 +3,10 @@
 New:
 - Text Size (Settings > Style, under Size): make the item text in your bags, bank and individual bag windows and the
   Loot and Disenchant Helpers bigger or smaller, from 80% to 150%. List rows grow to fit bigger text.
-- Font (beside it, a dropdown): show that text in one of three fonts that now come with BagSmith (Noto Sans, Roboto
-  Condensed and Inter), one of the game's own, or one another addon shares. BagSmith's fonts also appear in your other
-  addons' font lists.
+- Font (beside it, a dropdown): show that text in one of nine fonts that now come with BagSmith (Noto Sans, Roboto
+  Condensed, Roboto Condensed Bold, Inter, Asap Condensed, Barlow Condensed, Cabin Condensed, Fira Condensed and
+  Marcellus), one of the game's own, or one another addon shares. BagSmith's fonts also appear in your other addons'
+  font lists.
 - The Disenchant Helper learns new disenchant materials: anything a disenchant gives that it didn't know is remembered
   for this character and counted from then on.
 - Gear the Disenchant Helper has no table for (above item level 99) learns from your own disenchants: it says "Still
@@ -44,6 +45,9 @@ Changed:
 - The Disenchant Helper's summary in chat reads as one sentence, like "1 item disenchanted: Greater Magic Essence x2,
   worth about 7s 60c at current AH prices."
 Fixed:
+- The Font list offers every font the game can load, BagSmith's own included; some only appeared once the game had
+  already drawn them, and choosing one of those did nothing. It shows twenty at a time, with round marks.
+- Classic: menus and dialogs are solid behind, so nothing on the window under them shows through.
 - Text Size and Font change only BagSmith's text. BagSmith's fonts are now made from scratch rather than copied from the
   game's, which could let a change reach the game's own text elsewhere.
 - Classic: short sheet tabs, like Gear, Quest or Junk, no longer show a dark smudge. The game's tab art has two end

@@ -753,8 +753,9 @@ function Panel:Dropdown(key, label, choices, help)
 			local items = {}
 			-- (1.8.0-beta2, Shweep) a group: a long list scrolls inside the menu, the current one in view
 			for _, c in ipairs(pr.choices or {}) do
-				items[#items + 1] = { text = c.label, checked = c.key == ns.db[pr.key], font = c.path, group = true, onClick = function() ns:Set(pr.key, c.key) end }
+				items[#items + 1] = { text = c.label, checked = c.key == ns.db[pr.key], font = c.path, group = true, radio = true, onClick = function() ns:Set(pr.key, c.key) end }
 			end
+			items.listRows = 20   -- (1.8.0-beta22, after FlareUI) twenty at a time before it scrolls
 			ns.ShowMenu(items, btn)
 		end)
 		w.btn:SetHeight(22)

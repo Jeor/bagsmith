@@ -1142,6 +1142,14 @@ function Classic:Dress(frame, spec, on)
 				if art then note("Dialog background", okArt) end
 				fill:SetPoint("TOPLEFT", 6, -6); fill:SetPoint("BOTTOMRIGHT", -6, 6)
 				st.solid = fill
+				-- (1.8.0-beta22, Shweep: a checkbox showed through the Font menu) Blizzard's dark art is itself partly
+				-- see-through: plain black under it, so nothing behind a menu or dialog shows
+				if okArt then
+					local under = chrome:CreateTexture(nil, "BACKGROUND", nil, 6)
+					under:SetColorTexture(0, 0, 0, 1)
+					under:SetPoint("TOPLEFT", 6, -6); under:SetPoint("BOTTOMRIGHT", -6, 6)
+					st.solidUnder = under
+				end
 			end
 			st.chrome = chrome
 		end
