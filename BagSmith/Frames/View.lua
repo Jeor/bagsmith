@@ -1179,7 +1179,7 @@ function View:ApplyTravel()
 			self.titleDivider:SetPoint("RIGHT", on and self.btnTravel or self.btnGlobal, "LEFT", -4, 0)
 		end
 		if ns.Classic and ns.Classic.SyncDropdown then ns.Classic.SyncDropdown(self) end
-		if self.btnBagBar then self.btnBagBar:SetShown(self.st.sheet ~= "Bank" and not ns.ui.owner and not ns.ui.global) end   -- stays in Travel Mode
+		if self.btnBagBar then self.btnBagBar:SetShown(self.st.sheet ~= "Bank" and not ns.ui.owner) end   -- stays in Travel Mode
 		if self.btnLanesTravel then self.btnLanesTravel:SetShown(on and #(self.laneIds or {}) > 0) end   -- (1.5.5)
 		self:PlaceSearch()
 		local above = on and self.title or self.tools
@@ -1571,6 +1571,18 @@ function View:SyncTools()
 			end
 		end
 	end
+	-- (1.9.0-beta4, Shweep) the bag bar's button in Global Inventory: there, greyed out, saying why (its strip stays hidden)
+	local bb = self.btnBagBar
+	if bb then
+		bb.baseTip = bb.baseTip or bb.tip
+		if self.isMain and ns.ui.global then
+			bb:Disable(); bb:SetAlpha(0.45)
+			bb.tip = "The bag bar shows your own bags. Leave Global Inventory to use it."
+		else
+			bb:Enable(); bb:SetAlpha(1)
+			bb.tip = bb.baseTip
+		end
+	end
 	if self.btnMerge then self.btnMerge:SetActive(self:Pref("mergeStacks")); self.btnMerge.label:SetText((self.toolsLevel or 0) >= 2 and "Merge" or "Merge Stacks") end
 	if self.btnReagent then self.btnReagent:SetActive(sr and true or false) end
 	self:SyncSortLabel()
@@ -1908,7 +1920,7 @@ function View:UpdateFooter(bagInfo)
 		b:ClearAllPoints()
 		local left = (self.btnReagent and self.btnReagent:IsShown()) and self.btnReagent or self.btnBags
 		b:SetPoint("RIGHT", left, "LEFT", -6, 0)
-		b:SetShown(self.st.sheet ~= "Bank" and not owner and not ns.ui.global)   -- (1.9.0-beta3, Shweep) not in Global Inventory
+		b:SetShown(self.st.sheet ~= "Bank" and not owner)
 		b:SetActive(ns.db.bagBar and true or false)
 		self:ColorBagBarButton()
 	end
