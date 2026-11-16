@@ -46,6 +46,8 @@
 #           listed by position, so they reorder (main.7, bank.8): same lines, nothing else changed
 #   1.6.0-beta11  main.2.7.r3: the character picker's level is its own text (muted), so a long name can be cut short
 #           before it (Shweep); the chevron moves to r4. Nothing else changed
+# (1.8.0-beta12, by design, Shweep) the bags window's gold is a button (it opens the currency drawer): a new
+# footer child, main.8.1, so the footer's other children are numbered one higher. Nothing else changed (checked).
 title | w=nil h=26 shown=true | TOPLEFT,window,TOPLEFT,12,-12 ; TOPRIGHT,window,TOPRIGHT,-12,-12
 scroll | w=nil h=nil shown=true | TOPLEFT,header,BOTTOMLEFT,0,-2 ; BOTTOMRIGHT,tabs,TOPRIGHT,0,4
 tabs | w=nil h=22 shown=true | BOTTOMLEFT,window,BOTTOMLEFT,12,40 ; BOTTOMRIGHT,window,BOTTOMRIGHT,-12,40
@@ -173,15 +175,15 @@ look main.7.8.r1 text=0.56,0.55,0.51,1.00
 look main.8.r1 color=0.23,0.22,0.20,1.00
 look main.8.r2 text=0.84,0.83,0.79,1.00
 look main.8.r3 text=0.98,0.78,0.46,1.00
-look main.8.1 bg=0.15,0.14,0.13,1.00 border=0.23,0.22,0.20,1.00
-look main.8.1.r1 text=0.56,0.55,0.51,1.00
-look main.8.1.r2 color=0.56,0.55,0.51,1.00
 look main.8.2 bg=0.15,0.14,0.13,1.00 border=0.23,0.22,0.20,1.00
 look main.8.2.r1 text=0.56,0.55,0.51,1.00
 look main.8.2.r2 color=0.56,0.55,0.51,1.00
 look main.8.3 bg=0.15,0.14,0.13,1.00 border=0.23,0.22,0.20,1.00
 look main.8.3.r1 text=0.56,0.55,0.51,1.00
-look main.8.3.r2 color=0.62,0.60,0.55,1.00
+look main.8.3.r2 color=0.56,0.55,0.51,1.00
+look main.8.4 bg=0.15,0.14,0.13,1.00 border=0.23,0.22,0.20,1.00
+look main.8.4.r1 text=0.56,0.55,0.51,1.00
+look main.8.4.r2 color=0.62,0.60,0.55,1.00
 look drawer bg=0.10,0.10,0.08,0.98 border=0.36,0.33,0.28,1.00
 look drawer.r2 text=0.56,0.55,0.51,1.00
 look drawer.1.r1 color=0.62,0.60,0.55,1.00

@@ -326,24 +326,63 @@ local commands = {
 		for i, e in ipairs(log) do ns:Print("%d. %s", i, e) end
 	end,
 	skincheck = function() ns.Classic:Report() end,
+	-- (1.8.0-beta13; learned from Guildy's /guildy cpu) What the game says BagSmith costs per frame, over a few
+	-- seconds: scroll, open windows or loot meanwhile to measure that. The client's own addon profiler
+	-- (C_AddOnProfiler, the numbers the game's addon list shows), read once a frame; nothing is changed.
+	cpu = function(arg) ns:CpuProbe(tonumber(arg)) end,
 	-- What's New. "reset" and "reset skipped" are for testing (not in help).
 	new = function(rest)
 		rest = tostring(rest or ""):lower()
 		if rest:match("^reset") then
 			ns.WhatsNew:ResetForTesting(rest:find("skipped") ~= nil)
-			ns:Print("What's New will show the next time you open your bags.")
+			-- (1.8.0-beta20) and Settings' NEW tags come back, as just after an update
+			if ns.SettingsPanel and ns.SettingsPanel.ResetNewForTesting then ns.SettingsPanel:ResetNewForTesting() end
+			ns:Print("What's New will show the next time you open your bags, and Settings shows its NEW tags again.")
 		else
 			ns.WhatsNew:ShowLatest()
 		end
 	end,
 	help = function()
-		ns:Print("Commands: /bs toggle | settings | currency | check | errors | dump | sort <mode> | scale <n> | profile ... | reset | debug | corners | consumables | questlog | quiet | blizzard | skincheck | new")
+		ns:Print("Commands: /bs toggle | settings | currency | check | errors | dump | sort <mode> | scale <n> | profile ... | reset | debug | corners | consumables | questlog | quiet | blizzard | skincheck | new | cpu")
 	end,
 }
 
 do local names = {}; for n in pairs(commands) do names[#names + 1] = n end; if ns.API then ns.API:ReserveCommands(names) end end
 SLASH_BAGSMITH1 = "/bagsmith"
 SLASH_BAGSMITH2 = "/bs"
+-- /bs cpu [seconds]: BagSmith's time per frame, by the game's addon profiler (average and peak, in milliseconds).
+ns.CPU_SECONDS = 5
+function ns:CpuProbe(seconds)
+	local profiler = rawget(_G, "C_AddOnProfiler")
+	local metric = Enum and Enum.AddOnProfilerMetric and Enum.AddOnProfilerMetric.LastTime
+	if not (profiler and type(profiler.GetAddOnMetric) == "function" and metric) then
+		ns:Print("This game client doesn't report addon CPU time, so /bs cpu can't measure it.")
+		return
+	end
+	if ns.cpuRun then ns:Print("Already measuring; the result comes in a moment."); return end
+	seconds = math.max(1, math.min(30, seconds or ns.CPU_SECONDS))
+	local f = ns.cpuFrame or CreateFrame("Frame")
+	ns.cpuFrame = f
+	local run = { frames = 0, total = 0, peak = 0, left = seconds }
+	ns.cpuRun = run
+	ns:Print("Measuring BagSmith for %d seconds: scroll your bags, open windows or loot now.", seconds)
+	f:SetScript("OnUpdate", function(_, elapsed)
+		local ok, v = pcall(profiler.GetAddOnMetric, ADDON, metric)
+		if ok and type(v) == "number" then
+			run.frames = run.frames + 1
+			run.total = run.total + v
+			if v > run.peak then run.peak = v end
+		end
+		run.left = run.left - (elapsed or 0)
+		if run.left <= 0 then
+			f:SetScript("OnUpdate", nil)
+			ns.cpuRun = nil
+			if run.frames == 0 then ns:Print("The game gave no CPU numbers for BagSmith."); return end
+			ns:Print("BagSmith used %.2f ms per frame on average, %.2f ms at most, over %d frames.", run.total / run.frames, run.peak, run.frames)
+		end
+	end)
+end
+
 SlashCmdList.BAGSMITH = function(msg)
 	local cmd, arg = (msg or ""):match("^%s*(%S*)%s*(.-)%s*$")
 	cmd = (cmd or ""):lower()

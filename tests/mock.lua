@@ -173,6 +173,19 @@ function _G.CreateFrame(kind, name, parent, template)
 end
 
 -- Globals
+_G.GetLocale = _G.GetLocale or function() return "enUS" end   -- (1.8.0-beta2) for LibSharedMedia
+-- (1.8.0-beta2) the game's bit library, as LibSharedMedia uses it (band only)
+_G.bit = _G.bit or {
+	band = function(a, b)
+		local r, p = 0, 1
+		a, b = math.floor(a or 0), math.floor(b or 0)
+		while a > 0 and b > 0 do
+			if a % 2 == 1 and b % 2 == 1 then r = r + p end
+			a, b, p = math.floor(a / 2), math.floor(b / 2), p * 2
+		end
+		return r
+	end,
+}
 _G.UIParent = CreateFrame("Frame", "UIParent")
 UIParent:SetSize(1920, 1080)   -- a common screen, as GetScreenWidth reports
 _G.BankFrame = CreateFrame("Frame", "BankFrame")

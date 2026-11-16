@@ -3,7 +3,10 @@
 ;(function()
 local function boot(char,account,picks)
  package.loaded.mock=nil;local M=require('mock')
- _G.BagSmithCharDB=char or {version=1};_G.BagSmithDB=account or {version=2,chars={},cache={},profiles={Default={}}}
+ -- (1.8.0-beta8, by design) pinned currencies are each character's own by default since beta8 (Shweep); this probe
+ -- follows them shared across characters and profiles, as written, so its profile shares them (per-character pins:
+ -- core_1_8_0_beta7_tests.lua)
+ _G.BagSmithCharDB=char or {version=1};_G.BagSmithDB=account or {version=2,chars={},cache={},profiles={Default={sharePinnedCurrencies=true}}}
  M.backpackPicks=picks or {1901,1902}
  C_CurrencyInfo.GetCurrencyInfo=function(id) return {name='Currency '..id,quantity=9,iconFileID=8,quality=1} end
  local n=M.loadAddon('BagSmith');M.fire('ADDON_LOADED','BagSmith');M.fire('PLAYER_ENTERING_WORLD');n.Window:Show()

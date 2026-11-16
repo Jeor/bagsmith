@@ -154,11 +154,18 @@ local function textButton(parent, text, width, onClick, template, name)
 	b.label:SetText(text)
 	if onClick then b:SetScript("OnClick", onClick) end
 	b:SetScript("OnEnter", function(self)
-		if self.tip and ns.HelpTipsOK() then
-			GameTooltip:SetOwner(self, "ANCHOR_TOP"); ns.TipText(GameTooltip, self.tip)
-			-- (1.5.8) an optional second line, as icon buttons have (a function, so it can describe the moment)
-			local sub = type(self.tipSub) == "function" and self.tipSub(self) or self.tipSub
-			if sub then ns.TipLine(GameTooltip, sub, 0.8, 0.8, 0.8, true) end
+		local help = self.tip and ns.HelpTipsOK()
+		-- (1.8.0-beta5) information, not help: shown even with Show Help Tips off (the free-slot breakdown)
+		local info = self.tipInfo and ns.TooltipsOK() and self.tipInfo(self)
+		if help or info then
+			GameTooltip:SetOwner(self, "ANCHOR_TOP")
+			if help then
+				ns.TipText(GameTooltip, self.tip)
+				-- (1.5.8) an optional second line, as icon buttons have (a function, so it can describe the moment)
+				local sub = type(self.tipSub) == "function" and self.tipSub(self) or self.tipSub
+				if sub then ns.TipLine(GameTooltip, sub, 0.8, 0.8, 0.8, true) end
+			end
+			if info then info(GameTooltip, help) end
 			GameTooltip:Show()
 		end
 	end)
@@ -777,6 +784,21 @@ function View:Build()
 	-- The gold sits 10 px in from the left, closer to the room the count
 	-- buttons keep on the right.
 	self.moneyText:SetPoint("LEFT", MONEY_X, 0)
+	-- (1.8.0-beta12, Shweep) Click your gold to open or close the currency drawer (the main window's; it opens beside it).
+	if self.kind == "main" then
+		local mb = CreateFrame("Button", nil, footer)
+		mb:SetPoint("TOPLEFT", self.moneyText, "TOPLEFT", -4, 4)
+		mb:SetPoint("BOTTOMRIGHT", self.moneyText, "BOTTOMRIGHT", 4, -4)
+		mb:SetScript("OnClick", function() if ns.Drawer then ns.Drawer:Toggle() end end)
+		mb:SetScript("OnEnter", function(b)
+			if not ns.HelpTipsOK() then return end
+			GameTooltip:SetOwner(b, "ANCHOR_TOP"); ns.TipText(GameTooltip, "Your Currencies")
+			ns.TipLine(GameTooltip, "Click to open or close the currency drawer.", 0.8, 0.8, 0.8, true)
+			GameTooltip:Show()
+		end)
+		mb:SetScript("OnLeave", function() GameTooltip:Hide() end)
+		self.moneyButton = mb
+	end
 	-- Leave room for the resize grip in the corner of the main window.
 	local rightEdge = self.big and -18 or -2
 	if self.isBank then
@@ -813,6 +835,9 @@ function View:Build()
 	if self.btnBags then
 		self.btnBags:SetPoint("RIGHT", footer, "RIGHT", rightEdge, 0)
 		self.freeText = self.btnBags.label   -- the count lives inside the button
+		self.btnBags.tipInfo = function() return self:FreeTip() end   -- (1.8.0-beta5) the free slots by kind of bag
+		-- (1.8.0-beta12, Shweep) the footer's other count button shows the same breakdown
+		if self.btnReagent then self.btnReagent.tipInfo = function() return self:FreeTip() end end
 	else
 		self.freeText = fontString(footer, "GameFontHighlightSmall", "RIGHT")
 		self.freeText:SetPoint("RIGHT", rightEdge, 0)
@@ -1522,6 +1547,12 @@ end
 -- still don't fit fold into a "»" tab whose menu lists them, with New Sheet... at the bottom (the "+" steps aside while
 -- anything is folded). The tab you're on always stays in view: if it would fold, it takes the last place that fits.
 View.TAB_MORE_W = 30
+-- (1.8.0-beta13, Shweep; learned from Guildy) Classic tabs overlap like the game's (14 px, was 2): each tab's frame is
+-- this much wider, half on each side, so labels, the row's length and folding stay exactly as they were; the shaded
+-- ends of the game's tab art tuck under their neighbors. The row's outer ends are trimmed (Classic.TrimTabEnds).
+-- (1.8.0-beta14, Shweep: "the tabs look terrible, regardless of width") Off again: the copied art overlapping its
+-- neighbor crowded the labels. Kept at 0 (beta12's layout) while the shading is examined (Classic.TabArtReport).
+View.CLASSIC_TAB_EXTRA = 0
 function View:TabPlan(widths, avail, current, endRoom, pencilRoom)
 	-- widths: { id, w } in order; endRoom: what the + and the pencil need after the tabs; pencilRoom: the pencil alone
 	-- (it stays while folding, for the current custom sheet). Returns the ids shown and the ids folded, each in order.
@@ -1634,6 +1665,7 @@ function View:UpdateTabs()
 	if more.classicOn and ns.Classic and ns.Classic.FitTabArt then ns.Classic.FitTabArt(more) end
 
 	local aw, ew = addBtn:GetWidth(), editBtn:GetWidth()
+	if self.classicApplied then aw, ew = 34, 34 end   -- (1.8.0-beta13) their own width, not the wider overlapping frame
 	local isCustom = not ns.TAB_LABEL[self.st.sheet]
 	local avail = self.tabs:GetWidth()
 	local pencil = isCustom and (ew + 2) or 0
@@ -1647,6 +1679,10 @@ function View:UpdateTabs()
 	self.tabFolded = folded
 	local wOf = {}; for _, t in ipairs(widths) do wOf[t.id] = t.w end
 	local step = self.classicApplied and -2 or 2
+	local extra = self.classicApplied and View.CLASSIC_TAB_EXTRA or 0   -- (1.8.0-beta13)
+	local half = extra / 2
+	local base = (self.tabs.GetFrameLevel and self.tabs:GetFrameLevel() or 0) + 1
+	local laid = {}   -- the Classic tab-art buttons in this row, left to right
 	local x, i, row = 0, 0, 0   -- one row (row stays 0: the offsets are written as before, so layouts compare unchanged)
 	for _, id in ipairs(shown) do
 		i = i + 1
@@ -1672,27 +1708,78 @@ function View:UpdateTabs()
 		b.label:SetText(labels[id])
 		b.label:ClearAllPoints(); b.label:SetPoint("CENTER"); b.label:SetWordWrap(false)
 		b.label:SetWidth(w - 12)
-		b:SetWidth(w)
-		b:ClearAllPoints(); b:SetPoint("TOPLEFT", self.tabs, "TOPLEFT", x, -row * rowH)
+		b:SetWidth(w + extra)
+		if b.classicOn and ns.Classic and ns.Classic.FitTabEnds then ns.Classic.FitTabEnds(b) end   -- (1.8.0-beta15)
+		b:ClearAllPoints(); b:SetPoint("TOPLEFT", self.tabs, "TOPLEFT", x - half, -row * rowH)
 		b:SetActive(self.st.sheet == id)
+		-- (1.8.0-beta13) overlapping: the selected tab draws above its neighbors, as the game's does
+		if extra > 0 and b.SetFrameLevel then b:SetFrameLevel(self.st.sheet == id and base + 2 or base) end
 		b:Show()
+		if b.classicOn then laid[#laid + 1] = b end
 		x = x + w + step
 	end
 	for j = i + 1, #self.tabButtons do self.tabButtons[j]:Hide() end
 	if self.tabs:GetHeight() ~= rowH then self.tabs:SetHeight(rowH) end   -- one row, always (1.6.0-beta5)
 
+	-- (1.8.0-beta13) in Classic the », + and pencil tabs overlap the same way: wider by `extra`, half on each side
+	local function place(btn, at, w)
+		if btn.classicOn and ns.Classic and ns.Classic.FitTabEnds then ns.Classic.FitTabEnds(btn) end   -- (1.8.0-beta15)
+		if extra > 0 and btn.classicOn then
+			btn:SetWidth(w + extra)
+			btn:ClearAllPoints(); btn:SetPoint("TOPLEFT", self.tabs, "TOPLEFT", at - half, -row * rowH)
+			if btn.SetFrameLevel then btn:SetFrameLevel(base) end
+			laid[#laid + 1] = btn
+		else
+			btn:ClearAllPoints(); btn:SetPoint("TOPLEFT", self.tabs, "TOPLEFT", at, -row * rowH)
+		end
+	end
+	local moreW, addW, editW = View.TAB_MORE_W, self.classicApplied and 34 or aw, self.classicApplied and 34 or ew
 	if #folded > 0 then
-		more:ClearAllPoints(); more:SetPoint("TOPLEFT", self.tabs, "TOPLEFT", x, -row * rowH)
+		place(more, x, moreW)
 		more:SetActive(false); more:Show()
-		x = x + more:GetWidth() + step
+		x = x + moreW + step
 		addBtn:Hide()
 	else
 		more:Hide()
-		addBtn:ClearAllPoints(); addBtn:SetPoint("TOPLEFT", self.tabs, "TOPLEFT", x + 2, -row * rowH); addBtn:Show()
-		x = x + aw + 4
+		place(addBtn, x + 2, addW); addBtn:Show()
+		x = x + addW + 4
 	end
 	editBtn:SetShown(isCustom)
-	if isCustom then editBtn:ClearAllPoints(); editBtn:SetPoint("TOPLEFT", self.tabs, "TOPLEFT", x, -row * rowH) end
+	if isCustom then place(editBtn, x, editW) end
+	-- (1.8.0-beta13) the row's outer ends have no neighbor to tuck under: their shaded ends are trimmed; every other
+	-- end gets its art back (a tab can move from the end to the middle)
+	if extra > 0 and ns.Classic and ns.Classic.TrimTabEnds then
+		for k, btn in ipairs(laid) do
+			ns.Classic.TrimTabEnds(btn, k == 1 and half + 1 or 0, k == #laid and half + 1 or 0)
+		end
+	end
+end
+
+-- (1.8.0-beta5) The Bags button's tooltip: free slots in ordinary bags, then each kind of special bag (its name in its
+-- indicator color).
+-- (beta10 feedback, Shweep: "not seeing that") Always shown, not only with special bags: the general slots, the
+-- reagent bag's when there is one, then each special bag's.
+function View:FreeTip()
+	local special = self.freeSpecial or {}
+	local g = self.freeGeneral
+	if not g then return nil end
+	local reagent = self.freeReagent
+	return function(tt, help)
+		if help then tt:AddLine(" ") end
+		if help then tt:AddLine("Free slots", 1, 0.82, 0) else ns.TipText(tt, "Free slots", 1, 0.82, 0) end
+		tt:AddDoubleLine("Bags (anything fits)", ("%d / %d"):format(g[1], g[2]), 1, 1, 1, 1, 1, 1)
+		if reagent then
+			local r, gg, b = ns:BagKindColor("reagent")
+			tt:AddDoubleLine(ns:BagKindName("reagent"), ("%d / %d"):format(reagent[1], reagent[2]), r, gg, b, 1, 1, 1)
+		end
+		for _, k in ipairs(ns:BagKindsSorted()) do   -- (beta7 feedback) alphabetical, as in Settings
+			local v = special[k.key]
+			if v then
+				local r, gg, b = ns:BagKindColor(k.key)
+				tt:AddDoubleLine(ns:BagKindName(k.key), ("%d / %d"):format(v.free, v.total), r, gg, b, 1, 1, 1)
+			end
+		end
+	end
 end
 
 function View:UpdateFooter(bagInfo)
@@ -1704,25 +1791,44 @@ function View:UpdateFooter(bagInfo)
 	local gold = owner and (BagSmithDB.cache[owner] and BagSmithDB.cache[owner].gold or 0) or GetMoney()
 	self.moneyText:SetText(GetMoneyString(gold or 0, true))
 
-	-- Free slots
-	local free, total, rfree, rtotal
+	-- Free slots. (1.8.0-beta5) Special bags (a quiver, a herb bag, ...) count apart: the number is the slots anything
+	-- fits in, and the Bags button's tooltip lists the rest by kind. Saved data (another character, the bank away from
+	-- it) carries each bag's kind from 1.8.0 on; older saves count every bag as general until that character logs in.
+	local free, total, rfree, rtotal, special = 0, 0, 0, 0, nil
+	local function addSpecial(kind, f, t)
+		special = special or {}
+		local k = special[kind] or { free = 0, total = 0 }
+		k.free, k.total = k.free + (f or 0), k.total + (t or 0)
+		special[kind] = k
+	end
 	if owner then
-		free, total, rfree, rtotal = 0, 0, 0, 0
 		for bag, info in pairs(bagInfo or {}) do
 			if info.reagent then rfree, rtotal = rfree + (info.free or 0), rtotal + (info.size or 0)
+			elseif bag ~= ns.KEYRING and info.kind and ns.BAG_KIND[info.kind] then addSpecial(info.kind, info.free, info.size)
 			elseif bag ~= ns.KEYRING then free, total = free + (info.free or 0), total + (info.size or 0) end
 		end
 	elseif (self.isMain and self.st.sheet == "Bank") or (self.isBank and not ns.atBank) then
-		free, total, rfree, rtotal = 0, 0, 0, 0
-		for _, info in pairs(bagInfo or {}) do free, total = free + (info.free or 0), total + (info.size or 0) end
+		for _, info in pairs(bagInfo or {}) do
+			if info.kind and ns.BAG_KIND[info.kind] then addSpecial(info.kind, info.free, info.size)
+			else free, total = free + (info.free or 0), total + (info.size or 0) end
+		end
 	else
-		free, total, rfree, rtotal = ns:FreeSlots(self.kind == "main" and self.st.sheet ~= "Bank" and ns.BAGS or self:Bags())
+		free, total, rfree, rtotal, special = ns:FreeSlots(self.kind == "main" and self.st.sheet ~= "Bank" and ns.BAGS or self:Bags())
 	end
 	if (self.isMain and self.st.sheet == "Bank") or self.isBank then rtotal = 0 end
-	-- A window showing only the reagent bag reports the reagent slots.
-	if total == 0 and rtotal > 0 then free, total = rfree, rtotal end
+	self.freeSpecial = special
+	self.freeReagent = rtotal > 0 and { rfree, rtotal } or nil   -- (beta11) for the tooltip
+	-- A window showing only the reagent bag reports the reagent slots; one showing only special bags, theirs.
+	if total == 0 and rtotal > 0 then free, total = rfree, rtotal
+	elseif total == 0 and special then
+		for _, k in pairs(special) do free, total = free + k.free, total + k.total end
+		special, self.freeSpecial = nil, nil
+	end
+	self.freeGeneral = { free, total }
 	local txt = ("%d / %d"):format(free, total)
 	if free <= 0 then txt = "|cfff09595" .. txt .. "|r" elseif free <= 4 then txt = "|cfffac775" .. txt .. "|r" end
+	-- a quiet "+": there's more room in special bags (the tooltip says where)
+	if special and not self.titleCount then txt = txt .. " |cff9d9d9d+|r" end
 	if self.titleCount then
 		self.titleCount:SetText(txt)
 		self.titleCount:SetTextColor(Skins:Color("muted"))

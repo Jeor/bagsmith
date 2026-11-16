@@ -22,7 +22,8 @@ end
 -- Layout cursor helpers. Everything is rebuilt on Refresh so the panel is
 -- always in sync with the profile; widgets are pooled by type.
 ------------------------------------------------------------------------
-local NAV_W, WIN_W, WIN_H = 170, 680, 560
+-- (1.8.0-beta6, Shweep) the page side 15% wider: 510 px beside the page list, now 587 (the window 680 to 757)
+local NAV_W, WIN_W, WIN_H = 170, 757, 560
 local SEARCH_W = 200   -- NAV_W fits the longest page name, "Automations & Actions"
 -- A third field names the page an entry sits under: it's listed (indented)
 -- only while that page or one of its sub-pages is open.
@@ -34,6 +35,100 @@ local PAGES = {
 	{ "sorting", "Sorting & Filters" }, { "automation", "Automations & Actions" }, { "loothelper", "Loot Helper", "automation" }, { "dehelper", "Disenchant Helper", "automation" },
 	{ "keys", "Keybindings" }, { "plugins", "Plugins" }, { "profile", "Profile" }, { "advanced", "Advanced" },
 }
+-- (1.8.0-beta18) What's New's "Settings > ..." links find their page by its name here (About & Support too).
+function Panel:PageLabels()
+	if not self.labels then
+		self.labels = {}
+		for _, p in ipairs(PAGES) do self.labels[#self.labels + 1] = p end
+		self.labels[#self.labels + 1] = { "about", "About & Support" }
+	end
+	return self.labels
+end
+-- (1.8.0-beta18, Shweep, after FlareUI) A small soft-blue "NEW" beside what this release added: its pages in the list on
+-- the left, and the headings and settings on them. A page's tags go once it has been opened, from the next time
+-- Settings opens (so they don't vanish while you look). Kept per account (BagSmithDB.newSeen), per release; a release
+-- other than NEW.release shows none, so the list is replaced each release. heads and keys name the page they're on.
+Panel.NEW = {
+	release = "1.8",
+	pages = { look = true, icons = true, profile = true },
+	heads = { ["Special Bag Slot Indicators"] = "icons", ["Shared Between Characters"] = "profile" },
+	keys = { textScale = "look", fontName = "look", questFrame = "icons" },
+}
+Panel.NEW_COLOR = { 0.55, 0.78, 1 }   -- the soft blue of What's New's links
+local function release() return tostring(ns.version or ""):match("^(%d+%.%d+)") end
+function Panel:NewPage(page)
+	local N = self.NEW
+	if not (N and page and N.pages[page] and release() == N.release) then return false end
+	return not (self.seenAtOpen and self.seenAtOpen[page])
+end
+function Panel:IsNew(kind, id)
+	local N = self.NEW
+	local page = N and N[kind] and id ~= nil and N[kind][id]
+	return page and self:NewPage(page) or false
+end
+-- Listed for this release, seen or not (searching "new" finds these all release long).
+function Panel:InRelease(kind, id)
+	local N = self.NEW
+	return (N and N[kind] and id ~= nil and N[kind][id] and release() == N.release) and true or false
+end
+-- (1.8.0-beta19, after FlareUI) A first install: nothing is new to this player.
+function Panel:MarkAllNewSeen()
+	local N = self.NEW
+	for page in pairs(N and N.pages or {}) do self:MarkPageSeen(page) end
+end
+-- (1.8.0-beta20) /bs new reset: this release's tags show again, as just after an update (at once, if Settings is open).
+function Panel:ResetNewForTesting()
+	local N = self.NEW
+	if N and type(BagSmithDB) == "table" and type(BagSmithDB.newSeen) == "table" then BagSmithDB.newSeen[N.release] = nil end
+	if self.frame and self.frame:IsShown() then self:SnapshotNew(); self:SyncNav(); self:Refresh() end
+end
+-- The tags showing while Settings is open: what was seen when it opened.
+function Panel:SnapshotNew()
+	local N, t = self.NEW, {}
+	local seen = N and type(BagSmithDB) == "table" and type(BagSmithDB.newSeen) == "table" and BagSmithDB.newSeen[N.release]
+	if type(seen) == "table" then for k, v in pairs(seen) do t[k] = v end end
+	self.seenAtOpen = t
+end
+function Panel:MarkPageSeen(page)
+	local N = self.NEW
+	if not (N and page and N.pages[page] and release() == N.release and type(BagSmithDB) == "table") then return end
+	if type(BagSmithDB.newSeen) ~= "table" then BagSmithDB.newSeen = {} end
+	local t = BagSmithDB.newSeen[N.release]
+	if type(t) ~= "table" then t = {}; BagSmithDB.newSeen[N.release] = t end
+	t[page] = true
+end
+-- The tag itself, on owner, just right of anchor (x on screen, from its left). Blizzard's NEW label (the game's own soft
+-- blue with its glow, as FlareUI shows it), smaller and with its text at the left; a plain soft-blue NEW where the
+-- game has no such template.
+local NEW_SCALE = 0.65
+local function makeTag(owner)
+	local ok, b = pcall(CreateFrame, "Frame", nil, owner, "NewFeatureLabelNoAnimateTemplate")
+	if ok and b and b.Label then
+		b:SetScale(NEW_SCALE)
+		b.Label:ClearAllPoints(); b.Label:SetPoint("LEFT")
+		if b.BGLabel then b.BGLabel:ClearAllPoints(); b.BGLabel:SetPoint("LEFT", 0.5, -0.5) end
+		if b.Glow then b.Glow:ClearAllPoints(); b.Glow:SetPoint("TOPLEFT", b.Label, -6, 4); b.Glow:SetPoint("BOTTOMRIGHT", b.Label, 6, -4) end
+		b.scaled = true
+		return b
+	end
+	if ok and b and b.Hide then b:Hide() end
+	local t = owner:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+	t:SetText("NEW"); t:SetTextColor(unpack(Panel.NEW_COLOR))
+	return t
+end
+local function tagWidth(t)
+	if t.scaled then return math.ceil((t.Label:GetStringWidth() or 16) * NEW_SCALE) end
+	return t:GetStringWidth() or 24
+end
+local function newTag(owner, show, anchor, x)
+	if not show then if owner.newTag then owner.newTag:Hide() end return end
+	local t = owner.newTag
+	if not t then t = makeTag(owner); owner.newTag = t end
+	t:ClearAllPoints(); t:SetPoint("LEFT", anchor, "LEFT", t.scaled and x / NEW_SCALE or x, 0)
+	t:Show()
+end
+Panel.NewTag = newTag
+
 local PARENT, HAS_SUBS = {}, {}
 for _, p in ipairs(PAGES) do if p[3] then PARENT[p[1]] = p[3]; HAS_SUBS[p[3]] = true end end
 local NAV_STEP = 28
@@ -159,7 +254,7 @@ function Panel:Create()
 	child:SetSize(1, 1)
 	scroll:SetScrollChild(child)
 	f.child, self.scroll = child, scroll
-	self.pools = { cornerCards = {}, head = {}, check = {}, seg = {}, step = {}, list = {}, text = {}, edit = {}, btn = {}, color = {}, profiles = {}, cmd = {}, bind = {}, about = {}, csec = {}, csechead = {}, moved = {}, gset = {}, ptitle = {}, listhead = {}, card = {}, sep = {}, plug = {}, pnotice = {}, feat = {}, sub = {} }   -- (1.6.0) sub: sub-headings inside a card
+	self.pools = { cornerCards = {}, head = {}, check = {}, seg = {}, step = {}, dropdown = {}, list = {}, text = {}, edit = {}, btn = {}, color = {}, profiles = {}, cmd = {}, bind = {}, about = {}, csec = {}, csechead = {}, moved = {}, gset = {}, ptitle = {}, listhead = {}, card = {}, sep = {}, plug = {}, pnotice = {}, feat = {}, sub = {} }   -- (1.6.0) sub: sub-headings inside a card
 	self.page = self.page or "general"
 	table.insert(UISpecialFrames, "BagSmithSettings")
 	ns:CombatWindow(f)   -- (1.5.6) fades in combat like the bags window
@@ -232,6 +327,9 @@ function Panel:SyncNav()
 		end
 		local on = b.page == self.page and not self.query   -- (no page is current while searching)
 		b.text:SetTextColor(unpack(on and s.heading or s.muted))
+		-- (beta18) at the right of the page's row, as FlareUI has it
+		newTag(b, self:NewPage(b.page), b, 0)
+		if b.newTag and b.newTag:IsShown() then newTag(b, true, b, (NAV_W - 10) - 12 - tagWidth(b.newTag)) end
 		if on then b.bar:SetVertexColor(Skins:Accent()); b.bar:Show() else b.bar:Hide() end
 	end
 	-- (1.5.4) Place them: full spacing when they fit above About & Support, tighter when not, and when even the tight
@@ -271,7 +369,9 @@ end
 function Panel:ApplyPosition()
 	local f, p = self.frame, ns.db.settingsPoint
 	f:ClearAllPoints(); f:SetPoint(p[1], UIParent, p[3], p[4], p[5])
-	f:SetScale(ns.db.scale)
+	-- (1.8.0-beta6, Shweep) Settings keeps its own size: BagSmith's Scale shrinks the bags, bank and helpers, never the
+	-- window you change it in (it stays clamped to the screen)
+	f:SetScale(1)
 end
 
 function Panel:ShowPage(page)
@@ -279,6 +379,7 @@ function Panel:ShowPage(page)
 	-- Opening a page ends a search.
 	if self.query then self.query = nil; if self.frame and self.frame.search then self.frame.search:SetText("") end end
 	self.page = page
+	self:MarkPageSeen(page)   -- (beta18) its NEW tags go from the next time Settings opens
 	self.scroll:SetVerticalScroll(0)
 	self:SyncNav()
 	self:Refresh()
@@ -386,6 +487,7 @@ end
 -- searchable.
 function Panel:Head(text, info)
 	self:CloseCard()
+	if self.seek and not self.seekY and not self.filter and tostring(text):lower() == self.seek then self.seekY = self.y end   -- (beta18) Open's heading
 	local h = acquire(self, "head", function(p)
 		local w = CreateFrame("Frame", nil, p); w:SetSize(ROW_W, 30)
 		w.text = fs(w, "GameFontNormal"); w.text:SetPoint("BOTTOMLEFT", 2, 6)
@@ -401,6 +503,8 @@ function Panel:Head(text, info)
 	elseif h.info then
 		h.info:Hide()
 	end
+	local tagX = (h.text:GetStringWidth() or 0) + 6 + ((h.info and h.info:IsShown()) and 20 or 0)
+	newTag(h, self:IsNew("heads", text), h.text, tagX)   -- (beta18)
 	self.y = self.y + 40
 	-- The card for this sub-section starts just under the heading's line.
 	self.card = { top = self.y - 6, rows = 0 }
@@ -455,6 +559,8 @@ local function layoutRow(w, label, help, controlW, controlH)
 	w.text:SetText(label); w.text:SetTextColor(Skins:Color("text"))
 	w.text:SetWordWrap(false); w.text:SetWidth(0)
 	local labelW = w.text:GetStringWidth()
+	newTag(w, Panel:IsNew("keys", w.key), w.text, labelW + 6)   -- (beta18) a new setting
+	if w.newTag and w.newTag:IsShown() then labelW = labelW + 6 + tagWidth(w.newTag) end
 	local fits = labelW + 16 + controlW <= rowW
 	local y = 6 + FONT_H
 	if not fits then w.text:SetWidth(rowW - 4) end
@@ -627,9 +733,71 @@ function Panel:Step(key, label, step, fmt, help, info)
 		s.info.title, s.info.lines = info.title, info.lines
 		s.info:ClearAllPoints(); s.info:SetPoint("LEFT", s.text, "LEFT", (s.text:GetStringWidth() or 0) + 6, 0)
 		s.info:Show()
+		if s.newTag and s.newTag:IsShown() then newTag(s, true, s.info, 20) end   -- (beta18) the tag after the (i)
 	elseif s.info then
 		s.info:Hide()
 	end
+	self.y = self.y + s:GetHeight()
+end
+
+-- (1.8.0-beta2, Shweep: "Font selection needs to be a dropdown") A choice from a list too long for segments: a button
+-- showing the current choice with a down chevron; it opens BagSmith's menu (ns.ShowMenu) under it, the current choice
+-- ticked; a pick applies at once. choices: { { key = , label = , path = } }; a path shows that name in its own face.
+function Panel:Dropdown(key, label, choices, help)
+	local DROP_W = 180
+	local s = acquire(self, "dropdown", function(p)
+		local w = CreateFrame("Frame", nil, p); w:SetSize(ROW_W, LINE)
+		w.text = fs(w); w.help = fs(w)
+		w.btn = ns.TextButton(w, "", DROP_W, function(btn)
+			local pr = btn:GetParent()
+			local items = {}
+			-- (1.8.0-beta2, Shweep) a group: a long list scrolls inside the menu, the current one in view
+			for _, c in ipairs(pr.choices or {}) do
+				items[#items + 1] = { text = c.label, checked = c.key == ns.db[pr.key], font = c.path, group = true, radio = true, onClick = function() ns:Set(pr.key, c.key) end }
+			end
+			items.listRows = 20   -- (1.8.0-beta22, after FlareUI) twenty at a time before it scrolls
+			ns.ShowMenu(items, btn)
+		end)
+		w.btn:SetHeight(22)
+		w.btn.label:ClearAllPoints(); w.btn.label:SetPoint("LEFT", 8, 0); w.btn.label:SetPoint("RIGHT", -24, 0)
+		w.btn.label:SetJustifyH("LEFT"); w.btn.label:SetWordWrap(false)
+		-- (1.8.0-beta2, Shweep: "like our alt selector") the character picker's look: Modern, the chevron as the picker
+		-- has it; Classic, the game's dropdown art behind it (Classic.DropdownArt) instead of a red button
+		w.btn.chev = w.btn:CreateTexture(nil, "OVERLAY")
+		w.btn.chev:SetTexture("Interface\\AddOns\\BagSmith\\Media\\ui-chev-down.tga")
+		w.btn.chev:SetSize(11, 11); w.btn.chev:SetPoint("RIGHT", -6, 0); w.btn.chev:SetVertexColor(0.62, 0.6, 0.55)
+		local baseActive = w.btn.SetActive
+		function w.btn:SetActive(on)
+			if self.ddOn then
+				self.active = on
+				self:SetBackdropColor(0, 0, 0, 0); self:SetBackdropBorderColor(0, 0, 0, 0)
+				self.label:SetTextColor(1, 1, 1)
+				return
+			end
+			baseActive(self, on)
+		end
+		function w.btn:SetClassic(on)
+			-- (a red button made before this took over: put away, the label back on the button)
+			if self.classic then self.classic:Hide(); self.classicOn = false; self.label:SetParent(self) end
+			if on and self.ddArt == nil then self.ddArt = ns.Classic and ns.Classic.DropdownArt and ns.Classic.DropdownArt(self) or false end
+			self.ddOn = (on and self.ddArt) and true or false
+			if self.ddArt then self.ddArt:SetShown(self.ddOn) end
+			self.chev:SetShown(not self.ddOn)
+			self:SetActive(self.active)
+		end
+		w.btn:SetClassic(ns.Classic and ns.Classic.IsOn and ns.Classic.IsOn() or false)
+		return w
+	end)
+	s.key, s.choices = key, choices
+	local cur
+	for _, c in ipairs(choices) do if c.key == ns.db[key] then cur = c end end
+	cur = cur or choices[1]
+	local cy = layoutRow(s, label, help, DROP_W, 22)
+	s.btn:ClearAllPoints(); s.btn:SetPoint("TOPRIGHT", s, "TOPRIGHT", 0, cy)
+	s.btn:SetActive(false)
+	s.btn.label:SetText(cur and cur.label or "")
+	s.btn.chev:SetVertexColor(Skins:Color("text"))
+	ns.MenuFace(s.btn.label, cur and cur.path, "GameFontHighlightSmall")   -- (Default Font: the button's own face again)
 	self.y = self.y + s:GetHeight()
 end
 
@@ -1254,13 +1422,18 @@ pages.profile = function(self, db)
 	self:Text("A profile is a saved set of settings. Every character uses Default unless you pick another.")
 	self:Text("This character uses: " .. ns.profileName)
 	self:Edit("Create Profile", function(name) local ok, err = ns.Profiles:Use(name); if not ok then ns:Print(err) end end)
-	self:Head("Share")
-	self:Text("A profile code holds all of a profile's settings, including saved sheets. Share yours, or import one to add it as a new profile.")
-	self:Button("Share This Profile", function() ns.ShareWindow("share") end, 160)
-	self:Button("Import Profile", function() ns.ShareWindow("import") end, 160)
+	-- (beta7 feedback, Shweep) All Profiles near the top: choosing and managing profiles is what this page is for
 	self:Head("All Profiles")
 	self:Text("Assign gives this character that profile's settings. Copy brings another profile's settings into the one this character uses. Deleting a profile moves anyone using it back to Default.")
 	self:Profiles()
+	-- (1.8.0-beta7, Shweep) what every character using this profile shares; unchecked, each keeps its own
+	self:Head("Shared Between Characters")   -- (beta7 feedback, Shweep: plainer)
+	self:Text("Characters on this profile share everything checked below. Uncheck something to let each character keep its own.")
+	for _, part in ipairs(ns.PROFILE_PARTS) do self:Check("share" .. part.key, part.label, part.help) end
+	self:Head("Profile Codes")   -- (1.8.0-beta8, Shweep) was "Share", too close to "Shared Between Characters"
+	self:Text("A profile code holds all of a profile's settings, including saved sheets. Share yours, or import one to add it as a new profile.")
+	self:Button("Share This Profile", function() ns.ShareWindow("share") end, 160)
+	self:Button("Import Profile", function() ns.ShareWindow("import") end, 160)
 end
 
 -- General: how BagSmith opens, which of Blizzard's windows it stands in for, and its notices.
@@ -1308,9 +1481,16 @@ pages.look = function(self, db)
 	self:Color("accent", "Accent Color", "Highlights, selected buttons and section titles")
 	self:Check("rtext", "Color Item Names by Rarity")
 	self:Head("Size")
-	self:Step("scale", "Scale", 0.05, "%d%%")
+	self:Step("scale", "Scale", 0.05, "%d%%", "The size of your bags, bank and helpers. Settings keeps its own size.")
 	self:Step("rowHeight", "Row Height (List View)", 2, "%d")
 	self:Check("dense", "Compact Rows", "Shorter rows in List view")
+	-- (1.8.0, Shweep's plan of 10 Nov) the item windows' text: bags, bank, bag windows, the Loot and Disenchant Helpers
+	self:Step("textScale", "Text Size", 0.1, "%d%%", "How big the item text is in your bags, bank and individual bag windows and the Loot and Disenchant Helpers.")
+	do
+		local choices = ns.Fonts and ns.Fonts:Choices() or { { key = "", label = "Default Font" } }
+		for _, c in ipairs(choices) do c.path = ns.Fonts and ns.Fonts:PathOf(c.key) end
+		self:Dropdown("fontName", "Font", choices, "The same item text in another font: BagSmith's own, the game's, or one another addon shares.")
+	end
 	self:Head("Layout")
 	self:Check("splitView", "Split View (Icons View)", "Shows sections side by side in two columns. Works with By Section or By Bag when the window is wide enough.")
 	-- (1.7.0-beta2, Shweep) greyed while Split View is off
@@ -1325,6 +1505,7 @@ end
 pages.icons = function(self, db)
 	self:Head("Appearance")
 	self:Seg("border", "Rarity Borders", { { "all", "All" }, { "unc", "Green and Up" }, { "off", "Off" } })
+	self:Check("questFrame", "Gold Frame for Quest Items", "Quest items get a gold frame, whatever Rarity Borders is set to.")   -- (1.8.0-beta11)
 	self:Step("iconSize", "Icon Size (Icons View)", 2, "%d", nil, {
 		title = "Smaller icons",
 		lines = {
@@ -1343,6 +1524,26 @@ pages.icons = function(self, db)
 	end
 	self:Check("iconItemLevel", "Item Level (ilvl)", "Shows the item level on weapons and armor in Icons view. Choose its corner under Icon Corners.")
 	self:Indented(function() self:Color("iconItemLevelColor", "Item Level Color", "The color of the item level") end)
+	-- (1.8.0-beta5) Special bags: an inner glow per kind of bag, each off until turned on, in a color of your choice
+	self:Head("Special Bag Slot Indicators")   -- (beta7 feedback, Shweep) was "Special Bags"
+	-- (beta5 feedback, Shweep) each kind's options sit under it and name it: its items too (on by default), its color
+	for _, k in ipairs(ns:BagKindsSorted()) do   -- (beta7 feedback, Shweep) alphabetical
+		local name = ns:BagKindName(k.key)
+		local lower = name:lower()
+		-- (beta9, Shweep) an indicator, as a soft inner glow or as the slot's frame color; "indicator", not "mark" (Marks
+		-- is the green dot and item level, and Mark as Junk)
+		self:Check("glow_" .. k.key, ("%s Indicator"):format(name), ("Shows which slots are in your %s, so you can tell them apart at a glance."):format(lower))
+		if db["glow_" .. k.key] then
+			self:Indented(function()
+				-- (beta10 feedback, Shweep) empty and filled slots each choose
+				local CHOICES = { { "glow", "Inner Glow" }, { "frame", "Frame Color" }, { "off", "Off" } }
+				self:Seg("glowEmpty_" .. k.key, ("Empty %s Slots"):format(name), CHOICES)
+				self:Seg("glowFilled_" .. k.key, ("Filled %s Slots"):format(name), CHOICES, "Frame Color shows this color instead of the item's rarity color.")
+				self:Color("glowColor_" .. k.key, ("%s Indicator Color"):format(name), ("The indicator's color in your %s"):format(lower))
+				self:Step("glowAlpha_" .. k.key, ("%s Indicator Opacity"):format(name), 0.05, "%d%%", ("How strong the indicator is in your %s."):format(lower))
+			end)
+		end
+	end
 	self:IconCorners()
 end
 
@@ -1350,6 +1551,7 @@ pages.automation = function(self, db)
 	self:Head("Auto Travel Mode")
 	self:Text("Travel Mode is a compact view for adventuring. The signpost by the close button turns it on and off. These settings turn it off when you need your full bags, and back on afterwards.")
 	self:Check("travelLeaveBank", "Leave Travel Mode at the Bank", "Turns it back on when you close the bank.")
+	self:Check("travelLeaveGuildBank", "Leave Travel Mode at the Guild Bank", "Turns it back on when you close the guild bank.")   -- (1.8.0-beta23)
 	self:Check("travelLeaveAH", "Leave Travel Mode at the Auction House", "Turns it back on when you close the auction house.")
 	self:Check("travelLeaveVendor", "Leave Travel Mode at Vendors", "Turns it back on when you close the vendor.")
 	self:Check("travelLeaveTaxi", "Leave Travel Mode During Flight Paths", "Turns it back on when you land.")
@@ -1491,7 +1693,7 @@ pages.keys = function(self, db)
 end
 
 pages.window = function(self, db)
-	self:Head("Bag Window")
+	self:Head("Main Window")   -- (1.8.0-beta5, Shweep) was "Bag Window", too close to the individual bag windows' heading
 	self:Seg("view", "Start In", { { "list", "List" }, { "icons", "Icons" } })
 	self:Seg("sizeMode", "Window Size", { { "auto", "Fit to Items" }, { "fixed", "Scalable" } },
 		db.sizeMode == "auto" and "Shrinks to fit your items, up to the max size below. Dragging the corner sets the max size." or "Stays the size you set. Drag the corner to resize it.")
@@ -1501,29 +1703,32 @@ pages.window = function(self, db)
 		self:Step("fixW", "Width", 20, "%d"); self:Step("fixH", "Height", 20, "%d")
 	end
 	-- (1.7.0-beta2, Shweep)
-	self:Check("lockWindows", "Lock Windows", "Your bags, bank and bag windows and the Loot and Disenchant Helpers can't be moved or resized.")
+	self:Check("lockWindows", "Lock Windows", "Your bags, bank and individual bag windows and the Loot and Disenchant Helpers can't be moved or resized.")
 	-- (1.6.0) one Opacity card, in three parts (Shweep): what's always see-through, what dims while moving, what dims in
 	-- combat. Background Opacity alone touches only the frame; moving and combat fade whole windows.
 	self:Head("Opacity")
 	self:Sub("Always")
-	self:Step("bgOpacity", "Background Opacity", 0.05, "%d%%", "How see-through the bag windows' frame and background are. Your items and text stay solid.")
+	self:Step("bgOpacity", "Background Opacity", 0.05, "%d%%", "How see-through the frame and background of your bags, bank and individual bag windows are. Your items and text stay solid.")
 	self:Indented(function()
 		self:Check("bgWhole", "Whole Window", "Fade your items, text and buttons too. Moving and combat never make it brighter than this.")
 	end)
 	self:Sub("While Moving")
-	self:Check("fadeMoving", "Fade While Moving", "Dims the bag windows while your character is moving.")
+	self:Check("fadeMoving", "Fade While Moving", "Dims your bags, bank and individual bag windows while your character is moving.")
 	self:Indented(function() self:Step("movingAlpha", "Opacity While Moving", 0.05, "%d%%") end)
 	self:Sub("In Combat")
 	self:Check("combatFade", "Fade in Combat", "Dims every BagSmith window during combat, including the helpers.")
 	self:Indented(function() self:Step("combatAlpha", "Opacity in Combat", 0.05, "%d%%") end)
-	self:Check("combatLock", "Ignore Clicks While Faded", "In combat, clicks pass through faded windows, so you can't use an item by accident.")
-	self:Head("Bag Windows")
+	-- (1.8.0-beta5, Shweep) out of Opacity, with a plainer name (was "Ignore Clicks While Faded"); it still works with the
+	-- combat fade (Window.lua: ApplyCombatFade), as before
+	self:Head("Combat")
+	self:Check("combatLock", "Prevent Accidental Clicks in Combat", "While your BagSmith windows are faded in combat (Fade in Combat, under Opacity), clicks on them go to the game instead, so you can't use an item by accident.")
+	self:Head("Individual Bag Windows")   -- (1.8.0-beta5, Shweep) was "Bag Windows": each bag in its own small window
 	self:Seg("__openWindows", "When the Main Window Opens",
 		{ { "main", "Open Main Window Only" }, { "all", "Auto-Open All Bags" }, { "reagent", "Auto-Open Reagent Bag" } },
-		"The footer buttons open or close bag windows anytime.", true)
-	self:Step("bagCols", "Icons per Row in Bag Windows", 1, "%d")
-	self:Step("bagScale", "Bag Window Scale", 0.05, "%d%%", "On top of Scale in Style. 100% matches the main window.")
-	self:Step("bagMaxH", "Bag Window Max Height", 20, "%d", "Taller bags scroll.")
+		"The footer buttons open or close individual bag windows anytime.", true)
+	self:Step("bagCols", "Icons per Row in Individual Bag Windows", 1, "%d")
+	self:Step("bagScale", "Individual Bag Window Scale", 0.05, "%d%%", "On top of Scale in Style. 100% matches the main window.")
+	self:Step("bagMaxH", "Individual Bag Window Max Height", 20, "%d", "Taller bags scroll.")
 	self:Head("Currency Drawer")
 	self:Seg("side", "Opens to the", { { "left", "Left" }, { "right", "Right" } }, "Switches sides when there isn't room.")
 end
@@ -2148,6 +2353,23 @@ function Panel:Refresh()
 	if ns.Classic then ns.Classic:DressButtons(self.frame) end   -- new rows match the current skin
 end
 
+-- (1.8.0-beta18) Open Settings on a page, scrolled to a heading on it when one is named (What's New's links). A heading
+-- the page doesn't have leaves it at the top.
+function Panel:Open(page, heading)
+	if not pages[page] then return false end
+	if not (self.frame and self.frame:IsShown()) then self:Show() end
+	if self.frame.Raise then self.frame:Raise() end
+	self.seek, self.seekY = heading and heading:lower() or nil, nil
+	self:ShowPage(page)
+	local y = self.seekY
+	self.seek, self.seekY = nil, nil
+	if y and self.scroll then
+		local room = math.max(0, (self.frame.child:GetHeight() or 0) - (self.scroll:GetHeight() or 0))
+		self.scroll:SetVerticalScroll(math.max(0, math.min(room, y - 4)))
+	end
+	return true, y
+end
+
 -- The profile segment writes a fake key; intercept it.
 local origSet = ns.Set
 function ns:Set(key, value, silent)
@@ -2164,6 +2386,7 @@ function Panel:Show()
 	if ns.API then ns.API:RefreshPlugins() end
 	self:Create()
 	self:ApplyPosition()
+	if not self.frame:IsShown() then self:SnapshotNew(); self:MarkPageSeen(self.page or "profile") end   -- (beta18)
 	self.frame:Show()
 	self:SyncNav()
 	self:Refresh()
@@ -2237,6 +2460,11 @@ local SEARCHED = {
 		return label, extra
 	end,
 	Color = function(_, label, help) return label, help end,
+	Dropdown = function(_, label, choices, help)   -- (1.8.0)
+		local t = {}
+		for _, c in ipairs(type(choices) == "table" and choices or {}) do t[#t + 1] = c.label end
+		return label, (help or "") .. " " .. table.concat(t, " ") .. " typeface text size"
+	end,
 	Profiles = function() return "profile profiles new copy rename delete reset share import export " .. tostring(ns.profileName or "") end,
 	List = function(items, _, _, cols)
 		local t = {}
@@ -2296,6 +2524,15 @@ function Panel:EmitPending()
 		rowX, rowW = x, w
 	end
 end
+-- (1.8.0-beta19, after FlareUI) Searching "new" finds what this release added: its settings, and its headings' cards.
+for _, name in ipairs({ "Check", "Seg", "Step", "Color", "Dropdown" }) do
+	local textOf = SEARCHED[name]
+	SEARCHED[name] = function(key, ...)
+		local a, b, c = textOf(key, ...)
+		if Panel:InRelease("keys", key) then b = (b or "") .. " new" end
+		return a, b, c
+	end
+end
 for name, textOf in pairs(SEARCHED) do
 	local orig = Panel[name]
 	Panel[name] = function(self, ...)
@@ -2331,7 +2568,7 @@ Panel.Head = function(self, text, info)
 		local plainText = plain(text)
 		local tier
 		if plainText:sub(1, #f.phrase) == f.phrase then tier = 1
-		elseif matches(f.words, text) then tier = 2
+		elseif matches(f.words, text, self:InRelease("heads", text) and "new" or nil) then tier = 2
 		elseif info and matches(f.words, table.concat(info.lines or {}, " "), info.keywords) then tier = 3 end
 		if tier and tier < f.best then f.best = tier end
 		return
@@ -2340,6 +2577,7 @@ Panel.Head = function(self, text, info)
 	f.pendingHead, f.pendingSub, f.lastSkipped, f.pendingCols = text, nil, nil, nil
 	f.pendingHeadInfo = info
 	local words = text
+	if self:InRelease("heads", text) then words = words .. " new" end   -- (beta19)
 	if info then words = words .. " " .. table.concat(info.lines or {}, " ") .. " " .. (info.keywords or "") end
 	f.cardAll = f.pageAll or matches(f.words, words)
 	if f.cardAll then self:EmitPending() end

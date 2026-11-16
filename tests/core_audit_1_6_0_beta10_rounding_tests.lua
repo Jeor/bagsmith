@@ -4,7 +4,9 @@
 AUDIT_CORE = AUDIT_CORE or "BagSmith"
 -- Independent beta10 probe. Product sources remain unchanged.
 package.loaded.mock=nil;local M=require('mock')
-M.put(0,1,{id=7001,name='Rare Fractional Boots',q=3,count=1,class=4,subclass=1,price=0,ilvl=23,equip='INVTYPE_FEET'})
+-- (1.8.0-beta10, by design) item level 28, not 23: on Forever a blue to level 25 isn't always one shard (Shweep's
+-- results), and this probe needs a rare whose materials are exactly one shard (Large Glimmering, 26 to 30)
+M.put(0,1,{id=7001,name='Rare Fractional Boots',q=3,count=1,class=4,subclass=1,price=0,ilvl=28,equip='INVTYPE_FEET'})
 BagSmithCharDB={version=1,firstSeen={}};BagSmithDB={version=2,chars={},cache={},profiles={Default={deEnabled=true,deLeveling='never'}}}
 local gross,material=8200.005,9020
 local function source(_,item)local id=tonumber(item)or tonumber(tostring(item):match('item:(%d+)'));return id==7001 and gross or material end

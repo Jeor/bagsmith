@@ -2090,14 +2090,19 @@ end)()
 					local frame = M.modernFrame(b) or (b.qRing:IsShown() and b.qRing) or (b.qFrame:IsShown() and b.qFrame)
 					local both = (b.qRing:IsShown() and b.qFrame:IsShown()) or (M.modernFrame(b) and (b.qRing:IsShown() or b.qFrame:IsShown()))
 					local neutralColor = frame and frame.color and frame.color[1] == N[1] and frame.color[2] == N[2]
-					if not frame or both or (colored and neutralColor) or (not colored and not neutralColor) then
+					local defaultSlot = skin == "classic" and (q < 2 or not colored)
+					local defaultRow = defaultSlot and view == "list"
+					local invalid = (defaultSlot and not defaultRow and frame) or (defaultRow and
+						(not frame or not b.qRing:IsShown() or frame.color[1] ~= .72 or frame.color[2] ~= .72 or both)) or (not defaultSlot and
+						(not frame or both or (colored and neutralColor) or (not colored and not neutralColor)))
+					if invalid then
 						ok = false; why = ("%s/%s/%s q%d"):format(skin, view, setting, q)
 					end
 				end
 			end
 		end
 	end
-	check(ok, "every item icon has exactly one thin frame: rarity color when allowed, neutral grey otherwise " .. why)
+	check(ok, "every item icon has exactly one thin frame: Classic default slots for ordinary items, rarity outlines when allowed " .. why)
 	n6:Set("skin", "modern"); n6:Set("view", "icons"); n6:Set("border", "off"); n6.ui.bagWindows = true; n6:RefreshViews(true)
 	local empty
 	for _, b in ipairs(n6.Buttons.all) do if not b.hasItem then empty = b; break end end
@@ -4470,9 +4475,11 @@ end)()
 		deEnabled = "Disenchant Helper", deIncludeEpics = "Disenchant Helper", deSkipRefundable = "Disenchant Helper", ["Disenchant Must Beat Selling By"] = "Disenchant Helper",
 	})
 	-- (1.6.0, by design) Opacity on Windows (Background Opacity, Fade While Moving, Opacity While Moving)
-	grouped("window", "Bag Window | Opacity | Bag Windows | Currency Drawer", {   -- (1.6.0-beta3) Combat joins the Opacity card
-		__openWindows = "Bag Windows", ["Icons per Row in Bag Windows"] = "Bag Windows", ["Bag Window Scale"] = "Bag Windows", ["Bag Window Max Height"] = "Bag Windows",
-		side = "Currency Drawer", combatFade = "Opacity", fadeMoving = "Opacity",
+	-- (1.8.0-beta5, by design, Shweep) "Main Window" and "Individual Bag Windows" (were "Bag Window" and "Bag Windows"); the
+	-- click setting has its own Combat heading, out of Opacity
+	grouped("window", "Main Window | Opacity | Combat | Individual Bag Windows | Currency Drawer", {   -- (1.6.0-beta3) Combat joins the Opacity card
+		__openWindows = "Individual Bag Windows", ["Icons per Row in Individual Bag Windows"] = "Individual Bag Windows", ["Individual Bag Window Scale"] = "Individual Bag Windows", ["Individual Bag Window Max Height"] = "Individual Bag Windows",
+		side = "Currency Drawer", combatFade = "Opacity", fadeMoving = "Opacity", combatLock = "Combat",
 	})
 	-- (1.6.0, by design) Auction Prices (Price Source, moved from Columns) and Tips (Show Help Tips) on General
 	grouped("general", "Opening BagSmith | Auction Prices | Tips | Blizzard's Interface | Notices", {
@@ -6025,7 +6032,7 @@ end)()
 	local ids = {}
 	for _, e in ipairs(n.Currency:List()) do if e.custom then ids[#ids + 1] = e.id end end
 	check(ids[1] == 456 and #ids == 1, "tracked currencies follow the profile at once")
-	check(P.frame.scale == 1.0 and P.frame.points[1][1] == "TOPLEFT", "open Settings takes the new profile's scale and spot")
+	check(P.frame.scale == 1.0 and P.frame.points[1][1] == "TOPLEFT", "open Settings takes the new profile's spot (and keeps its own size: 1.8.0-beta6, by design)")
 	local bp = n.Window.bagViews[0].frame.points[1]
 	check(bp[4] == 800, "a small bag window moves to the new profile's saved spot")
 	if picker.cancelFunc then picker.cancelFunc() end
@@ -6424,7 +6431,7 @@ end)()
 	local tf = io.open("BagSmith/BagSmith.toc", "r"); local toc = tf and tf:read("*a") or ""; if tf then tf:close() end
 	-- (1.5.7) the date's format only: which day it must be is the packaging check's job (it knows the build day). Pinning the
 -- day here carried 7 November into 1.5.6, built on the 8th.
-check(toc:find("## Version: 1%.7%.5\n") and toc:find("## X%-Date: %d%d%d%d%-%d%d%-%d%d\n"), "the TOC version is 1.7.5, with a release date in YYYY-MM-DD form")
+check(toc:find("## Version: 1%.8%.0\n") and toc:find("## X%-Date: %d%d%d%d%-%d%d%-%d%d\n"), "the TOC version is 1.8.0, with a release date in YYYY-MM-DD form")
 	n.version = "0.14.0"
 	local e
 	for _, x in ipairs(WN.ENTRIES) do if x.v == "0.13.0" then e = x end end
@@ -6931,16 +6938,15 @@ end)()
 	-- rc16: in Classic icon cells the rarity frame covers the icon's corners.
 	package.loaded.mock = nil
 	local M = require("mock")
-	M.put(0, 1, { id = 9401, name = "Red Cape", q = 1, class = 4, subclass = 1, price = 5, equip = "INVTYPE_CLOAK" })
+	M.put(0, 1, { id = 9401, name = "Red Cape", q = 2, class = 4, subclass = 1, price = 5, equip = "INVTYPE_CLOAK" })
 	_G.BagSmithCharDB = { version = 1, firstSeen = {} }
 	_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = { skin = "classic", view = "icons" } } }
 	local n = M.loadAddon("BagSmith")
 	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
 	ToggleAllBags(); M.runTimers()
 	local b = n.Buttons:Get(0, 1)
-	local p1, p2 = b.qFrame.points[1], b.qFrame.points[2]
-	check(b.qFrame:IsShown() and p1[2] == b.icon and p1[4] == -2 and p1[5] == 2 and p2[4] == 2 and p2[5] == -2,
-		"Classic: the rarity frame sits 2 px outside the icon on every side, covering its corners")
+	check(b.qFrame:IsShown() and b.qFrame.points[1][2] == b.icon and b.qFrame.points[1][4] == -2 * n.Buttons.PixelSize(b) and b.qFrame.points[2][4] == 2 * n.Buttons.PixelSize(b) and b.icon.points[1][2] == b and b.icon.points[1][4] == 0 and b.icon.points[2][4] == 0,
+		"Classic: full-slot icon retains a two-screen-pixel frame margin")
 end)()
 
 ;(function()
@@ -10350,32 +10356,33 @@ end)()
 	-- (1.6.0, by design) the 1.6 entry leads (Blackthornes prices, Quest Starters, see-through windows, fewer tips); the
 	-- older entries follow, one place down
 	-- (1.7.0-beta6, by design) the 1.7 entry leads now; every older entry one place down again (each check kept)
-	local e17 = WN.ENTRIES[1]
+	-- (1.8.0-beta2, by design) the 1.8 card leads now; every older card one place down (each check kept)
+	local e17 = WN.ENTRIES[2]
 	-- (1.7.0-beta12, by design: Shweep's review) the 1.7 card has nine bullets (its body scrolls): up to nine
 	check(e17.v == "1.7.0" and e17.heading == "BagSmith 1.7" and #e17.items >= 2 and #e17.items <= 9 and table.concat(e17.items, " "):find("Split Gear by Binding:", 1, true), "What's New leads with a 1.7 entry: Split Gear by Binding among its bullets")
-	local e = WN.ENTRIES[2]
+	local e = WN.ENTRIES[3]
 	local text = table.concat(e.items, " ")
 	check(e.v == "1.6.0" and e.heading == "BagSmith 1.6" and #e.items >= 2 and #e.items <= 8 and text:find("Blackthornes Tradeskills Prices:", 1, true) and text:find("Quest Starters:", 1, true), "What's New leads with a 1.6 entry: Blackthornes prices and Quest Starters among its bullets")
 	-- (1.5.1) the 1.5.1 entry: the Loot Helper's new destroy default and its two settings
-	e = WN.ENTRIES[3]
+	e = WN.ENTRIES[4]
 	text = table.concat(e.items, " ")
 	check(e.v == "1.5.1" and e.heading == "BagSmith 1.5.1" and #e.items >= 2 and #e.items <= 8 and text:find("Faster Destroying:", 1, true) and text:find("Ask Before Destroying", 1, true) and text:find("Always Ask for Rare or Better", 1, true) and not text:find("\226\128\148"), "What's New leads with a 1.5.1 entry: the destroy default and its two settings")
 	-- (1.5.0) the 1.5 entry: Icon Corners and marks from other addons
-	e = WN.ENTRIES[4]; text = table.concat(e.items, " ")
-	check(e.v == "1.5.0" and e.heading == "BagSmith 1.5" and #e.items >= 2 and #e.items <= 8 and text:find("Icon Corners:", 1, true) and text:find("Marks from Other Addons:", 1, true) and not text:find("\226\128\148"), "What's New leads with a 1.5 entry: Icon Corners, marks from other addons")
 	e = WN.ENTRIES[5]; text = table.concat(e.items, " ")
-	check(e.v == "1.4.0" and e.heading == "BagSmith 1.4" and #e.items >= 3 and #e.items <= 8 and text:find("Sort: Off:", 1, true) and text:find("Pinned Sections:", 1, true) and text:find("By Section:", 1, true), "What's New leads with a 1.4 entry: Sort Off, pinned sections, By Section")
+	check(e.v == "1.5.0" and e.heading == "BagSmith 1.5" and #e.items >= 2 and #e.items <= 8 and text:find("Icon Corners:", 1, true) and text:find("Marks from Other Addons:", 1, true) and not text:find("\226\128\148"), "What's New leads with a 1.5 entry: Icon Corners, marks from other addons")
 	e = WN.ENTRIES[6]; text = table.concat(e.items, " ")
-	check(e.v == "1.3.0" and e.heading == "BagSmith 1.3" and #e.items >= 3 and #e.items <= 8 and text:find("Loot Helper:", 1, true) and text:find("Why Things Are Left Out:", 1, true) and text:find("Exclusion Lists:", 1, true), "What's New leads with a 1.3 entry: the Loot Helper, why things are left out, the Exclusion Lists")
+	check(e.v == "1.4.0" and e.heading == "BagSmith 1.4" and #e.items >= 3 and #e.items <= 8 and text:find("Sort: Off:", 1, true) and text:find("Pinned Sections:", 1, true) and text:find("By Section:", 1, true), "What's New leads with a 1.4 entry: Sort Off, pinned sections, By Section")
 	e = WN.ENTRIES[7]; text = table.concat(e.items, " ")
-	check(e.v == "1.2.0" and e.heading == "BagSmith 1.2" and #e.items >= 3 and #e.items <= 8 and text:find("Disenchant Helper:", 1, true) and text:find("Fewer Yes/No Boxes:", 1, true) and text:find("Mail and Trade:", 1, true), "What's New leads with a 1.2 entry: the Disenchant Helper, fewer yes/no boxes, mail and trade")
+	check(e.v == "1.3.0" and e.heading == "BagSmith 1.3" and #e.items >= 3 and #e.items <= 8 and text:find("Loot Helper:", 1, true) and text:find("Why Things Are Left Out:", 1, true) and text:find("Exclusion Lists:", 1, true), "What's New leads with a 1.3 entry: the Loot Helper, why things are left out, the Exclusion Lists")
 	e = WN.ENTRIES[8]; text = table.concat(e.items, " ")
-	check(e.v == "1.1.0" and e.heading == "BagSmith 1.1" and #e.items >= 3 and #e.items <= 8 and text:find("Item Level on Icons:", 1, true) and text:find("List View:", 1, true) and text:find("Classic Style:", 1, true) and text:find("Smoother Scrolling:", 1, true) and text:find("Pawn Arrow:", 1, true), "the 1.1 entry follows: the item level feature, List view, Classic style, smoother scrolling, the Pawn arrow")
+	check(e.v == "1.2.0" and e.heading == "BagSmith 1.2" and #e.items >= 3 and #e.items <= 8 and text:find("Disenchant Helper:", 1, true) and text:find("Fewer Yes/No Boxes:", 1, true) and text:find("Mail and Trade:", 1, true), "What's New leads with a 1.2 entry: the Disenchant Helper, fewer yes/no boxes, mail and trade")
 	e = WN.ENTRIES[9]; text = table.concat(e.items, " ")
+	check(e.v == "1.1.0" and e.heading == "BagSmith 1.1" and #e.items >= 3 and #e.items <= 8 and text:find("Item Level on Icons:", 1, true) and text:find("List View:", 1, true) and text:find("Classic Style:", 1, true) and text:find("Smoother Scrolling:", 1, true) and text:find("Pawn Arrow:", 1, true), "the 1.1 entry follows: the item level feature, List view, Classic style, smoother scrolling, the Pawn arrow")
+	e = WN.ENTRIES[10]; text = table.concat(e.items, " ")
 	check(e.v == "1.0.0" and e.heading == "BagSmith 1.0" and #e.items >= 2 and #e.items <= 8, "the 1.0 entry follows")
 	check(text:find("Thank you:", 1, true) and text:find("Discord", 1, true) and text:find("Plugins:", 1, true) and text:find("Coming soon, BagSmith Gamepad Plugin:", 1, true) and text:find("alpha testing", 1, true) and text:find("testers", 1, true),
 		"it thanks the players, invites them to the Discord, introduces plugins, and announces the Gamepad companion as coming soon with testers wanted at beta")
-	local e15 = WN.ENTRIES[10]
+	local e15 = WN.ENTRIES[11]
 	local text15 = table.concat(e15.items, " ")
 	check(e15.v == "0.15.0" and e15.heading == "BagSmith 0.15" and #e15.items >= 5 and #e15.items <= 8 and text15:find("Gear Sets:", 1, true) and text15:find("Settings Search:", 1, true) and text15:find("Recent Items:", 1, true) and text15:find("Tidier Settings:", 1, true),
 		"the 0.15 entry follows, covering gear sets, Settings search, Recent Items and the reorganized Settings")
@@ -10869,7 +10876,7 @@ end)()
 ;(function()
 	-- 0.15.0 (prod): one clean 0.15.0 changelog section; the sword-and-shield replaces the helmet everywhere.
 	local log = io.open("BagSmith/CHANGELOG.md"):read("*a")
-	check(log:find("^## 1%.7%.5\n") and log:find("\n## 1%.7%.4\n") and log:find("\n## 1%.7%.3\n") and log:find("\n## 1%.7%.2\n") and log:find("\n## 1%.7%.1\n") and log:find("\n## 1%.7%.0\n") and log:find("\n## 1%.6%.3\n") and log:find("\n## 1%.6%.2\n") and log:find("\n## 1%.6%.1\n") and log:find("\n## 1%.6%.0\n") and log:find("\n## 1%.5%.8\n") and log:find("\n## 1%.5%.7\n") and log:find("\n## 1%.5%.6\n") and log:find("\n## 1%.5%.5\n") and log:find("\n## 1%.5%.4\n") and log:find("\n## 1%.5%.3\n") and log:find("\n## 1%.5%.2\n") and log:find("\n## 1%.5%.1\n") and log:find("\n## 1%.5%.0\n") and log:find("\n## 1%.4%.2\n") and log:find("\n## 1%.4%.1\n") and log:find("\n## 1%.4%.0\n") and log:find("\n## 1%.3%.1\n") and log:find("\n## 1%.3%.0\n") and log:find("\n## 1%.2%.0\n") and log:find("\n## 1%.1%.0\n") and log:find("\n## 1%.0%.1\n") and log:find("\n## 1%.0%.0\n") and log:find("\n## 0%.15%.0\n") and not log:find("## 0%.15%.0%-beta") and not log:find("## 0%.15%.0%-rc"), "the changelog leads with 1.7.5 (the release in progress; 1.7.5, by design), then 1.7.4, 1.7.3, 1.7.2, 1.7.1, 1.7.0, 1.6.3, 1.6.2, 1.6.1, 1.6.0, 1.5.8, 1.5.7, 1.5.6, 1.5.5, 1.5.4, 1.5.3, 1.5.2, 1.5.1, 1.5.0, 1.4.2, 1.4.1, 1.4.0, 1.3.1, 1.3.0, 1.2.0, 1.1.0, 1.0.1 and 1.0.0, then one 0.15.0 section (the beta and rc entries folded in)")
+	check(log:find("^## 1%.8%.0\n") and log:find("\n## 1%.7%.5\n") and log:find("\n## 1%.7%.4\n") and log:find("\n## 1%.7%.3\n") and log:find("\n## 1%.7%.2\n") and log:find("\n## 1%.7%.1\n") and log:find("\n## 1%.7%.0\n") and log:find("\n## 1%.6%.3\n") and log:find("\n## 1%.6%.2\n") and log:find("\n## 1%.6%.1\n") and log:find("\n## 1%.6%.0\n") and log:find("\n## 1%.5%.8\n") and log:find("\n## 1%.5%.7\n") and log:find("\n## 1%.5%.6\n") and log:find("\n## 1%.5%.5\n") and log:find("\n## 1%.5%.4\n") and log:find("\n## 1%.5%.3\n") and log:find("\n## 1%.5%.2\n") and log:find("\n## 1%.5%.1\n") and log:find("\n## 1%.5%.0\n") and log:find("\n## 1%.4%.2\n") and log:find("\n## 1%.4%.1\n") and log:find("\n## 1%.4%.0\n") and log:find("\n## 1%.3%.1\n") and log:find("\n## 1%.3%.0\n") and log:find("\n## 1%.2%.0\n") and log:find("\n## 1%.1%.0\n") and log:find("\n## 1%.0%.1\n") and log:find("\n## 1%.0%.0\n") and log:find("\n## 0%.15%.0\n") and not log:find("## 0%.15%.0%-beta") and not log:find("## 0%.15%.0%-rc"), "the changelog leads with 1.8.0 (the release in progress; 1.8.0, by design), then 1.7.5, 1.7.4, 1.7.3, 1.7.2, 1.7.1, 1.7.0, 1.6.3, 1.6.2, 1.6.1, 1.6.0, 1.5.8, 1.5.7, 1.5.6, 1.5.5, 1.5.4, 1.5.3, 1.5.2, 1.5.1, 1.5.0, 1.4.2, 1.4.1, 1.4.0, 1.3.1, 1.3.0, 1.2.0, 1.1.0, 1.0.1 and 1.0.0, then one 0.15.0 section (the beta and rc entries folded in)")
 	local section = log:match("(## 0%.15%.0\n.-)\n## ") or ""
 	local bad = false
 	for _, w in ipairs({ "colour", "favourite", "behaviour", "cancelled", "helmet", "\226\128\148" }) do if section:find(w) then bad = true end end

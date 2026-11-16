@@ -130,6 +130,102 @@ function Classic.FitTabArt(btn)
 			if f.coords then local c = f.coords; r:SetTexCoord(c[1], c[5], c[2], c[4]) end
 		end
 	end
+	Classic.ApplyTabTrim(btn)   -- (1.8.0-beta13) a fit resets the art's width: the end trims go back on
+	Classic.FitTabEnds(btn)     -- (1.8.0-beta15) and the ends share a narrow tab
+end
+
+-- (1.8.0-beta15, from Shweep's /bs debug report on beta14) The shading on the tabs themselves. Forever's tab art is
+-- three pieces, atlases uiframe-tab-left (35 px), uiframe-tab-right (37 px) and a middle that stretches: the game's
+-- own tabs are always at least both ends wide (the text plus the ends). BagSmith's are compact (the text plus a little),
+-- so on a narrow tab the two ends overlapped (on Gear, 22 px: the left end at -3 to 32, the right at 10 to 47, the
+-- middle 0) and their soft inner shading was drawn twice: the dark smudge. When the ends don't fit, each gets its
+-- share of the tab instead, keeping its outer edge, its art cropped from the inner side; nothing overlaps. The
+-- normal, selected, highlight and (older template) disabled sets alike. Widths and coordinates are recorded once.
+local END_SETS = { { "Left", "Right" }, { "LeftActive", "RightActive" }, { "LeftHighlight", "RightHighlight" }, { "LeftDisabled", "RightDisabled" } }
+local function endBase(p)
+	if not p.bsEnd then
+		local c = { p:GetTexCoord() }
+		p.bsEnd = { w = p:GetWidth() or 0, l = c[1] or 0, r = c[5] or 1 }
+	end
+	return p.bsEnd
+end
+local function setEnd(p, w2, keepLeft)
+	local b = p.bsEnd
+	local c = { p:GetTexCoord() }
+	local top, bottom = c[2] or 0, c[4] or 1   -- (vertical: as FitTabArt left it)
+	local l, r = b.l, b.r
+	if b.w > 0 and w2 < b.w then
+		local span = b.r - b.l
+		if keepLeft then r = b.l + span * (w2 / b.w) else l = b.r - span * (w2 / b.w) end
+	end
+	p:SetWidth(math.max(0.01, w2))
+	p:SetTexCoord(l, r, top, bottom)
+end
+function Classic.FitTabEnds(btn)
+	local art = btn and btn.classic
+	if not (art and art.isTab) then return end
+	local bw = btn.GetWidth and btn:GetWidth() or 0
+	if bw <= 0 then return end
+	for _, set in ipairs(END_SETS) do
+		local L, R = art[set[1]], art[set[2]]
+		if type(L) == "table" and type(R) == "table" and L.GetPoint and R.GetPoint and L.SetTexCoord and R.SetTexCoord and L.GetWidth and R.GetWidth then
+			local lb, rb = endBase(L), endBase(R)
+			local _, _, _, lx = L:GetPoint(1)
+			local _, _, _, rx = R:GetPoint(1)
+			local total = bw + (tonumber(rx) or 0) - (tonumber(lx) or 0)   -- from the left end's outer edge to the right end's
+			local lw, rw = lb.w, rb.w
+			if lw + rw > total and lw + rw > 0 and total > 0 then
+				lw = math.floor(total * lb.w / (lb.w + rb.w) + 0.5)
+				rw = math.max(0, total - lw)
+			end
+			setEnd(L, lw, true); setEnd(R, rw, false)
+		end
+	end
+end
+
+-- (1.8.0-beta13, Shweep: shading "coming off of tabs themself"; learned from Guildy's tabs) The game's tab art ends in
+-- soft shaded flares made to tuck under the next tab: the game's tabs (and Guildy's, the real template) overlap about
+-- 14 px. BagSmith's overlapped 2, so the shading showed. Tabs now overlap 14 (View: CLASSIC_TAB_EXTRA), and the row's
+-- two outer ends, which have no neighbor to tuck under, are trimmed: the end pieces ("Left" or "Right" in their key,
+-- the selected and highlight ones too) lose that many pixels on the outer side, their art cropped in proportion.
+-- Widths and coordinates are recorded once, so trims never compound and a tab that stops being an end gets its art back.
+local function endPieces(art, side)
+	local out = {}
+	if type(art) ~= "table" then return out end
+	for k, v in pairs(art) do
+		if type(k) == "string" and k:find(side) and type(v) == "table" and v.SetTexCoord and v.GetWidth then out[#out + 1] = v end
+	end
+	return out
+end
+function Classic.ApplyTabTrim(btn)
+	local art = btn and btn.classic
+	local trim = btn and btn.bsTabTrim
+	if not (art and art.isTab and trim) then return end
+	for side, px in pairs(trim) do
+		for _, r in ipairs(endPieces(art, side)) do
+			if not r.bsTrimBase then
+				local c = { r:GetTexCoord() }
+				r.bsTrimBase = { w = r:GetWidth() or 0, l = c[1], r = c[5] }
+			end
+			local base = r.bsTrimBase
+			if base.w > 0 then
+				local cut = math.max(0, math.min(px, base.w - 1))
+				local c = { r:GetTexCoord() }
+				local top, bottom = c[2] or 0, c[4] or 1   -- (vertical: as FitTabArt left it)
+				local span = (base.r or 1) - (base.l or 0)
+				local l, rr = base.l or 0, base.r or 1
+				if side == "Left" then l = l + span * (cut / base.w) else rr = rr - span * (cut / base.w) end
+				r:SetWidth(base.w - cut)
+				r:SetTexCoord(l, rr, top, bottom)
+			end
+		end
+	end
+end
+-- left, right: pixels to trim from the tab's outer ends (0 puts the art back)
+function Classic.TrimTabEnds(btn, left, right)
+	if not (btn and btn.classic and btn.classic.isTab) then return end
+	btn.bsTabTrim = { Left = left or 0, Right = right or 0 }
+	Classic.ApplyTabTrim(btn)
 end
 -- /bs debug: hovering a tab lists any piece of its art that reaches below the tab.
 function Classic.TabArtReport(btn)
@@ -143,6 +239,27 @@ function Classic.TabArtReport(btn)
 	end
 	ns:Debug("Tab %q (%d px tall): %s", btn.label and btn.label.GetText and (btn.label:GetText() or "") or "?", math.floor(h + 0.5),
 		#out > 0 and ("art reaching below the tab: " .. table.concat(out, ", ")) or "all its art fits inside the tab")
+	-- (1.8.0-beta14, Shweep: the tabs' own shading) every piece of the tab's art, to see where shading comes from: its
+	-- name, shown or not, layer, size, where it sits against the tab, its texture or atlas and the part of it in use
+	local art = btn.classic
+	local nameOf = {}
+	for k, v in pairs(art) do if type(k) == "string" and type(v) == "table" then nameOf[v] = k end end
+	local bl, bt = btn.GetLeft and btn:GetLeft(), btn.GetTop and btn:GetTop()
+	local function n1(v) return v and ("%.0f"):format(v) or "?" end
+	for _, r in ipairs({ art:GetRegions() }) do
+		if r and r.GetObjectType and r:GetObjectType() == "Texture" then
+			local layer, sub = r.GetDrawLayer and r:GetDrawLayer()
+			local tex = (r.GetAtlas and r:GetAtlas()) or (r.GetTexture and r:GetTexture()) or "?"
+			local c = r.GetTexCoord and { r:GetTexCoord() } or {}
+			local dx = (r.GetLeft and bl) and r:GetLeft() and (r:GetLeft() - bl) or nil
+			local dy = (r.GetTop and bt) and r:GetTop() and (bt - r:GetTop()) or nil
+			local a = r.GetAlpha and r:GetAlpha() or 1
+			ns:Debug("  %s: %s, %s %s, %sx%s at +%s,+%s, alpha %.2f, %s, coords %.3f,%.3f to %.3f,%.3f",
+				nameOf[r] or (r.GetDebugName and r:GetDebugName()) or "piece", (r.IsShown and r:IsShown()) and "shown" or "hidden",
+				tostring(layer), tostring(sub), n1(r:GetWidth()), n1(r:GetHeight()), n1(dx), n1(dy), a, tostring(tex),
+				c[1] or 0, c[2] or 0, c[7] or 1, c[8] or 1)
+		end
+	end
 end
 
 -- The highest frame layer used anywhere in a frame's children.
@@ -465,6 +582,37 @@ local DROPDOWNS = { { "WowStyle1DropdownTemplate", { "DropdownButton", "Button" 
 function Classic.SyncDropdown(view)
 	local art = view and view.classicDropdown
 	if art and view.charBtn then art:SetShown((view.classicApplied and view.charBtn:IsShown()) and true or false) end
+end
+-- (1.8.0-beta2) The game's dropdown look for any button (the Settings Font dropdown, Shweep: "like our alt
+-- selector"): the template's art behind the button, its arrow nudged as the picker's is. Nil when the client has none.
+function Classic.DropdownArt(btn)
+	local parent = btn and btn:GetParent()
+	if not parent then return nil end
+	local art
+	for _, d in ipairs(DROPDOWNS) do
+		for _, kind in ipairs(d[2]) do
+			local ok, f = pcall(CreateFrame, kind, nil, parent, d[1])
+			if ok and f then art = f; break end
+		end
+		if art then break end
+	end
+	if not art then return nil end
+	art:ClearAllPoints(); art:SetAllPoints(btn)
+	if art.SetFrameLevel and btn.GetFrameLevel then art:SetFrameLevel(math.max(0, btn:GetFrameLevel() - 1)) end
+	if art.EnableMouse then art:EnableMouse(false) end
+	if art.Text and art.Text.SetText then art.Text:SetText("") end
+	if art.Button and art.Button.EnableMouse then art.Button:EnableMouse(false) end
+	local arrow = art.Arrow or art.Button
+	if arrow and arrow.GetPoint and arrow.SetPoint then
+		local p = { arrow:GetPoint(1) }
+		if p[1] then
+			if type(p[2]) == "number" then p = { p[1], art, p[1], p[2], p[3] } end
+			arrow:ClearAllPoints()
+			arrow:SetPoint(p[1], p[2] or art, p[3] or p[1], (p[4] or 0) + DROPDOWN_ARROW_NUDGE, (p[5] or 0) + DROPDOWN_ARROW_LIFT)
+		end
+	end
+	art:Hide()
+	return art
 end
 local function dropdownArt(view, on)
 	local btn = view.charBtn
@@ -994,6 +1142,14 @@ function Classic:Dress(frame, spec, on)
 				if art then note("Dialog background", okArt) end
 				fill:SetPoint("TOPLEFT", 6, -6); fill:SetPoint("BOTTOMRIGHT", -6, 6)
 				st.solid = fill
+				-- (1.8.0-beta22, Shweep: a checkbox showed through the Font menu) Blizzard's dark art is itself partly
+				-- see-through: plain black under it, so nothing behind a menu or dialog shows
+				if okArt then
+					local under = chrome:CreateTexture(nil, "BACKGROUND", nil, 6)
+					under:SetColorTexture(0, 0, 0, 1)
+					under:SetPoint("TOPLEFT", 6, -6); under:SetPoint("BOTTOMRIGHT", -6, 6)
+					st.solidUnder = under
+				end
 			end
 			st.chrome = chrome
 		end

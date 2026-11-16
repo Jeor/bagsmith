@@ -888,7 +888,7 @@ function View:PlaceHiddenNotice(host, y, width)
 	if not note then
 		note = CreateFrame("Frame", nil, host)
 		note:SetHeight(50)
-		note.text = note:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		note.text = note:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall"))
 		note.text:SetPoint("TOP", note, "TOP", 0, -6); note.text:SetJustifyH("CENTER")
 		note.btn = ns.TextButton(note, "", 100, function()
 			ns.ui.showHidden = not ns.ui.showHidden
@@ -926,8 +926,14 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 	local host = self.child
 	local used, usedSet = {}, {}
 	local iconMode = self:Pref("view") == "icons" or self.kind == "bag"
+	-- Border textures extend outside Classic cells. Keep both outer columns
+	-- inside the scroll viewport, including one pixel of rounding allowance.
+	-- Move the whole cell, so numeric anchors and secure hit targets stay aligned.
+	local gutter = iconMode and db.skin == "classic" and 3 * Buttons.PixelSize(self.frame) or 0
 	local rowH, cell = db.dense and 22 or db.rowHeight, db.iconSize
-	-- (1.7.5-beta1) a mouse wheel notch: two rows of the list, or one row of icons (Scroll.lua)
+	-- (1.8.0) a row holds its text: above 100% Text Size, rows grow to fit it (a larger Row Height still applies)
+	if ns.Fonts then rowH = math.max(rowH, ns.Fonts:RowNeed()) end
+	-- (1.7.5-beta1) a mouse wheel notch: two rows of the list (as tall as the text makes them), or one row of icons (Scroll.lua)
 	self.wheelStep = iconMode and (cell + GAP) or (rowH * ns.WHEEL_ROWS)
 	local y = 0
 
@@ -952,7 +958,7 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 	if slotGrid then
 		local bag = bags[1]
 		local size = cached and (bagInfo and bagInfo[bag] and bagInfo[bag].size or 0) or (ns.bagInfo[bag] and ns.bagInfo[bag].size or 0)
-		local perRow = math.max(1, math.floor((width + GAP) / (cell + GAP)))
+		local perRow = math.max(1, math.floor((width - 2 * gutter + GAP) / (cell + GAP)))
 		if self.kind == "bag" then perRow = math.max(1, math.min(perRow, db.bagCols)) end
 		local shownSet = {}
 		for _, r in ipairs(shown) do shownSet[r.slot] = r end
@@ -966,7 +972,7 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 			if b then
 				ci = ci + 1
 				local col, row = (ci - 1) % perRow, math.floor((ci - 1) / perRow)
-				local x, yy = col * (cell + GAP), -(row * (cell + GAP))
+				local x, yy = gutter + col * (cell + GAP), -(row * (cell + GAP))
 				local r = allSet[slot]
 				-- Hidden at this vendor or auction house: a locked cell instead of the
 				-- item's button (greyed icon, padlock, no clicks, no drops), so it
@@ -1521,7 +1527,7 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 			-- A set you're wearing: "Worn" where Equip would be.
 			if lane.allWorn then
 				if not h.wornTag then
-					h.wornTag = h:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+					h.wornTag = h:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall"))
 					h.wornTag:SetText("Worn")
 				end
 				h.wornTag:ClearAllPoints(); h.wornTag:SetPoint("LEFT", h.count, "RIGHT", 10, 0)
@@ -1551,7 +1557,7 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 				return Buttons:Get(r.bag, r.slot)
 			end
 			if iconMode then
-				local perRow = math.max(1, math.floor((colW + GAP) / (cell + GAP)))
+				local perRow = math.max(1, math.floor((colW - 2 * gutter + GAP) / (cell + GAP)))
 				for i, r in ipairs(lane.items) do
 					local b = buttonFor(r)
 					if b then
@@ -1559,7 +1565,7 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 						Buttons:SetMode(b, "cell")
 						b:ClearAllPoints(); b:SetSize(cell, cell)
 						local col, row = (i - 1) % perRow, math.floor((i - 1) / perRow)
-						b:SetPoint("TOPLEFT", host, "TOPLEFT", x0 + col * (cell + GAP), -(y + row * (cell + GAP)))
+						b:SetPoint("TOPLEFT", host, "TOPLEFT", x0 + gutter + col * (cell + GAP), -(y + row * (cell + GAP)))
 						if r.empty then Buttons:Blank(b, r) else Buttons:Fill(b, r, r.display and { dim = true } or nil) end
 						b:Show()
 						used[#used + 1] = b; usedSet[b] = true
@@ -1634,7 +1640,7 @@ function View:PlaceGearSetsNote(host, y, width, show)
 	end
 	if not note then
 		note = CreateFrame("Frame", nil, host)
-		note.text = note:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+		note.text = note:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlight"))
 		note.text:SetPoint("TOP", note, "TOP", 0, -10); note.text:SetJustifyH("CENTER")
 		note.btn = ns.TextButton(note, "Create Gear Set", 130, function() if ns.GearSets then ns.GearSets:PromptNew() end end)
 		note.btn:SetHeight(22); note.btn:SetPoint("TOP", note.text, "BOTTOM", 0, -10)

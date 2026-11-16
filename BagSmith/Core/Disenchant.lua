@@ -16,6 +16,8 @@ local ADDON, ns = ...
 	  tables. Every cast's actual loot is recorded locally per bracket, and once
 	  a bracket has enough of your own results (CALIBRATE_AT), those take over
 	  for that bracket; the window says which it is using.
+	- (1.8.0) Materials the table doesn't list are learned by item ID from the cast's own loot window (DE:LearnMaterial),
+	  and gear past the table's item levels learns from your own results alone (DE:FallbackKey).
 	- Prices come from the price addon BagSmith already reads (Core/AH.lua: Auctionator or, 1.6.0, Blackthornes Tradeskills):
 	  the item's own AH price on the "sell it" side, the materials' prices on the
 	  "disenchant it" side. No price addon: dashes and the install note, and no
@@ -79,6 +81,12 @@ DE.SHARD = {
 	{ 41, 45, M.smallRadiant }, { 46, 50, M.largeRadiant }, { 51, 55, M.smallBrilliant }, { 56, 99, M.largeBrilliant },
 }
 DE.EPIC_CRYSTAL_FROM = 56
+-- (1.8.0-beta10, Shweep's results on Forever, 15 Nov) Low blues don't always give a shard there: his three gave Strange
+-- Dust x3, Greater Magic Essence x3 and a Small Glimmering Shard (classic gives the shard every time). Until there are
+-- more results, rare items up to this level count a third each: the shard, 3 dust, 3 of the bracket's essence
+-- (Lesser Magic to item level 15, Greater Magic above, as for greens). The Likely results say it's an early estimate;
+-- a player's own results take over at CALIBRATE_AT casts, as everywhere. Improve as data comes in.
+DE.FOREVER_RARE_TO = 25
 -- Enchanting skill needed to disenchant, by item level.
 DE.SKILL = { { 20, 1 }, { 25, 25 }, { 30, 50 }, { 35, 75 }, { 40, 100 }, { 45, 125 }, { 50, 150 }, { 55, 175 }, { 60, 200 }, { 99, 225 } }
 
@@ -89,14 +97,30 @@ function DE.SkillFor(ilvl) for _, s in ipairs(DE.SKILL) do if ilvl <= s[1] then 
 function DE.IsWeapon(rec) return rec.classID == 2 end
 function DE.IsGear(rec) return rec.classID == 2 or rec.classID == 4 end
 
+-- (1.8.0) Gear the shipped table doesn't reach (uncommon, rare or epic, past its item levels): no typical results, but a
+-- bracket key of its own, so its casts are recorded and your own results take over once there are CALIBRATE_AT of them.
+-- Bands of 5 item levels on the game's own edges (101 to 105 is "101"); uncommon weapons and armor count apart, as in
+-- the table. The key starts with "f:", so it can't be mistaken for the table's "2:...", "3:..." and "4:..." keys.
+DE.LEARN_BAND = 5
+function DE:FallbackKey(rec)
+	if type(rec) ~= "table" or not self.IsGear(rec) then return nil end
+	local q, ilvl = tonumber(rec.quality) or 0, tonumber(rec.ilvl) or 0
+	if q < 2 or q > 4 then return nil end
+	if ilvl < 5 then ilvl = 5 end
+	local lo = math.floor((math.floor(ilvl) - 1) / self.LEARN_BAND) * self.LEARN_BAND + 1
+	if q == 2 then return ("f:2:%d:%s"):format(lo, self.IsWeapon(rec) and "w" or "a") end
+	return ("f:%d:%d"):format(q, lo)
+end
+
 -- The shipped expectation: a list of { id, chance, min, max }, and the bracket key for the log.
+-- (1.8.0) No bracket in the table: no list, and the fallback key (DE:FallbackKey) when the item has one.
 function DE:Expectation(rec)
 	if type(rec) ~= "table" then return nil end
 	local q, ilvl = rec.quality or 0, rec.ilvl or 0
 	if ilvl < 5 then ilvl = 5 end
 	if q == 2 then
 		local i, b = bracket(self.UNCOMMON, ilvl)
-		if not b then return nil end
+		if not b then return nil, self:FallbackKey(rec) end
 		local weapon = self.IsWeapon(rec)
 		local out = {
 			{ b[3], weapon and 0.20 or 0.75, b[4], b[5] },   -- dust
@@ -106,12 +130,17 @@ function DE:Expectation(rec)
 		return out, ("2:%d:%s"):format(i, weapon and "w" or "a")
 	elseif q == 3 then
 		local i, b = bracket(self.SHARD, ilvl)
-		if not b then return nil end
+		if not b then return nil, self:FallbackKey(rec) end
+		if ilvl <= self.FOREVER_RARE_TO then
+			local third = 1 / 3
+			local essence = ilvl <= 15 and M.lesserMagic or M.greaterMagic
+			return { { b[3], third, 1, 1 }, { M.strangeDust, third, 3, 3 }, { essence, third, 3, 3 }, early = true }, ("3:%d"):format(i)
+		end
 		return { { b[3], 1, 1, 1 } }, ("3:%d"):format(i)
 	elseif q == 4 then
 		if ilvl >= self.EPIC_CRYSTAL_FROM then return { { M.nexusCrystal, 1, 1, 1 } }, "4:crystal" end
 		local i, b = bracket(self.SHARD, ilvl)
-		if not b then return nil end
+		if not b then return nil, self:FallbackKey(rec) end
 		return { { b[3], 1, 1, 1 } }, ("4:%d"):format(i)
 	end
 	return nil
@@ -159,11 +188,71 @@ DE.LOOT_WINDOW = 5   -- seconds after a cast during which loot lines belong to i
 local MATERIAL = {}
 for _, id in pairs(M) do MATERIAL[id] = true end
 DE.MATERIAL = MATERIAL
+-- (1.8.0) Materials the table doesn't list (a server can add new ones), learned by item ID from the cast's own loot
+-- window and kept per character beside the learned results (ns.cdb.deMaterials: item ID -> true). From then on the loot
+-- chat counts them too. Forgetting the learned results keeps them: they say what a material is, not what to expect.
+function DE:LearnedMaterials()
+	if not ns.cdb then return {} end
+	if type(ns.cdb.deMaterials) ~= "table" then ns.cdb.deMaterials = {} end
+	return ns.cdb.deMaterials
+end
+function DE:LearnMaterial(id)
+	id = tonumber(id)
+	if not id or id <= 0 or id ~= math.floor(id) or MATERIAL[id] then return false end
+	local learned = self:LearnedMaterials()
+	if learned[id] then return false end
+	learned[id] = true
+	-- ask the game for its name and quality now, so the likely results can show them (nothing waits on it)
+	if C_Item and type(C_Item.RequestLoadItemDataByID) == "function" then pcall(C_Item.RequestLoadItemDataByID, id) end
+	ns:Debug("Disenchant Helper: learned a new material, %s", self.MatName(id))
+	return true
+end
+function DE:IsMaterial(id) return MATERIAL[id] == true or self:LearnedMaterials()[id] == true end
+-- (1.8.0) An item's class and subclass by ID, from the game's instant item info; nil when the client can't say.
+local function classOf(id)
+	local f = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
+	if type(f) ~= "function" then return nil end
+	local ok, _, _, _, _, _, classID, subClassID = pcall(f, id)
+	if not ok then return nil end
+	return tonumber(classID), tonumber(subClassID)
+end
+DE.ClassOf = classOf
+-- (1.8.0) Whether the game calls the item an enchanting reagent: Trade Goods, Enchanting. By the client's own names when
+-- it has them, else by the numbers Shweep's test showed on Forever (15 Nov: Greater Magic Essence is class 7, subclass
+-- 12; Enum.ItemClass.Tradegoods is 7 there, Enum.ItemTradeGoodsSubclass.Enchanting is missing). An item whose class
+-- can't be read answers no.
+DE.TRADE_GOODS, DE.ENCHANTING_SUBCLASS = 7, 12
+function DE.EnchantingReagent(id)
+	local E = type(Enum) == "table" and Enum or {}
+	local tradeGoods = type(E.ItemClass) == "table" and tonumber(E.ItemClass.Tradegoods) or DE.TRADE_GOODS
+	local enchanting = type(E.ItemTradeGoodsSubclass) == "table" and tonumber(E.ItemTradeGoodsSubclass.Enchanting) or DE.ENCHANTING_SUBCLASS
+	local classID, subClassID = classOf(id)
+	return classID ~= nil and classID == tradeGoods and subClassID == enchanting
+end
+-- (1.8.0) Whether a material reported outside the cast's own loot window (a loot chat line, or a window that can't be
+-- the cast's) is the cast's: a material BagSmith knows (shipped, learned, or an enchanting reagent by the game's word),
+-- and one this cast can produce. A material is one it can produce when the table says so, when it's one the table
+-- can't know about (learned, or a reagent the table doesn't list), or when this bracket's own results have had it.
+-- A shipped material the table puts in other brackets, never seen in this one, stays somebody else's.
+function DE:Attributable(c, id)
+	if not (c and id) then return false end
+	local shipped, learned = MATERIAL[id] == true, self:LearnedMaterials()[id] == true
+	local reagent = not (shipped or learned) and self.EnchantingReagent(id)
+	if not (shipped or learned or reagent) then return false end   -- somebody else's loot, or a pickup: not the cast's
+	if not c.allowed or c.allowed[id] or learned or reagent then return true end
+	local e = c.key and self:Log()[c.key]
+	return type(e) == "table" and type(e.seen) == "table" and (tonumber(e.seen[id]) or 0) > 0
+end
 -- One tally per cast, whichever source reports first: a second report of the same material adds only what
 -- exceeds the first (the loot chat and the loot window describe the same materials).
-function DE:Tally(c, id, count, source)
-	if not (c and id and MATERIAL[id]) then return false end
-	if c.allowed and not c.allowed[id] then return false end   -- not a material this cast can produce
+-- (1.8.0) "window" is the cast's own loot window (DE:OnLootOpened sets aside one that can't be): whatever it holds is
+-- the cast's, and a material the table doesn't list is learned. Every other report must be DE:Attributable.
+function DE:Tally(c, id, count, source, learn)
+	if not (c and id) then return false end
+	-- (1.8.0) learn: only from the cast's own window (DE:OnLootOpened); a window that can't be shown to be the cast's
+	-- teaches nothing, and its materials pass DE:Attributable there first
+	if source == "window" then if learn then self:LearnMaterial(id) end
+	elseif not self:Attributable(c, id) then return false end
 	count = tonumber(count) or 1
 	-- the chat reports receipts, which add up (two lines of 1 and 2 are 3); the loot window reports a snapshot of
 	-- what it holds, and the game may show the same window more than once (LOOT_READY, then LOOT_OPENED), so a
@@ -219,21 +308,25 @@ function DE:OnLootChat(msg)
 	if (GetTime() - c.at) > self.LOOT_WINDOW then self:CloseCast("window passed"); return end
 	local id, count = self.ParseLootLine(msg)
 	if not id then return end
-	if not MATERIAL[id] then return end   -- somebody else's loot, or a pickup: not the cast's
+	if not self:Attributable(c, id) then return end   -- somebody else's loot, or a pickup: not the cast's (1.8.0: learned materials count)
 	if self:Tally(c, id, count, "chat") and self.frame and self.frame:IsShown() then self:Paint() end
 end
 -- Expected quantity of each material per cast: the shipped chances, or your own averages once a bracket
 -- has enough casts. Returns a list of { id, perCast } and "estimate" or "yours" with the count.
+-- (1.8.0) An item with no table but a fallback key: your own results once that key has enough casts; before then no list,
+-- "learning", the count so far and the key (so the cast is still recorded, and the prices and verdict stay as with no
+-- table: no materials value).
 function DE:Expected(rec)
 	local shipped, key = self:Expectation(rec)
-	if not shipped then return nil end
-	local e = key and self:Log()[key]
+	if not key then return nil end
+	local e = self:Log()[key]
 	if type(e) == "table" and (e.n or 0) >= self.CALIBRATE_AT then
 		local out = {}
 		for id, total in pairs(e.mats or {}) do out[#out + 1] = { id, total / e.n, seen = (e.seen and e.seen[id]) or 0 } end
 		table.sort(out, function(a, b) return a[2] > b[2] end)
 		return out, "yours", e.n, key
 	end
+	if not shipped then return nil, "learning", type(e) == "table" and (e.n or 0) or 0, key end
 	local out = {}
 	for _, m in ipairs(shipped) do out[#out + 1] = { m[1], m[2] * (m[3] + m[4]) / 2, chance = m[2], min = m[3], max = m[4] } end
 	return out, "estimate", type(e) == "table" and e.n or 0, key
@@ -242,8 +335,36 @@ end
 ------------------------------------------------------------------------
 -- Prices and verdicts
 ------------------------------------------------------------------------
-local function itemInfo(id) if C_Item and C_Item.GetItemInfo then return C_Item.GetItemInfo(id) end return GetItemInfo and GetItemInfo(id) end
-function DE.MatName(id) local name = itemInfo(id); return name or ("item " .. tostring(id)) end
+-- (1.8.0) Guarded: a client whose item info throws for an item it doesn't know answers nothing, like an item not loaded yet.
+local function infoResult(ok, ...) if ok then return ... end end
+local function itemInfo(id)
+	local f = (C_Item and C_Item.GetItemInfo) or GetItemInfo
+	if type(f) ~= "function" then return nil end
+	return infoResult(pcall(f, id))
+end
+-- (1.8.0-beta4, Shweep's screenshot: "item 10978" under Likely results, the tooltip right) A material the game hasn't
+-- loaded yet has no name. Its data is asked for once, and when it arrives the open Helper and Exclusion List paint
+-- again (GET_ITEM_INFO_RECEIVED, below); until then the row reads "item <id>".
+DE.waitingNames = {}
+function DE.NoteMissingName(id)
+	if type(id) ~= "number" or DE.waitingNames[id] then return end
+	DE.waitingNames[id] = true
+	if C_Item and type(C_Item.RequestLoadItemDataByID) == "function" then pcall(C_Item.RequestLoadItemDataByID, id) end
+end
+function DE.MatName(id)
+	local name = itemInfo(id)
+	if name then return name end
+	DE.NoteMissingName(id)
+	return "item " .. tostring(id)
+end
+function DE:OnItemInfo(id)
+	if not (id and self.waitingNames[id]) then return end
+	self.waitingNames[id] = nil
+	ns:NextFrame("de:names", function()
+		if self.frame and self.frame:IsShown() then self:Refresh() end
+		if self.neverFrame and self.neverFrame:IsShown() then self:RefreshNeverWindow() end
+	end)
+end
 function DE.Money(v) if ns.Money then local s = ns.Money(v); if s ~= "" then return s end end return (GetCoinTextureString and GetCoinTextureString(v)) or tostring(v) end
 
 -- Per material: the AH price, or nil. The materials' value is nil when any price is missing (and which).
@@ -321,8 +442,14 @@ end
 DE.VERDICT_TEXT = { de = "Disenchant", ah = "Sell at AH", vendor = "Vendor", sell = "Sell", unknown = "No price yet", call = "Your call" }
 -- One line per material: a range and rough odds from the shipped table, or your own averages and how often
 -- the material showed up. The heading says which it is.
+-- (1.8.0) An item with no table, still short of enough of your own results: one line saying how far along it is, no
+-- result rows, "learning" as the basis.
+function DE:LearningText(n)
+	return ("Still learning: %d of %d disenchants in this range."):format(tonumber(n) or 0, self.CALIBRATE_AT)
+end
 function DE:LikelyLines(rec)
 	local list, basis, n = self:Expected(rec)
+	if basis == "learning" then return { self:LearningText(n) }, "learning from your results", basis, n, {} end
 	if not list then return nil end
 	local lines, parts = {}, {}
 	for _, m in ipairs(list) do
@@ -337,6 +464,11 @@ function DE:LikelyLines(rec)
 		parts[#parts + 1] = { id = m[1], rest = rest }   -- (1.7.3-beta5) the result rows: a linked name, then the rest
 	end
 	local head = basis == "yours" and ("from %d of your results"):format(n) or ("DE estimate, %d of %d in this range"):format(n or 0, self.CALIBRATE_AT)
+	-- (1.8.0-beta10) an estimate from only a few Forever results says so
+	if basis == "estimate" then
+		local shipped = self:Expectation(rec)
+		if shipped and shipped.early then head = ("early Forever estimate, %d of %d in this range"):format(n or 0, self.CALIBRATE_AT) end
+	end
 	return lines, head, basis, n, parts
 end
 
@@ -350,7 +482,11 @@ function DE:Never()
 end
 function DE:NeverList()
 	local out = {}
-	for id in pairs(self:Never()) do out[#out + 1] = { id = id, name = (itemInfo(id)) or ("Item " .. id) } end
+	for id in pairs(self:Never()) do
+		local name = itemInfo(id)
+		if not name then DE.NoteMissingName(id) end
+		out[#out + 1] = { id = id, name = name or ("Item " .. id) }
+	end
 	table.sort(out, function(a, b) return a.name < b.name end)
 	return out
 end
@@ -373,7 +509,7 @@ function DE:NeverWindow()
 	f:SetMovable(true); f:RegisterForDrag("LeftButton")
 	f:SetScript("OnDragStart", f.StartMoving); f:SetScript("OnDragStop", f.StopMovingOrSizing)
 	f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge"); f.title:SetPoint("TOPLEFT", 12, -12); f.title:SetText("DE Exclusion List")
-	f.sub = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.sub:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 0, -3)
+	f.sub = f:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.sub:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 0, -3)
 	f.sub:SetWidth(NW - 24); f.sub:SetJustifyH("LEFT")
 	f.search = CreateFrame("EditBox", "BagSmithDisenchantNeverSearch", f, "SearchBoxTemplate")
 	f.search:SetSize(NW - 32, 22); f.search:SetAutoFocus(false); f.search:SetPoint("TOPLEFT", 18, -58)
@@ -384,7 +520,7 @@ function DE:NeverWindow()
 	f.child = CreateFrame("Frame", nil, f.scroll); f.child:SetSize(NW - 44, 1); f.scroll:SetScrollChild(f.child)
 	ns.WheelStep(f.scroll, NROW * ns.WHEEL_ROWS)   -- (1.7.5-beta1) the wheel: two rows a notch (Init.lua, ns.WheelStep)
 	f.rows = {}
-	f.empty = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.empty:SetPoint("TOPLEFT", 16, -96)
+	f.empty = f:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.empty:SetPoint("TOPLEFT", 16, -96)
 	f.empty:SetWidth(NW - 32); f.empty:SetJustifyH("LEFT")
 	f.close = ns.TextButton(f, "Close", 70, function() f:Hide() end); f.close:SetHeight(22); f.close:SetPoint("BOTTOMRIGHT", -12, 12)
 	f.classicSpec = ns.Classic.DialogSpec(f, { hide = { f.closeX }, restore = function() ns.Skins:ApplyBackdrop(f); local s = ns.Skins:Current(); f:SetBackdropColor(s.bg[1], s.bg[2], s.bg[3], 1) end })
@@ -405,7 +541,7 @@ local function neverRow(f, i)
 	r = CreateFrame("Frame", nil, f.child); r:SetSize(NW - 44, NROW - 2)
 	r:EnableMouse(true)
 	r.icon = r:CreateTexture(nil, "ARTWORK"); r.icon:SetSize(18, 18); r.icon:SetPoint("LEFT", 2, 0)
-	r.name = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); r.name:SetPoint("LEFT", r.icon, "RIGHT", 6, 0)
+	r.name = r:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); r.name:SetPoint("LEFT", r.icon, "RIGHT", 6, 0)
 	r.name:SetPoint("RIGHT", -28, 0); r.name:SetJustifyH("LEFT"); r.name:SetWordWrap(false)
 	r.remove = ns.IconButton(r, "Interface\\AddOns\\BagSmith\\Media\\ui-close.tga", "Remove from your DE Exclusion List", function(b) DE:Unnever(b:GetParent().id) end)
 	r.remove:SetSize(16, 16); r.remove:SetPoint("RIGHT", -4, 0)
@@ -725,19 +861,70 @@ function DE:OnSpellSucceeded(unit, spellID)
 	self.session.done = self.session.done + 1
 end
 -- The loot window, for players with auto-loot off: its slots are the same materials, tallied once per cast.
+-- (1.8.0) A window shown to be the cast's own counts whatever it holds, and a material the table doesn't list is learned.
+-- Shown, not assumed: every slot's source is the disenchanted item (GetLootSourceInfo answers "Item-..."; Shweep's tests
+-- on Forever, 15 Nov, with auto-loot on and off: a disenchant's window says "Item-...", a creature's "Creature-..." with a
+-- coin slot), it isn't fishing loot, and it holds no weapon or armor (a disenchant gives none). A source that can't be
+-- read isn't the item's. Any other window counts only what the loot chat would (DE:Attributable) and teaches nothing.
+local function fishing()
+	if type(IsFishingLoot) ~= "function" then return false end
+	local ok, v = pcall(IsFishingLoot)
+	return ok and v == true
+end
+-- (1.8.0-beta16, the beta15 audit's A1) Every source the game lists for the slot (GetLootSourceInfo returns pairs:
+-- guid, quantity, guid, quantity, ...) must be an item; one creature or object among them and the slot isn't the cast's.
+-- (1.8.0-beta17, Shweep's /bs debug on Forever: "loot slot 1's source is the disenchanted item (Item-6796-0-40000000
+-- 257B6C17; item Item-6796-0-40000000257B6C17)") The loot source is the item's own GUID, so it's required: when the cast
+-- knows its item's GUID, every source must be exactly that item. Without one (a client that gives none), every source
+-- must still be an item.
+local function sourcesOf(i)
+	local ok, list = pcall(function() return { GetLootSourceInfo(i) } end)
+	if not ok or type(list) ~= "table" then return nil end
+	local out = {}
+	for k = 1, #list, 2 do out[#out + 1] = list[k] end
+	return out
+end
+DE.SourcesOf = sourcesOf
+local function slotIsCast(i, id)
+	if type(GetLootSourceInfo) ~= "function" then return false end
+	local sources = sourcesOf(i)
+	if not (sources and #sources > 0) then return false end
+	for _, guid in ipairs(sources) do
+		if not (type(guid) == "string" and guid:find("^Item%-")) then return false end
+	end
+	local c = DE.castOpen
+	local own = c and c.entry and c.entry.rec and c.entry.rec.guid
+	if own and ns.db and ns.db.debug then
+		ns:Debug("Disenchant Helper: loot slot %d's source %s the disenchanted item (%s; item %s)", i, sources[1] == own and "is" or "is NOT", tostring(sources[1]), tostring(own))
+	end
+	if type(own) == "string" and own ~= "" then
+		for _, guid in ipairs(sources) do if guid ~= own then return false end end
+	end
+	if id then
+		local classID = classOf(id)
+		if classID and DE.IsGear({ classID = classID }) then return false end
+	end
+	return true
+end
+DE.SlotIsCast = slotIsCast
 function DE:OnLootOpened()
 	local c = self.castOpen
 	if not c or (GetTime() - c.at) > self.LOOT_WINDOW then return end
 	local n = (GetNumLootItems and GetNumLootItems()) or 0
 	local sums = {}   -- a material in two slots is one count
+	local castOwn = n > 0 and not fishing()
 	for i = 1, n do
 		local link = GetLootSlotLink and GetLootSlotLink(i)
-		local id = link and tonumber(link:match("item:(%d+)"))
+		local id = type(link) == "string" and tonumber(link:match("item:(%d+)")) or nil
 		local qty
 		if GetLootSlotInfo then local _, _, q = GetLootSlotInfo(i); qty = q end
-		if id and MATERIAL[id] then sums[id] = (sums[id] or 0) + (tonumber(qty) or 1) end
+		if id then sums[id] = (sums[id] or 0) + (tonumber(qty) or 1) end
+		if castOwn and not slotIsCast(i, id) then castOwn = false end
 	end
-	for id, total in pairs(sums) do self:Tally(c, id, total, "window") end
+	for id, total in pairs(sums) do
+		if castOwn then self:Tally(c, id, total, "window", true)
+		elseif self:IsMaterial(id) and self:Attributable(c, id) then self:Tally(c, id, total, "window", false) end
+	end
 end
 -- The loot window closing ends the cast's attribution: nothing after it is the cast's.
 function DE:OnLootClosed()
@@ -833,33 +1020,34 @@ function DE:Frame()
 	f.grip:SetShown(not ns:WindowsLocked())   -- (1.7.0-beta2) no grip while Lock Windows is on
 	f:SetScript("OnSizeChanged", function() if f:IsShown() then DE:Layout() end end)
 	f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge"); f.title:SetPoint("TOPLEFT", 12, -12); f.title:SetText("Disenchant Helper")
-	f.sub = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.sub:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 0, -3)
+	f.sub = f:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.sub:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 0, -3)
 	f.sub:SetJustifyH("LEFT"); f.sub:SetWordWrap(true)
 	-- beside the count: how many items the list holds back, and why on hover (1.3.0)
-	f.heldLine = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.heldLine:Hide()
+	f.heldLine = f:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.heldLine:Hide()
 	f.heldInfo = ns.Why.InfoButton(f); f.heldInfo:Hide()
 	-- the current item: icon, name, values, the recommendation; one row of buttons beneath
 	f.cur = CreateFrame("Frame", nil, f); f.cur:SetHeight(84); f.cur:SetPoint("TOPLEFT", 12, -56); f.cur:SetPoint("TOPRIGHT", -12, -56)
 	f.cur.icon = f.cur:CreateTexture(nil, "ARTWORK"); f.cur.icon:SetSize(40, 40); f.cur.icon:SetPoint("TOPLEFT", 0, -2)
-	f.cur.name = f.cur:CreateFontString(nil, "OVERLAY", "GameFontNormal"); f.cur.name:SetPoint("TOPLEFT", f.cur.icon, "TOPRIGHT", 8, 0); f.cur.name:SetPoint("RIGHT", f.cur, "RIGHT", 0, 0); f.cur.name:SetJustifyH("LEFT")
-	f.cur.values = f.cur:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.cur.values:SetPoint("TOPLEFT", f.cur.name, "BOTTOMLEFT", 0, -3); f.cur.values:SetPoint("RIGHT", f.cur, "RIGHT", 0, 0); f.cur.values:SetJustifyH("LEFT")
-	f.cur.verdict = f.cur:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.cur.verdict:SetPoint("TOPLEFT", f.cur.values, "BOTTOMLEFT", 0, -3); f.cur.verdict:SetPoint("RIGHT", f.cur, "RIGHT", 0, 0); f.cur.verdict:SetJustifyH("LEFT")
+	f.cur.name = f.cur:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontNormal")); f.cur.name:SetPoint("TOPLEFT", f.cur.icon, "TOPRIGHT", 8, 0); f.cur.name:SetPoint("RIGHT", f.cur, "RIGHT", 0, 0); f.cur.name:SetJustifyH("LEFT")
+	f.cur.values = f.cur:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.cur.values:SetPoint("TOPLEFT", f.cur.name, "BOTTOMLEFT", 0, -3); f.cur.values:SetPoint("RIGHT", f.cur, "RIGHT", 0, 0); f.cur.values:SetJustifyH("LEFT")
+	f.cur.verdict = f.cur:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.cur.verdict:SetPoint("TOPLEFT", f.cur.values, "BOTTOMLEFT", 0, -3); f.cur.verdict:SetPoint("RIGHT", f.cur, "RIGHT", 0, 0); f.cur.verdict:SetJustifyH("LEFT")
 	-- the right half: the likely results, a thin rule between the halves
 	f.cur.rule = f.cur:CreateTexture(nil, "ARTWORK"); f.cur.rule:SetWidth(1); f.cur.rule:SetPoint("TOP", f.cur, "TOP", 0, 0); f.cur.rule:SetPoint("BOTTOM", f.cur, "BOTTOM", 0, 0); f.cur.rule:SetColorTexture(1, 1, 1, 0.15)
-	f.cur.likelyHead = f.cur:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall"); f.cur.likelyHead:SetPoint("TOPLEFT", f.cur.rule, "TOPRIGHT", 10, -2); f.cur.likelyHead:SetPoint("RIGHT", f.cur, "RIGHT", 0, 0); f.cur.likelyHead:SetJustifyH("LEFT")
-	f.cur.likely = f.cur:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.cur.likely:SetPoint("TOPLEFT", f.cur.likelyHead, "BOTTOMLEFT", 0, -2); f.cur.likely:SetPoint("RIGHT", f.cur, "RIGHT", 0, 0); f.cur.likely:SetJustifyH("LEFT"); f.cur.likely:SetJustifyV("TOP"); f.cur.likely:SetWordWrap(true)
-	if f.cur.likely.SetFont and f.cur.likely.GetFont then local font, _, flags = f.cur.likely:GetFont(); if font then f.cur.likely:SetFont(font, 10, flags) end end
+	f.cur.likelyHead = f.cur:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontNormalSmall")); f.cur.likelyHead:SetPoint("TOPLEFT", f.cur.rule, "TOPRIGHT", 10, -2); f.cur.likelyHead:SetPoint("RIGHT", f.cur, "RIGHT", 0, 0); f.cur.likelyHead:SetJustifyH("LEFT")
+	f.cur.likely = f.cur:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.cur.likely:SetPoint("TOPLEFT", f.cur.likelyHead, "BOTTOMLEFT", 0, -2); f.cur.likely:SetPoint("RIGHT", f.cur, "RIGHT", 0, 0); f.cur.likely:SetJustifyH("LEFT"); f.cur.likely:SetJustifyV("TOP"); f.cur.likely:SetWordWrap(true)
+	-- (1.8.0) its 10 px follows Text Size (DE:ApplyTextSize)
 	-- the basis on its own short line at the bottom of the box, never wrapping
-	f.cur.basis = f.cur:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.cur.basis:SetPoint("BOTTOMLEFT", f.cur.rule, "BOTTOMRIGHT", 10, 2); f.cur.basis:SetJustifyH("LEFT"); f.cur.basis:SetWordWrap(false)
+	f.cur.basis = f.cur:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.cur.basis:SetPoint("BOTTOMLEFT", f.cur.rule, "BOTTOMRIGHT", 10, 2); f.cur.basis:SetJustifyH("LEFT"); f.cur.basis:SetWordWrap(false)
 	-- (1.5.8) an (i) right after the count, explaining that it's shared (Shweep: it read as if it were per item)
 	f.cur.info = ns.Why.InfoButton(f.cur)
+	DE.ApplyTextSize(f)
 	f.cur.info:SetPoint("LEFT", f.cur.basis, "RIGHT", 4, 0)
 	f.cur.info.title = "Your Disenchant Results"
 	f.cur.info.lines = {
 		"Items of the same quality and level range share this count. Uncommon weapons and armor count separately.",
 		("After %d, likely results come from your own disenchants."):format(DE.CALIBRATE_AT),
 	}
-	if f.cur.basis.SetFont and f.cur.basis.GetFont then local font, _, flags = f.cur.basis:GetFont(); if font then f.cur.basis:SetFont(font, 10, flags) end end
+	-- (its 10 px follows Text Size too: DE.ApplyTextSize)
 	local b = self:Button(f.cur)
 	b:ClearAllPoints(); b:SetPoint("BOTTOMLEFT", f.cur, "BOTTOMLEFT", 0, 0)
 	f.skip = ns.TextButton(f.cur, "Skip", 66, function() DE:Skip() end); f.skip:SetHeight(24); f.skip:SetPoint("LEFT", b, "RIGHT", 6, 0)
@@ -876,14 +1064,14 @@ function DE:Frame()
 	-- the list: a selection dot, the item, three values, the recommendation
 	f.heads = {}
 	for i = 1, #COLS do
-		local h = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall"); h:SetJustifyH("LEFT")
+		local h = f:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontNormalSmall")); h:SetJustifyH("LEFT")
 		f.heads[i] = h
 	end
 	f.rows = {}
 	f.scroll = CreateFrame("ScrollFrame", "BagSmithDisenchantScroll", f, "UIPanelScrollFrameTemplate")
 	f.child = CreateFrame("Frame", nil, f.scroll); f.child:SetSize(W - 44, 10); f.scroll:SetScrollChild(f.child)
 	ns.WheelStep(f.scroll, ROW * ns.WHEEL_ROWS)   -- (1.7.5-beta1) the wheel: two rows a notch (Init.lua, ns.WheelStep)
-	f.status = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.status:SetPoint("BOTTOMLEFT", 12, 36); f.status:SetWidth(W - 24); f.status:SetJustifyH("LEFT"); f.status:SetWordWrap(true)
+	f.status = f:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.status:SetPoint("BOTTOMLEFT", 12, 36); f.status:SetWidth(W - 24); f.status:SetJustifyH("LEFT"); f.status:SetWordWrap(true)
 	f.close = ns.TextButton(f, "Close", 70, function() DE:Close() end); f.close:SetHeight(22); f.close:SetPoint("BOTTOMRIGHT", -12, 10)
 	-- consider skipped items again: a small undo arrow at the top right, only while something is skipped
 	f.refresh = ns.IconButton(f, "Interface\\AddOns\\BagSmith\\Media\\ui-undo.tga", "Consider skipped items again", function() DE:ClearSkipped() end)
@@ -893,17 +1081,17 @@ function DE:Frame()
 	f.empty.icon = f.empty:CreateTexture(nil, "ARTWORK"); f.empty.icon:SetSize(64, 64); f.empty.icon:SetPoint("CENTER", f.empty, "CENTER", 0, 60); f.empty.icon:SetTexture("Interface\\AddOns\\BagSmith\\Media\\ui-disenchant-large.tga"); f.empty.icon:SetAlpha(0.6)
 	f.empty.head = f.empty:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge"); f.empty.head:SetPoint("TOP", f.empty.icon, "BOTTOM", 0, -10)
 	-- the body in pieces: the count, the haul one material per line, the value in gold, then what was set aside
-	f.empty.count = f.empty:CreateFontString(nil, "OVERLAY", "GameFontHighlight"); f.empty.count:SetPoint("TOP", f.empty.head, "BOTTOM", 0, -8); f.empty.count:SetWidth(400); f.empty.count:SetJustifyH("CENTER"); f.empty.count:SetWordWrap(true)
-	f.empty.haul = f.empty:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.empty.haul:SetPoint("TOP", f.empty.count, "BOTTOM", 0, -6); f.empty.haul:SetWidth(400); f.empty.haul:SetJustifyH("CENTER"); f.empty.haul:SetWordWrap(true)
-	f.empty.value = f.empty:CreateFontString(nil, "OVERLAY", "GameFontNormal"); f.empty.value:SetPoint("TOP", f.empty.haul, "BOTTOM", 0, -8); f.empty.value:SetWidth(400); f.empty.value:SetJustifyH("CENTER")
-	f.empty.line = f.empty:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.empty.line:SetPoint("TOP", f.empty.value, "BOTTOM", 0, -16); f.empty.line:SetWidth(360); f.empty.line:SetJustifyH("CENTER"); f.empty.line:SetWordWrap(true)
+	f.empty.count = f.empty:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlight")); f.empty.count:SetPoint("TOP", f.empty.head, "BOTTOM", 0, -8); f.empty.count:SetWidth(400); f.empty.count:SetJustifyH("CENTER"); f.empty.count:SetWordWrap(true)
+	f.empty.haul = f.empty:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.empty.haul:SetPoint("TOP", f.empty.count, "BOTTOM", 0, -6); f.empty.haul:SetWidth(400); f.empty.haul:SetJustifyH("CENTER"); f.empty.haul:SetWordWrap(true)
+	f.empty.value = f.empty:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontNormal")); f.empty.value:SetPoint("TOP", f.empty.haul, "BOTTOM", 0, -8); f.empty.value:SetWidth(400); f.empty.value:SetJustifyH("CENTER")
+	f.empty.line = f.empty:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.empty.line:SetPoint("TOP", f.empty.value, "BOTTOM", 0, -16); f.empty.line:SetWidth(360); f.empty.line:SetJustifyH("CENTER"); f.empty.line:SetWordWrap(true)
 	f.empty.skipped = ns.TextButton(f.empty, "Consider skipped again", 160, function() DE:ClearSkipped() end); f.empty.skipped:SetHeight(22); f.empty.skipped:SetPoint("TOP", f.empty.line, "BOTTOM", 0, -10); f.empty.skipped:Hide()
-	f.empty.held = f.empty:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.empty.held:Hide()
+	f.empty.held = f.empty:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.empty.held:Hide()
 	f.empty.heldInfo = ns.Why.InfoButton(f.empty); f.empty.heldInfo:Hide()
 	f.empty.never = ns.TextButton(f.empty, "DE Exclusion List...", 140, function() DE:ManageNever() end); f.empty.never:SetHeight(22); f.empty.never:Hide()
 	-- the footer: what the mats values are, centered beside Close
 	-- centered on the window itself, like the title and the card (the line is short enough to clear Close)
-	f.footer = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); f.footer:SetPoint("BOTTOMLEFT", 12, 13); f.footer:SetPoint("BOTTOMRIGHT", -12, 13); f.footer:SetJustifyH("CENTER")
+	f.footer = f:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); f.footer:SetPoint("BOTTOMLEFT", 12, 13); f.footer:SetPoint("BOTTOMRIGHT", -12, 13); f.footer:SetJustifyH("CENTER")
 	f.footer:SetText("Mats are DE estimates that improve as you disenchant."); f.footer:SetWordWrap(false)
 	f.classicSpec = ns.Classic.DialogSpec(f, { hide = { f.closeX }, close = function() DE:Close() end, restore = function() ns.Skins:ApplyBackdrop(f); local s = ns.Skins:Current(); f:SetBackdropColor(s.bg[1], s.bg[2], s.bg[3], 1) end })
 	-- (1.6.0-beta7, the beta6 audit's R2) a skin, accent or profile change in combat: the window is protected (its secure
@@ -992,6 +1180,25 @@ function DE:FinishGesture()
 		if f:IsShown() and not f.bsSoftClosed then self:Paint() end
 	end
 end
+-- (1.8.0) Text Size in the item panel: its height grows with the text, and the likely results' and basis's small
+-- lines (10 px at 100%) follow it, in the chosen face.
+function DE.ApplyTextSize(f)
+	if not (f and f.cur) then return end
+	local F = ns.Fonts
+	-- the panel holds the secure button (a protected frame): its height changes out of combat only, and only when it
+	-- must; the layout after combat (DE:SkinNow, DE:Refresh) sets it then
+	local h = F and F:Grow(84) or 84
+	if math.abs((f.cur:GetHeight() or 0) - h) > 0.5 then
+		-- (1.8.0-beta16, the beta15 audit's F2) in combat the change waits, and is made when combat ends: the layout
+		-- runs again then, with the latest size (nothing else redid it, so the panel kept its old height)
+		if InCombatLockdown() then DE.layoutAfterCombat = true else f.cur:SetHeight(h) end
+	end
+	local path, flags = F and F:Face("GameFontHighlightSmall")
+	local px = F and F:Px(10) or 10
+	for _, t in ipairs({ f.cur.likely, f.cur.basis }) do
+		if path and t and t.SetFont then pcall(t.SetFont, t, path, px, flags or "") end
+	end
+end
 -- Places the headers under the button row and sizes the columns to the window.
 function DE:Layout()
 	local f = self.frame
@@ -1005,7 +1212,10 @@ function DE:Layout()
 	f.status:SetWidth(width - 24)
 	local cols = self:Columns(width)
 	f.cols = cols
-	local headY = -(56 + 84 + 10)
+	-- (1.8.0) the item panel grows with Text Size
+	DE.ApplyTextSize(f)
+	local curH = f.cur:GetHeight() or 84   -- (as set: in combat it waits)
+	local headY = -(56 + curH + 10)
 	for i, c in ipairs(cols) do
 		local h = f.heads[i]
 		h:ClearAllPoints(); h:SetPoint("TOPLEFT", 12 + c[2], headY); h:SetText(c[1]); h:SetWidth(c[3])
@@ -1025,7 +1235,7 @@ local function row(f, i)
 	r:SetPoint("TOPLEFT", 0, -(i - 1) * ROW)
 	r.cells = {}
 	for c = 1, #f.cols do
-		local t = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); t:SetPoint("LEFT", f.cols[c][2], 0); t:SetWidth(f.cols[c][3]); t:SetJustifyH("LEFT")
+		local t = r:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall")); t:SetPoint("LEFT", f.cols[c][2], 0); t:SetWidth(f.cols[c][3]); t:SetJustifyH("LEFT")
 		t:SetWordWrap(false)   -- a value too long for its column is cut, never wrapped onto a second line
 		r.cells[c] = t
 	end
@@ -1051,22 +1261,19 @@ end
 -- the item's tooltip on hover (by item ID, so it works in every language); the amount and odds follow in the muted
 -- color. Shown under "Likely results" in the item panel's right half.
 local LIKELY_ROW = 13
+local function likelyRowH() return ns.Fonts and ns.Fonts:Grow(LIKELY_ROW) or LIKELY_ROW end
 local function likelyRow(f, i)
 	f.cur.likelyRows = f.cur.likelyRows or {}
 	local r = f.cur.likelyRows[i]
 	if r then return r end
 	r = CreateFrame("Button", nil, f.cur)
-	r:SetHeight(LIKELY_ROW)
-	r:SetPoint("TOPLEFT", f.cur.likelyHead, "BOTTOMLEFT", 0, -2 - (i - 1) * LIKELY_ROW)
-	r:SetPoint("RIGHT", f.cur, "RIGHT", 0, 0)
 	local font, _, flags
 	if f.cur.likely.GetFont then font, _, flags = f.cur.likely:GetFont() end
-	r.name = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	r.name = r:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall"))
 	r.name:SetPoint("LEFT", r, "LEFT", 0, 0); r.name:SetJustifyH("LEFT"); r.name:SetWordWrap(false)
-	r.rest = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	r.rest = r:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall"))
 	r.rest:SetPoint("LEFT", r.name, "RIGHT", 0, 0); r.rest:SetPoint("RIGHT", r, "RIGHT", 0, 0)
 	r.rest:SetJustifyH("LEFT"); r.rest:SetWordWrap(false)
-	if font then r.name:SetFont(font, 10, flags); r.rest:SetFont(font, 10, flags) end
 	-- the soft underline, under the name only
 	r.line = r:CreateTexture(nil, "ARTWORK")
 	r.line:SetTexture("Interface\\Buttons\\WHITE8X8")
@@ -1087,9 +1294,17 @@ end
 DE.LikelyRow = likelyRow
 function DE:PaintLikely(parts)
 	local f = self.frame
+	-- (1.8.0) rows placed and sized at the current Text Size
+	local rh = likelyRowH()
+	local path, flags = ns.Fonts and ns.Fonts:Face("GameFontHighlightSmall")
+	local px = ns.Fonts and ns.Fonts:Px(10) or 10
 	local muted = (ns.Skins and ns.Skins.Current and ns.Skins:Current().muted) or { 0.7, 0.7, 0.7 }
 	for i, p in ipairs(parts or {}) do
 		local r = likelyRow(f, i)
+		r:ClearAllPoints(); r:SetHeight(rh)
+		r:SetPoint("TOPLEFT", f.cur.likelyHead, "BOTTOMLEFT", 0, -2 - (i - 1) * rh)
+		r:SetPoint("RIGHT", f.cur, "RIGHT", 0, 0)
+		if path and r.name.SetFont then pcall(r.name.SetFont, r.name, path, px, flags or ""); pcall(r.rest.SetFont, r.rest, path, px, flags or "") end
 		local q = select(3, itemInfo(p.id)) or self.MAT_QUALITY[p.id] or 1
 		local cr, cg, cb = qcolor(q)
 		r.id, r.c = p.id, { cr, cg, cb }
@@ -1197,9 +1412,12 @@ function DE:SessionSummary()
 		local p = ns.AH and ns.AH:Available() and ns.AH:Price({ itemID = m.id, link = "item:" .. m.id })
 		if p then value = value + p * m.count else priced = false end
 	end
-	if #names > 0 then parts[#parts + 1] = table.concat(names, ", ") end
-	if #names > 0 and priced and value > 0 then parts[#parts + 1] = ("worth about %s at current AH prices"):format(self.Money(value)) end
-	return table.concat(parts, ". ") .. "."
+	-- (1.8.0) one sentence: "1 item disenchanted: Greater Magic Essence x2, worth about 7s 60c at current AH prices."
+	-- (it was "...x2. worth about...")
+	local text = parts[1]
+	if #names > 0 then text = text .. ": " .. table.concat(names, ", ") end
+	if #names > 0 and priced and value > 0 then text = text .. (", worth about %s at current AH prices"):format(self.Money(value)) end
+	return text .. "."
 end
 -- The empty state's words: why there is nothing, and what can bring something back.
 function DE:EmptyWords()
@@ -1278,10 +1496,11 @@ function DE:Paint()
 		if cur.basis then vt = vt .. (cur.basis == "yours" and ("  (from %d of your results)"):format(cur.n or 0) or "  (DE estimate)") end
 		if cur.verdict == "unknown" and cur.missing then vt = ("No price yet for %s"):format(self.MatName(cur.missing)) end
 		f.cur.verdict:SetText(vt)
-		local lines, head, _, _, parts = self:LikelyLines(cur.rec)
+		local lines, head, likelyBasis, _, parts = self:LikelyLines(cur.rec)
 		f.cur.likelyHead:SetText("Likely results")
 		-- (1.7.3-beta5) one row per material, its name a link to the item's tooltip; the plain line only says there's no table
-		f.cur.likely:SetText(lines and "" or "No table for this item.")
+		-- (1.8.0) or, for an item with no table that's learning from your results, how far along it is
+		f.cur.likely:SetText(not lines and "No table for this item." or likelyBasis == "learning" and lines[1] or "")
 		self:PaintLikely(parts)
 		f.cur.basis:SetText(head and (head:sub(1, 1):upper() .. head:sub(2)) or "")
 		f.cur.rule:Show(); f.cur.likelyHead:Show(); f.cur.likely:Show(); f.cur.basis:Show(); f.cur.info:SetShown(head ~= nil)
@@ -1477,6 +1696,7 @@ end
 -- Events
 ------------------------------------------------------------------------
 ns:OnSignal("ADDON_READY", function()
+	ns:On("GET_ITEM_INFO_RECEIVED", function(id) DE:OnItemInfo(id) end)   -- (1.8.0-beta4) names that were still loading
 	ns:On("UNIT_SPELLCAST_SUCCEEDED", function(unit, _, spellID) DE:OnSpellSucceeded(unit, spellID) end)
 	ns:On("UNIT_SPELLCAST_FAILED", function(unit, _, spellID) DE:OnCastFailed(unit, spellID) end)
 	ns:On("UNIT_SPELLCAST_INTERRUPTED", function(unit, _, spellID) DE:OnCastFailed(unit, spellID) end)
@@ -1511,6 +1731,12 @@ ns:OnSignal("ADDON_READY", function()
 		end
 	end)
 	ns:On("PLAYER_REGEN_ENABLED", function() DE:SkinNow() end)   -- (1.6.0-beta7, R2) before the refresh below
+	-- (1.8.0-beta16, audit F2) a Text Size change made in combat: the panel and the list below it laid out once, now
+	ns:On("PLAYER_REGEN_ENABLED", function()
+		if not DE.layoutAfterCombat then return end
+		DE.layoutAfterCombat = nil
+		if DE.frame then DE:Layout() end
+	end)
 	ns:On("PLAYER_REGEN_ENABLED", function() if DE.refreshPending or DE.armPending ~= nil or DE.current ~= nil or (DE.frame and DE.frame:IsShown()) then DE:Refresh() end end)
 end)
 -- (1.5.7, C1) Turned off, by its setting or by switching to a profile where it's off (that signal has no key): the

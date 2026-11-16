@@ -146,7 +146,8 @@
 	check(f.empty.icon.texture:find("ui%-disenchant%-large") ~= nil, "the card uses the large texture")
 	local said = {}; local realPrint = n.Print; n.Print = function(self, fmt, ...) said[#said + 1] = fmt:format(...) end
 	f:Hide(); n.Print = realPrint
-	check(said[#said] and said[#said]:find("^Disenchant Helper: 2 items disenchanted%. Strange Dust x6"), "closing after a sitting with casts puts the summary in chat")
+	-- (1.8.0, by design) one sentence: "2 items disenchanted: Strange Dust x6, ..." (was "...disenchanted. Strange Dust...")
+	check(said[#said] and said[#said]:find("^Disenchant Helper: 2 items disenchanted: Strange Dust x6"), "closing after a sitting with casts puts the summary in chat")
 	DE:Show()
 	check(DE.session == nil and (DE.done or 0) == 0, "the next sitting starts its counts over")
 	-- disenchanted some and skipped others: the haul leads, the skipped line follows with its button
@@ -155,7 +156,7 @@
 	check(f.empty:IsShown() and f.empty.head.text == "Done for now." and f.empty.count.text == "1 item disenchanted" and f.empty.haul.text == "Strange Dust x2" and f.empty.line.text == "2 skipped this session." and f.empty.skipped:IsShown() and f.empty.line.points[1][2] == f.empty.value, "disenchanted some, skipped others: the haul in its pieces, the skipped line apart beneath the value")
 	said = {}; n.Print = function(self, fmt, ...) said[#said + 1] = fmt:format(...) end
 	f:Hide(); n.Print = realPrint
-	check(said[#said] and said[#said]:find("1 item disenchanted%. Strange Dust x2") and said[#said]:find("2 skipped%.$"), "the chat line carries the skipped count too")
+	check(said[#said] and said[#said]:find("1 item disenchanted: Strange Dust x2") and said[#said]:find("2 skipped%.$"), "the chat line carries the skipped count too")
 	DE.skipped = {}; DE:Show()
 	f:Hide()
 	M.put(0, 1, { id = 7001, name = "Sturdy Boots", q = 2, count = 1, class = 4, subclass = 1, price = 452, ilvl = 23, equip = "INVTYPE_FEET" })

@@ -191,12 +191,13 @@ look main.7.8.1 w=nil h=nil at=
 look main.8 w=nil h=26 at=BOTTOMLEFT,parent,BOTTOMLEFT,12,12;BOTTOMRIGHT,parent,BOTTOMRIGHT,-12,12
 look main.8.r2 text=0.84,0.83,0.79,1.00
 look main.8.r3 text=0.98,0.78,0.46,1.00
-look main.8.1 bg=0.00,0.00,0.00,0.00 border=0.00,0.00,0.00,0.00 w=76 h=20 at=RIGHT,main.8,RIGHT,-18,0
-look main.8.1.1 w=nil h=nil at=
-look main.8.2 bg=0.00,0.00,0.00,0.00 border=0.00,0.00,0.00,0.00 w=64 h=20 at=RIGHT,main.8.1,LEFT,-6,0
+look main.8.1 w=nil h=nil at=TOPLEFT,frame,TOPLEFT,-4,4;BOTTOMRIGHT,frame,BOTTOMRIGHT,4,-4
+look main.8.2 bg=0.00,0.00,0.00,0.00 border=0.00,0.00,0.00,0.00 w=76 h=20 at=RIGHT,main.8,RIGHT,-18,0
 look main.8.2.1 w=nil h=nil at=
-look main.8.3 bg=0.00,0.00,0.00,0.00 border=0.00,0.00,0.00,0.00 w=62 h=20 at=RIGHT,main.8.2,LEFT,-6,0
+look main.8.3 bg=0.00,0.00,0.00,0.00 border=0.00,0.00,0.00,0.00 w=64 h=20 at=RIGHT,main.8.2,LEFT,-6,0
 look main.8.3.1 w=nil h=nil at=
+look main.8.4 bg=0.00,0.00,0.00,0.00 border=0.00,0.00,0.00,0.00 w=62 h=20 at=RIGHT,main.8.3,LEFT,-6,0
+look main.8.4.1 w=nil h=nil at=
 look main.9 w=nil h=nil at=TOPLEFT,main.6,BOTTOMLEFT,0,-2;BOTTOMRIGHT,main.8,TOPRIGHT,0,6
 look main.10 w=16 h=16 at=BOTTOMRIGHT,parent,BOTTOMRIGHT,-4,4
 look main.10.r1 w=nil h=nil at= layer=ARTWORK/nil
@@ -245,7 +246,7 @@ look drawer.4 w=nil h=nil at= level=1
 look drawer.4.r3 w=nil h=nil at=TOPLEFT,parent,TOPLEFT,4,-4;BOTTOMRIGHT,parent,BOTTOMRIGHT,-4,4 layer=BACKGROUND/2
 look drawer.4.r4 color=0.07,0.07,0.06,0.35 w=nil h=nil at=TOPLEFT,parent,TOPLEFT,4,-4;BOTTOMRIGHT,parent,BOTTOMRIGHT,-4,4 layer=BACKGROUND/4
 look drawer.5 w=nil h=nil at=TOPRIGHT,drawer,TOPRIGHT,-4,-4 level=11
-look settings bg=0.09,0.09,0.10,0.00 border=0.00,0.00,0.00,0.00 w=680 h=560 at=CENTER,UIParent,CENTER,0,40
+look settings bg=0.09,0.09,0.10,0.00 border=0.00,0.00,0.00,0.00 w=757 h=560 at=CENTER,UIParent,CENTER,0,40
 look settings.1 w=nil h=46 at=TOPLEFT,parent,TOPLEFT,0,0;TOPRIGHT,parent,TOPRIGHT,0,0
 look settings.2 w=nil h=28 at=TOPLEFT,settings,TOPLEFT,66,-26;TOPRIGHT,settings,TOPRIGHT,-12,-26 level=3
 look settings.2.r3 text=0.60,0.55,0.45,1.00
@@ -498,6 +499,7 @@ look bank.12.r11 color=0.45,0.36,0.22,0.85 w=nil h=nil at=TOPLEFT,frame,TOPLEFT,
 look bank.12.r12 color=0.45,0.36,0.22,0.85 w=nil h=nil at=TOPRIGHT,frame,TOPRIGHT,0,0;BOTTOMRIGHT,frame,BOTTOMRIGHT,0,0 layer=BACKGROUND/6
 look bank.13 w=nil h=nil at=TOPRIGHT,bank,TOPRIGHT,-4,-4 level=11
 == toClassic
+
 look main bg=0.09,0.09,0.10,0.00 border=0.00,0.00,0.00,0.00 w=620 h=560 at=BOTTOMRIGHT,UIParent,BOTTOMRIGHT,-80,140
 look main.1 w=nil h=54 at=TOPLEFT,parent,TOPLEFT,0,0;TOPRIGHT,parent,TOPRIGHT,0,0
 look main.2 w=nil h=26 at=TOPLEFT,main,TOPLEFT,60,-26;TOPRIGHT,main,TOPRIGHT,-10,-26 level=3
@@ -621,12 +623,13 @@ look main.7.8.1 w=nil h=nil at=
 look main.8 w=nil h=26 at=BOTTOMLEFT,parent,BOTTOMLEFT,12,12;BOTTOMRIGHT,parent,BOTTOMRIGHT,-12,12
 look main.8.r2 text=0.84,0.83,0.79,1.00
 look main.8.r3 text=0.98,0.78,0.46,1.00
-look main.8.1 bg=0.00,0.00,0.00,0.00 border=0.00,0.00,0.00,0.00 w=76 h=20 at=RIGHT,main.8,RIGHT,-18,0
-look main.8.1.1 w=nil h=nil at=
-look main.8.2 bg=0.00,0.00,0.00,0.00 border=0.00,0.00,0.00,0.00 w=64 h=20 at=RIGHT,main.8.1,LEFT,-6,0
+look main.8.1 w=nil h=nil at=TOPLEFT,frame,TOPLEFT,-4,4;BOTTOMRIGHT,frame,BOTTOMRIGHT,4,-4
+look main.8.2 bg=0.00,0.00,0.00,0.00 border=0.00,0.00,0.00,0.00 w=76 h=20 at=RIGHT,main.8,RIGHT,-18,0
 look main.8.2.1 w=nil h=nil at=
-look main.8.3 bg=0.00,0.00,0.00,0.00 border=0.00,0.00,0.00,0.00 w=62 h=20 at=RIGHT,main.8.2,LEFT,-6,0
+look main.8.3 bg=0.00,0.00,0.00,0.00 border=0.00,0.00,0.00,0.00 w=64 h=20 at=RIGHT,main.8.2,LEFT,-6,0
 look main.8.3.1 w=nil h=nil at=
+look main.8.4 bg=0.00,0.00,0.00,0.00 border=0.00,0.00,0.00,0.00 w=62 h=20 at=RIGHT,main.8.3,LEFT,-6,0
+look main.8.4.1 w=nil h=nil at=
 look main.9 w=nil h=nil at=TOPLEFT,main.6,BOTTOMLEFT,0,-2;BOTTOMRIGHT,main.8,TOPRIGHT,0,6
 look main.10 w=16 h=16 at=BOTTOMRIGHT,parent,BOTTOMRIGHT,-4,4
 look main.10.r1 w=nil h=nil at= layer=ARTWORK/nil
@@ -675,7 +678,7 @@ look drawer.4 w=nil h=nil at= level=1
 look drawer.4.r3 w=nil h=nil at=TOPLEFT,parent,TOPLEFT,4,-4;BOTTOMRIGHT,parent,BOTTOMRIGHT,-4,4 layer=BACKGROUND/2
 look drawer.4.r4 color=0.07,0.07,0.06,0.35 w=nil h=nil at=TOPLEFT,parent,TOPLEFT,4,-4;BOTTOMRIGHT,parent,BOTTOMRIGHT,-4,4 layer=BACKGROUND/4
 look drawer.5 w=nil h=nil at=TOPRIGHT,drawer,TOPRIGHT,-4,-4 level=11
-look settings bg=0.09,0.09,0.10,0.00 border=0.00,0.00,0.00,0.00 w=680 h=560 at=CENTER,UIParent,CENTER,0,40
+look settings bg=0.09,0.09,0.10,0.00 border=0.00,0.00,0.00,0.00 w=757 h=560 at=CENTER,UIParent,CENTER,0,40
 look settings.1 w=nil h=46 at=TOPLEFT,parent,TOPLEFT,0,0;TOPRIGHT,parent,TOPRIGHT,0,0
 look settings.2 w=nil h=28 at=TOPLEFT,settings,TOPLEFT,66,-26;TOPRIGHT,settings,TOPRIGHT,-12,-26 level=3
 look settings.2.r3 text=0.60,0.55,0.45,1.00

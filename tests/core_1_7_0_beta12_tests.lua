@@ -260,7 +260,8 @@ end)()
 		local n = M.loadAddon("BagSmith")
 		M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
 		local WN = n.WhatsNew
-		local e = WN.ENTRIES[1]
+		-- (1.8.0-beta2, by design) the 1.8 card leads now; every older card one place down (each check kept)
+		local e = WN.ENTRIES[2]
 		local heads = {}
 		for _, it in ipairs(e.items) do heads[#heads + 1] = it:match("^|cfffac775(.-):|r") end
 		if skin == "modern" then

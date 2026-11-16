@@ -1,3 +1,61 @@
+## 1.8.0
+
+New:
+- Text Size (Settings > Style, under Size): make the item text in your bags, bank and individual bag windows and the
+  Loot and Disenchant Helpers bigger or smaller, from 80% to 150%. List rows grow to fit bigger text.
+- Font (beside it, a dropdown): show that text in one of nine fonts that now come with BagSmith (Noto Sans, Roboto
+  Condensed, Roboto Condensed Bold, Inter, Asap Condensed, Barlow Condensed, Cabin Condensed, Fira Condensed and
+  Marcellus), one of the game's own, or one another addon shares. BagSmith's fonts also appear in your other addons'
+  font lists. The list shows each font in its own face, twenty at a time.
+- The Disenchant Helper learns new disenchant materials: anything a disenchant gives that it didn't know is remembered
+  for this character and counted from then on.
+- Gear the Disenchant Helper has no table for (above item level 99) learns from your own disenchants: it says "Still
+  learning" until it has 20 results for that range, then shows your own.
+- Special bags (quivers, ammo pouches, soul bags, herb, enchanting, engineering, mining, leatherworking and cooking
+  bags, tackle boxes, trinket bags and reagent bags): turn on an indicator for each kind to tell its slots apart at a
+  glance, as a soft glow inside the slot or as the slot's frame in that color instead of the rarity color (Settings >
+  Item Icons > Special Bag Slot Indicators). Every indicator is off until you turn it on; each has its own color and
+  opacity, and its empty and filled slots each choose Inner Glow, Frame Color or Off. List view shows it too, on
+  each item's icon.
+- Quest items get a gold frame in both looks, whatever Rarity Borders says (Settings > Item Icons, Gold Frame for
+  Quest Items, on by default).
+- Settings marks what's new: a small blue NEW beside a page in the list on the left, and beside the new headings and
+  settings on it. A page's marks go once you've opened it, from the next time you open Settings. A new player sees
+  none (everything is new to them), and searching Settings for "new" lists them all.
+- What's New's directions, like Settings > Style > Size, are links: click one to open Settings right there.
+- Your bags open with the guild bank, as they do at a vendor, and close with it unless you had them open already.
+- Auto Travel Mode: Leave Travel Mode at the Guild Bank (Settings > Automations & Actions, on by default).
+- /bs cpu: how much time BagSmith takes each frame, measured by the game over a few seconds (scroll or loot meanwhile
+  to see what that costs).
+- Profiles: choose what the characters using a profile share (Settings > Profile, Shared Between Characters): Favorites,
+  Custom Sections, Pinned Sections, Section Order and Hidden Sections, Custom Currencies, Pinned Currencies and Custom
+  Sheets. Unchecked, each character keeps its own.
+Important:
+- Each character now keeps its own favorites, pinned sections, custom currencies and pinned currencies. Yours carried
+  over, so nothing is lost, but changes you make now stay with that character. Want them shared again? Check them in
+  Settings > Profile.
+Changed:
+- The Disenchant Helper's estimate for blue items up to level 25 follows what they give on WoW Forever: sometimes dust
+  or an essence, not always a shard. It's an early estimate from a few results and says so; your own results take over
+  as you disenchant.
+- Your free-slot count shows only the slots anything fits in: a quiver or a herb bag's room no longer counts. Hover
+  the count to see the free slots in your bags, your reagent bag and each special bag; a small + says there's more
+  room in special bags. The reagent bag's count shows the same when you hover it.
+- Click your gold in the bags window to open or close the currency drawer.
+- Settings > Windows reads more clearly: Main Window and Individual Bag Windows (were Bag Window and Bag Windows), and
+  Ignore Clicks While Faded is now Prevent Accidental Clicks in Combat, under its own Combat heading.
+- The Disenchant Helper's summary in chat reads as one sentence, like "1 item disenchanted: Greater Magic Essence x2,
+  worth about 7s 60c at current AH prices."
+Fixed:
+- Classic: menus and dialogs are solid behind, so nothing on the window under them shows through.
+- Classic: short sheet tabs, like Gear, Quest or Junk, no longer show a dark smudge. The game's tab art has two end
+  pieces that overlapped on a narrow tab; they now share it.
+- Item icons and their borders line up exactly at any scale, like 90%: no more clipped edges or icons slipping out of
+  their frames. In Classic, icons fill their slots like the game's own bags, with a silver outline for everyday items,
+  and the corner marks sit inside the frame. Thanks to Jeor.
+- The Disenchant Helper's Likely results name every material, like Small Glimmering Shard, instead of "item 10978"
+  when the game hadn't loaded it yet: the name appears as soon as the game has it.
+
 ## 1.7.5
 
 Fixed:

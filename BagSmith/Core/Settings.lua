@@ -68,6 +68,7 @@ local DEFAULTS = {
 	whatsNew = true,           -- show the What's New card after notable updates
 	travelMode = false,        -- Travel Mode (the signpost beside the close button): toolbar hidden, search in the title row
 	travelLeaveBank = true,    -- Auto Travel Mode: off while the bank is open, back on after
+	travelLeaveGuildBank = true,   -- ... the guild bank (1.8.0-beta23)
 	travelLeaveAH = true,      -- ... the auction house
 	travelLeaveVendor = true,  -- ... a vendor
 	travelLeaveTaxi = true,    -- ... a flight path (back on after landing)
@@ -167,10 +168,12 @@ local DEFAULTS = {
 	fav = {},                  -- currency keys, e.g. "c:3402" or "i:20558"
 	blizzUnpinned = {},        -- (1.7.1-beta1) currency ID -> true: unpinned in this profile, never pinned again by the game's picks
 	-- size
+	textScale = 1.0, fontName = "",   -- (1.8.0) Text Size (80% to 150%) and Font ("" = the game's) for the item windows
 	scale = 1.0, sizeMode = "fixed", maxW = 680, maxH = 720, fixW = 620, fixH = 560,   -- new players start Scalable ("fixed")
 	iconSize = 37, rowHeight = 26,
 	iconItemLevel = false,        -- Icons view: the item level in the icon's top-right corner, for weapons and armor (1.0.2)
 	iconItemLevelColor = "3598db", -- hex; its own color so it reads apart from the stack count
+	questFrame = true,         -- (1.8.0-beta11, Shweep) a gold frame on quest items, both skins
 	point = { "BOTTOMRIGHT", "UIParent", "BOTTOMRIGHT", -80, 140 },
 	bankPoint = { "TOPLEFT", "UIParent", "TOPLEFT", 40, -120 },
 	bankW = 620, bankH = 520,
@@ -179,8 +182,9 @@ local DEFAULTS = {
 	minimapAngle = 220,
 	minimapFade = false,   -- show the minimap button only while the pointer is over the minimap
 }
-local CHAR_DEFAULTS = { version = 1, firstSeen = {}, seen = {}, seenSlots = {}, recentSince = 0, recentSticky = {}, junkMarks = {}, makeRoomNever = {}, makeRoomProtect = {}, professionMats = {},
+local CHAR_DEFAULTS = { version = 1, own = {}, firstSeen = {}, seen = {}, seenSlots = {}, recentSince = 0, recentSticky = {}, junkMarks = {}, makeRoomNever = {}, makeRoomProtect = {}, professionMats = {},
 	deNever = {}, deResults = {}, deResultsVersion = 0, deOfferDeclined = false,
+	deMaterials = {},   -- (1.8.0) the Disenchant Helper's learned materials: item ID -> true
 	blizzPicksSeen = {} }   -- (1.7.0-beta14) currency ID -> true: the game's Show on Backpack picks already pinned once   -- the Disenchant Helper's per-character data (1.2.0): the never list, learned results and their schema version, the declined offer   -- recentSince: start of the Recent section's session (0 = not set)   -- seen: guid -> count at dismissal; seenSlots: "bag:slot" -> "itemID:count"
 
 local function clamp(v, lo, hi) if v < lo then return lo elseif v > hi then return hi end return v end
@@ -272,8 +276,17 @@ local function deResultsValidator(v)
 	end
 	return out
 end
+-- (1.8.0) The Disenchant Helper's learned materials: whole positive item IDs marked true; anything else is dropped.
+local function deMaterialsValidator(v)
+	if type(v) ~= "table" then return nil end
+	local out = {}
+	for id, on in pairs(v) do
+		if type(id) == "number" and id > 0 and id < 10000000 and id == math.floor(id) and on == true then out[id] = true end
+	end
+	return out
+end
 local validators = {
-	deNever = deNeverValidator, deResults = deResultsValidator,
+	deNever = deNeverValidator, deResults = deResultsValidator, deMaterials = deMaterialsValidator,
 	makeRoomProtect = deNeverValidator,   -- (1.7.0-beta1) the Loot Helper's Protected Items: item ID -> true, like the DE list
 	blizzPicksSeen = deNeverValidator,   -- (1.7.0-beta14) currency ID -> true
 	blizzUnpinned = deNeverValidator,    -- (1.7.1-beta1) currency ID -> true, per profile
@@ -328,7 +341,7 @@ local validators = {
 	end,
 	sort = oneOf("quality", "name", "newest", "oldest", "ilvl", "off"), sizeMode = oneOf("auto", "fixed"),
 	bankGrp = oneOf("none", "type", "bag"), bankSort = oneOf("quality", "name", "newest", "oldest", "ilvl", "off"), bankView = oneOf("list", "icons"),
-	combatAlpha = num(0.05, 1), bgOpacity = num(0, 1), pinnedHighlightAlpha = num(0.05, 0.5), movingAlpha = num(0.05, 1), scale = num(0.5, 1.5), bagCols = num(4, 12, true), bagScale = num(0.5, 1.5), bagMaxH = num(200, 800, true), shardKeep = num(0, 40, true), maxW = num(440, 1400, true), maxH = num(300, 1200, true),
+	combatAlpha = num(0.05, 1), bgOpacity = num(0, 1), pinnedHighlightAlpha = num(0.05, 0.5), movingAlpha = num(0.05, 1), scale = num(0.5, 1.5), textScale = num(0.8, 1.5), fontName = function(v) if type(v) == "string" and #v <= 100 then return v end end, bagCols = num(4, 12, true), bagScale = num(0.5, 1.5), bagMaxH = num(200, 800, true), shardKeep = num(0, 40, true), maxW = num(440, 1400, true), maxH = num(300, 1200, true),
 	fixW = num(440, 1400, true), bankW = num(500, 1400, true), bankH = num(300, 1200, true), fixH = num(300, 1200, true), iconSize = num(24, 48, true), rowHeight = num(20, 32, true),
 	minimapAngle = num(0, 360), point = pointV, bankPoint = pointV, settingsPoint = pointV,
 	makeRoomPos = function(v) if v == false then return false end return pointV(v) end,
@@ -445,6 +458,53 @@ local validators = {
 		return out
 	end,
 }
+-- (1.8.0-beta5) Special bags' inner glow: each kind off until turned on, in its own color (Init.lua, ns.BAG_KINDS).
+for _, k in ipairs(ns.BAG_KINDS or {}) do
+	DEFAULTS["glow_" .. k.key] = false
+	DEFAULTS["glowColor_" .. k.key] = k.color
+	validators["glowColor_" .. k.key] = validators.accent
+	DEFAULTS["glowAlpha_" .. k.key] = 1      -- (beta6 feedback, Shweep) and its own opacity, 10% to 100%
+	validators["glowAlpha_" .. k.key] = num(0.1, 1)
+	-- (beta10 feedback, Shweep) empty and filled slots each: "glow" (Inner Glow), "frame" (Frame Color) or "off"
+	-- (replacing beta9's one style and beta5's items switch; a beta profile's choices carry over, validateProfile)
+	DEFAULTS["glowEmpty_" .. k.key] = "glow"
+	DEFAULTS["glowFilled_" .. k.key] = "glow"
+	validators["glowEmpty_" .. k.key] = oneOf("glow", "frame", "off")
+	validators["glowFilled_" .. k.key] = oneOf("glow", "frame", "off")
+end
+-- (1.8.0-beta7, Shweep) What every character using a profile shares, part by part (share<Part>: true shared, false
+-- each character keeps its own copy, BagSmithCharDB.own[profile][key]; defaults below). The keys
+-- that go together move together: moved items name custom sections; tab order and hidden tabs name sheets.
+ns.PROFILE_PARTS = {
+	{ key = "Favorites", label = "Favorites", help = "The items you've starred.", keys = { "favItems" }, shared = false },
+	{ key = "Sections", label = "Custom Sections", help = "Your own sections, and the items you've moved from one section to another.", keys = { "customSections", "sectionMoves", "sectionNextId" } },
+	{ key = "PinnedSections", label = "Pinned Sections", help = "Which sections are pinned to the top.", keys = { "pinnedSections" }, shared = false },
+	{ key = "SectionOrder", label = "Section Order and Hidden Sections", help = "The order of your sections, and the ones you've hidden.", keys = { "laneOrder", "sectionHide" } },
+	{ key = "Currencies", label = "Custom Currencies", help = "The items you track as currencies.", keys = { "customCurrencies" }, shared = false },
+	{ key = "PinnedCurrencies", label = "Pinned Currencies", help = "The currencies pinned to the footer, and the ones you've unpinned.", keys = { "fav", "blizzUnpinned" }, shared = false },
+	{ key = "Sheets", label = "Custom Sheets", help = "Your saved sheets for the bags and the bank, and the order of the tabs.", keys = { "sheets", "bankSheets", "tabOrder", "hiddenTabs", "bankTabOrder", "bankHiddenTabs" } },
+}
+-- (beta8, Shweep) Favorites, Pinned Sections, Custom Currencies and Pinned Currencies are each character's own unless
+-- the profile shares them; the rest are shared. A profile saved before 1.8 has no choice saved, so it takes these: on
+-- each character's first login, its own copy starts from the profile's (nothing is lost; What's New says so).
+for _, part in ipairs(ns.PROFILE_PARTS) do DEFAULTS["share" .. part.key] = part.shared ~= false end
+-- (1.8.0-beta16, the beta15 audit's F1) A profile's identity, apart from its name: a character's own copies are kept
+-- under it, so a deleted profile's copies never come back when its name is reused (also for a character that logs in
+-- later). Given at login to a profile that has none (profileIdLegacy: it existed before ids, so copies kept under its
+-- name move to it once), and anew whenever a profile's content is replaced (new, imported, reset, copied over).
+DEFAULTS.profileId = ""
+DEFAULTS.profileIdLegacy = false
+validators.profileId = function(v) if type(v) == "string" and #v <= 40 and v:match("^p[%d%.]+$") then return v end end
+local idCount = 0
+local function newProfileId(taken)
+	local id
+	repeat
+		idCount = idCount + 1
+		id = ("p%d.%d.%d"):format(time and time() or 0, idCount, math.random and math.random(1, 999999) or idCount)
+	until not (taken and taken[id])
+	return id
+end
+ns.NewProfileId = newProfileId
 
 local copy = ns.Copy
 validators.bankCols = validators.cols
@@ -692,6 +752,18 @@ local function validateProfile(saved)
 		end
 		saved.gearSetsPlaced = true
 	end
+	-- (1.8.0-beta11) A beta profile's indicator choices carry over: beta9's style for empty slots, and for filled
+	-- slots too unless beta5's items switch was off.
+	if type(saved) == "table" then
+		for _, k in ipairs(ns.BAG_KINDS or {}) do
+			local style, items = saved["glowStyle_" .. k.key], saved["glowItems_" .. k.key]
+			if saved["glowEmpty_" .. k.key] == nil and (style ~= nil or items ~= nil) then
+				style = (style == "frame") and "frame" or "glow"
+				saved["glowEmpty_" .. k.key] = style
+				saved["glowFilled_" .. k.key] = items == false and "off" or style
+			end
+		end
+	end
 	local out, repaired = validate(saved, DEFAULTS)
 	-- A sheet's custom-section categories are checked against THIS profile's
 	-- sections (never the active profile's: this may be an import).
@@ -756,6 +828,20 @@ local function loadDB(saved)
 	-- What's New existed counts as "seen nothing yet"; no saved data at all
 	-- (a first install) stays empty and is marked seen once loaded.
 	if type(saved) == "table" then db.whatsNewSeen = type(saved.whatsNewSeen) == "string" and saved.whatsNewSeen or "0.0.0" end
+	-- (1.8.0-beta18) The Settings pages whose "NEW" tags this account has opened, per release ({ ["1.8"] = { look = true } }).
+	if type(saved) == "table" and type(saved.newSeen) == "table" then
+		local keep, releases = {}, 0
+		for rel, seen in pairs(saved.newSeen) do
+			if type(rel) == "string" and rel:find("^%d+%.%d+$") and type(seen) == "table" and releases < 16 then
+				local t, n = {}, 0
+				for k, v in pairs(seen) do
+					if type(k) == "string" and #k <= 32 and k:find("^%w+$") and v == true and n < 64 then t[k] = true; n = n + 1 end
+				end
+				keep[rel], releases = t, releases + 1
+			end
+		end
+		db.newSeen = keep
+	end
 	if type(saved) == "table" and type(saved.profiles) == "table" then
 		for name, prof in pairs(saved.profiles) do
 			local n = cleanName(name)
@@ -800,6 +886,17 @@ local function loadDB(saved)
 		local v, r = validateProfile(saved); db.profiles[DEFAULT_PROFILE] = v; repaired = repaired or r
 	end
 	if not db.profiles[DEFAULT_PROFILE] then db.profiles[DEFAULT_PROFILE] = fixTabs(copy(DEFAULTS)) end
+	-- (1.8.0-beta16) every profile has its own id; one without (saved before ids) gets one, marked as inherited; a
+	-- duplicate (copied saved data) gets a new one
+	local taken, names = {}, {}
+	for name in pairs(db.profiles) do names[#names + 1] = name end
+	table.sort(names)
+	for _, name in ipairs(names) do
+		local prof = db.profiles[name]
+		if prof.profileId == "" then prof.profileId = newProfileId(taken); prof.profileIdLegacy = true
+		elseif taken[prof.profileId] then prof.profileId = newProfileId(taken); prof.profileIdLegacy = false end
+		taken[prof.profileId] = true
+	end
 	return db, repaired
 end
 function Profiles:Active()
@@ -816,9 +913,103 @@ function Profiles:List()
 		return a < b end)
 	return names
 end
+-- (1.8.0-beta7, Shweep) A profile's parts a character keeps for itself (ns.PROFILE_PARTS, the profile's share<Part>
+-- off). Only one character plays at a time, so for the session its own copies stand in the profile's table, where the
+-- rest of BagSmith reads and writes them as before; the profile's own values wait aside and go back before the game
+-- writes the saved data (PLAYER_LOGOUT, which /reload sends too), before another profile is used, and when a part is
+-- shared again. A character's copy is kept when a part is shared again, so it comes back if that part is unshared later.
+local Own = { swap = nil }   -- swap = { tbl = the profile's table, id = its profileId, keys = { [key] = the profile's value } }
+ns.OwnParts = Own
+local function partKeys()
+	local set = {}
+	for _, part in ipairs(ns.PROFILE_PARTS) do for _, k in ipairs(part.keys) do set[k] = part.key end end
+	return set
+end
+function Own:Restore()
+	local sw = self.swap
+	if not sw then return end
+	self.swap = nil
+	local cdb = ns.cdb
+	local mine = cdb and cdb.own and cdb.own[sw.id]
+	for k, profileValue in pairs(sw.keys) do
+		if mine then mine[k] = sw.tbl[k] end   -- the character's copy, as it is now
+		sw.tbl[k] = profileValue
+	end
+end
+function Own:Apply()
+	self:Restore()
+	local tbl, cdb = ns.db, ns.cdb
+	if not (tbl and cdb) then return end
+	if type(tbl.profileId) ~= "string" or tbl.profileId == "" then tbl.profileId = newProfileId() end   -- (beta16)
+	local name = tbl.profileId   -- (beta16) the copies are kept under the profile's id, not its name
+	local keys
+	for _, part in ipairs(ns.PROFILE_PARTS) do
+		if tbl["share" .. part.key] == false then
+			cdb.own = type(cdb.own) == "table" and cdb.own or {}
+			local mine = cdb.own[name] or {}
+			cdb.own[name] = mine
+			for _, k in ipairs(part.keys) do
+				keys = keys or {}
+				keys[k] = tbl[k]
+				if mine[k] == nil then mine[k] = copy(tbl[k]) end   -- the first time: a copy of what the profile has now
+				tbl[k] = mine[k]
+			end
+		end
+	end
+	if keys then
+		self.swap = { tbl = tbl, id = name, keys = keys }
+		fixTabs(tbl)   -- this character's sheets and tabs agree (it may replace a list: the copies follow)
+		local mine = cdb.own[name]
+		for k in pairs(keys) do mine[k] = tbl[k] end
+	end
+end
+-- (beta8) A profile reset or copied over: this character's own copies of its parts go too (the profile's values back
+-- first), so what the character sees is the reset or copied profile. Other characters' copies live in their own
+-- saved data and stay until they log in (a reset profile shares nothing new with them).
+function Own:Forget(name)
+	local prof = BagSmithDB and BagSmithDB.profiles and BagSmithDB.profiles[name]
+	local id = prof and prof.profileId
+	if not id or id == "" then return end
+	if self.swap and self.swap.id == id then self:Restore() end
+	local cdb = ns.cdb
+	if cdb and type(cdb.own) == "table" then cdb.own[id] = nil end
+end
+-- What a character keeps for itself is checked as the profile's own settings are: anything else is dropped. Copies
+-- for a profile that no longer exists go.
+local function validateOwn(cdb)
+	local allowed = partKeys()
+	local own = type(cdb.own) == "table" and cdb.own or {}
+	local out = {}
+	-- (beta16) kept under profile ids; a beta's copies kept under a profile's name move to its id, only when that
+	-- profile is the same one (it got its id at login, inherited): never to a new profile that reuses the name
+	local ids = {}
+	for _, prof in pairs(BagSmithDB.profiles) do if prof.profileId ~= "" then ids[prof.profileId] = true end end
+	local moved = {}
+	for key, t in pairs(own) do
+		local prof = type(key) == "string" and not ids[key] and BagSmithDB.profiles[key]
+		if prof and prof.profileIdLegacy and type(t) == "table" and own[prof.profileId] == nil then moved[prof.profileId] = t end
+	end
+	for id, t in pairs(moved) do own[id] = t end
+	for name, t in pairs(own) do
+		if type(name) == "string" and type(t) == "table" and ids[name] then
+			local keep = {}
+			for k, v in pairs(t) do
+				if allowed[k] then
+					if validators[k] then keep[k] = validators[k](v)
+					elseif type(v) == type(DEFAULTS[k]) then keep[k] = copy(v) end
+				end
+			end
+			out[name] = keep
+		end
+	end
+	cdb.own = out
+end
+
 local function activate()
+	Own:Restore()   -- (1.8.0-beta7) the old profile gets its own values back first
 	local name, settings = Profiles:Active()
 	ns.db, ns.profileName = settings, name
+	Own:Apply()
 	-- A confirmation asked about the old profile state; it no longer applies.
 	local c = ns.Popups and ns.Popups.confirm
 	if c and c:IsShown() then c:Hide() end
@@ -837,6 +1028,7 @@ function Profiles:Use(name)
 	if not BagSmithDB.profiles[name] then
 		local fresh = fixTabs(copy(ns.db))
 		fresh.debug = false   -- a tester's debug setting never carries into a new profile
+		fresh.profileId, fresh.profileIdLegacy = newProfileId(), false   -- (beta16) a new profile is a new identity
 		BagSmithDB.profiles[name] = fresh
 	end
 	BagSmithDB.chars[ns:CharKey()] = name ~= DEFAULT_PROFILE and name or nil
@@ -855,6 +1047,7 @@ function Profiles:Import(name, data)
 	end
 	local v = validateProfile(data)
 	v.debug = false
+	v.profileId, v.profileIdLegacy = newProfileId(), false   -- (beta16) never another profile's identity
 	BagSmithDB.profiles[name] = fixTabs(v)
 	return name
 end
@@ -863,7 +1056,10 @@ function Profiles:CopyFrom(name)
 	local src = name and BagSmithDB.profiles[name]
 	if not src then return false, "No profile named " .. tostring(name) .. "." end
 	if name == ns.profileName then return false, "That is already the active profile." end
+	Own:Forget(ns.profileName)   -- (beta8) this character's own copies take the copied profile's too
 	BagSmithDB.profiles[ns.profileName] = copy(src)
+	-- (beta16) replaced content is a new identity: every character's own copies start again from it
+	BagSmithDB.profiles[ns.profileName].profileId, BagSmithDB.profiles[ns.profileName].profileIdLegacy = newProfileId(), false
 	ns.ui.collapseReset = true   -- the active profile's content is replaced
 	activate()
 	return true
@@ -873,6 +1069,7 @@ function Profiles:Delete(name)
 	if not name or not BagSmithDB.profiles[name] then return false, "No profile named " .. tostring(name) .. "." end
 	if name == DEFAULT_PROFILE then return false, "The Default profile cannot be deleted." end
 	if name == self:Active() then ns.ui.collapseReset = true end   -- this character falls back to Default
+	Own:Forget(name)   -- (beta16) this character's copies of it go; other characters' go at their next login
 	BagSmithDB.profiles[name] = nil
 	for char, prof in pairs(BagSmithDB.chars) do if prof == name then BagSmithDB.chars[char] = nil end end
 	activate()
@@ -882,7 +1079,9 @@ function Profiles:Reset(name)
 	name = name or ns.profileName
 	if not BagSmithDB.profiles[name] then return false, "No profile named " .. tostring(name) .. "." end
 	if name == self:Active() then ns.ui.collapseReset = true end   -- the active profile is replaced
+	Own:Forget(name)   -- (beta8) and this character's own copies of its parts start again from the reset profile
 	BagSmithDB.profiles[name] = fixTabs(copy(DEFAULTS))
+	BagSmithDB.profiles[name].profileId = newProfileId()   -- (beta16) a new identity: other characters' copies don't attach
 	activate()
 	return true
 end
@@ -911,6 +1110,8 @@ ns:On("ADDON_LOADED", function(name)
 	BagSmithCharDB, ns.cdb = cdb, cdb
 	local pname, settings = Profiles:Active()
 	ns.db, ns.profileName = settings, pname
+	validateOwn(cdb)   -- (1.8.0-beta7) this character's own copies of parts its profile doesn't share
+	Own:Apply()
 	if repaired then ns:Print("Some saved settings were invalid and have been reset to defaults.") end
 	ns.loaded = true
 	ns:Fire("ADDON_READY")
@@ -931,3 +1132,14 @@ function ns:Set(key, value, silent)
 	return true
 end
 function ns:Toggle(key) return ns:Set(key, not ns.db[key]) end
+
+-- (1.8.0-beta7) Saving: the profile's own values go back before the game writes them, whatever else runs at logout.
+ns:On("PLAYER_LOGOUT", function() pcall(Own.Restore, Own) end)
+-- A part shared or unshared: swap again, then everything redraws from the right copy (as a profile switch does).
+ns:OnSignal("SETTINGS_CHANGED", function(key)
+	if type(key) ~= "string" or not key:find("^share") then return end
+	Own:Apply()
+	if ns.Currency then ns.Currency:Invalidate() end
+	if ns.ReconcileSheets then ns:ReconcileSheets() end
+	ns:Fire("SETTINGS_CHANGED")
+end)

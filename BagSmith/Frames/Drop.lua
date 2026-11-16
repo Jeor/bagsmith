@@ -678,8 +678,10 @@ function Drop:Fill(view, o, own)
 	local r, g, b = Skins:Accent()
 	o:SetBackdropColor(r, g, b, 0.14)
 	o:SetBackdropBorderColor(r, g, b, 0.75)
-	local free, total, rfree = ns:FreeSlots(view:Bags())
+	local free, total, rfree, _, special = ns:FreeSlots(view:Bags())
 	free = free + (rfree or 0)
+	for _, k in pairs(special or {}) do free = free + k.free end   -- (1.8.0-beta5) every free slot, whatever bag it's in
+
 	-- What actually happens to the item on the cursor decides the message.
 	local itemID
 	if GetCursorInfo then local kind, id = GetCursorInfo(); if kind == "item" then itemID = id end end

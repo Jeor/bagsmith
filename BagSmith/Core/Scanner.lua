@@ -246,7 +246,7 @@ local function scanBags(list, now, into, seenGuids, firstStamp)
 			free, family = free or 0, family or 0
 			if family == 0 and ns:IsReagentBag(bag) then family = 0x80000 end
 		end
-		ns.bagInfo[bag] = { size = size, free = free, family = family, name = ns:BagName(bag) }
+		ns.bagInfo[bag] = { size = size, free = free, family = family, name = ns:BagName(bag), kind = size > 0 and ns:BagKind(bag) or nil }
 	end
 	disambiguate(list)
 	-- Forever keeps the bank's real slots in a placeholder tab (named Default
@@ -526,16 +526,25 @@ function ns:ScheduleCacheSave()
 	ns.cacheTimer = C_Timer.NewTimer(1.5, function() ns.cacheTimer = nil; ns:SaveCache() end)
 end
 
+-- Free slots: general (an ordinary bag: anything fits), the reagent bag's, and (1.8.0-beta5) each other special bag's by
+-- kind, the fifth result ({ [kind] = { free, total } }, or nil when there are none). Special bags used to count as
+-- general, so a full bag with an empty quiver read as room to loot.
 function ns:FreeSlots(bags)
 	local general, generalTotal, reagent, reagentTotal = 0, 0, 0, 0
+	local special
 	for _, bag in ipairs(bags or ns.BAGS) do
 		local info = ns.bagInfo[bag]
 		if info and bag ~= ns.KEYRING then
 			if ns:IsReagentBag(bag) then reagent, reagentTotal = reagent + info.free, reagentTotal + info.size
+			elseif info.kind then
+				special = special or {}
+				local k = special[info.kind] or { free = 0, total = 0 }
+				k.free, k.total = k.free + (info.free or 0), k.total + (info.size or 0)
+				special[info.kind] = k
 			else general, generalTotal = general + info.free, generalTotal + info.size end
 		end
 	end
-	return general, generalTotal, reagent, reagentTotal
+	return general, generalTotal, reagent, reagentTotal, special
 end
 
 ------------------------------------------------------------------------
@@ -608,14 +617,14 @@ function ns:SaveCache(atLogout)
 	entry.bags = {}
 	for _, bag in ipairs(ns.BAGS) do
 		local info = ns.bagInfo[bag]
-		if info then entry.bags[tostring(bag)] = { size = info.size, free = info.free, name = info.name, reagent = ns:IsReagentBag(bag) or nil } end
+		if info then entry.bags[tostring(bag)] = { size = info.size, free = info.free, name = info.name, reagent = ns:IsReagentBag(bag) or nil, kind = info.kind } end
 	end
 	entry.items = serialize(ns.items)
 	if ns.atBank then
 		entry.bankBags = {}
 		for _, bag in ipairs(ns.BANK_BAGS) do
 			local info = ns.bagInfo[bag]
-			if info then entry.bankBags[tostring(bag)] = { size = info.size, free = info.free, name = info.name } end
+			if info then entry.bankBags[tostring(bag)] = { size = info.size, free = info.free, name = info.name, kind = info.kind } end
 		end
 		entry.bank = serialize(ns.bankItems)
 	end
