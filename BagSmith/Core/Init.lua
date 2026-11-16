@@ -452,6 +452,12 @@ function ns.FrameUnderCursor(field)
 	return nil
 end
 
+-- (1.9.0-beta2, Shweep) "First Last" as "First L." (Forever's surnames), for the narrow character picker
+function ns.ShortName(name)
+	if type(name) ~= "string" then return name end
+	local first, last = name:match("^(%S+)%s+(%S)")
+	return first and (first .. " " .. last .. ".") or name
+end
 function ns.ClassColor(class)
 	local c = class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
 	if c then return c.r, c.g, c.b end

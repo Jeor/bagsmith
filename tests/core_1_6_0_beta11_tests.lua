@@ -122,7 +122,8 @@
 				check(V.charLevel.text == (key:find("Bree") and "1" or "60") and lp[1] == "RIGHT" and lp[4] == -inset, who .. ": the level is its own text, " .. inset .. " px from the right (clear of the arrow)")
 				local np = {}
 				for i = 1, V.charBtn.label:GetNumPoints() do local pt = { V.charBtn.label:GetPoint(i) }; np[pt[1]] = pt end
-				check(V.charBtn.label.text == key:match("^(.-) %-") and np.RIGHT and np.RIGHT[2] == V.charLevel and np.RIGHT[3] == "LEFT" and V.charBtn.label.wordWrap == false,
+				-- (by design since 1.9.0-beta2: a surname shows as its initial, "First L.")
+				check(V.charBtn.label.text == n.ShortName(key:match("^(.-) %-")) and np.RIGHT and np.RIGHT[2] == V.charLevel and np.RIGHT[3] == "LEFT" and V.charBtn.label.wordWrap == false,
 					who .. ": the name ends before the level and doesn't wrap, so a long one is cut short")
 			end
 			V:SetOwner(nil); M.runTimers(); M.runTimers()

@@ -13,7 +13,7 @@ ns.Window = Window
 
 function Window:Create()
 	if self.main then return end
-	self.main = View.New("BagSmithFrame", { kind = "main", title = "Your Bags" })
+	self.main = View.New("BagSmithFrame", { kind = "main", title = "Bags" })
 	self.bank = View.New("BagSmithBankFrame", { kind = "bank", title = "Bank" })
 	-- Clean Up Bags When Opened: once per opening, never in combat, at the
 	-- bank, or while viewing another character's bags.

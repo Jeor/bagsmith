@@ -1700,7 +1700,7 @@ local framesBefore = #M.frames
 ns:Set("skin", "classic")
 check(main.classicApplied and main.classicChrome and main.classicChrome:IsShown(), "Classic: Blizzard's window frame is shown")
 check(main.classicPortrait and main.classicPortrait.texture == nil or true, "portrait set")
-check(main.classicTitle.text == "Your Bags" and main.titleText.text == "", "the title moves into Blizzard's title strip")
+check(main.classicTitle.text == "Bags" and main.titleText.text == "", "the title moves into Blizzard's title strip")
 check(not main.closeBtn:IsShown() and main.classicClose and main.classicClose:GetFrameLevel() > main.dragArea:GetFrameLevel(), "Blizzard's close button replaces BagSmith's and sits above the drag band")
 check(main.title.points[1][4] == 60, "the title row moves right of the portrait and below the strip")
 check(main.classicPortrait.mask ~= nil, "the full-color icon is clipped round with Blizzard's portrait mask")
@@ -3997,11 +3997,11 @@ end)()
 			-- just before the broom; otherwise at the broom, as before
 			and ((main.btnLanesTravel and main.btnLanesTravel:IsShown()) and (rel(main.search, 2) == main.btnLanesTravel and rel(main.btnLanesTravel) == main.btnClean)
 				or (not (main.btnLanesTravel and main.btnLanesTravel:IsShown()) and rel(main.search, 2) == main.btnClean))
-			and rel(main.header, 1) == main.title and ((main.classicApplied and main.classicTitle.text) or main.titleText.text) == "Your Bags (Travel Mode)" and main.btnTravel.active
+			and rel(main.header, 1) == main.title and ((main.classicApplied and main.classicTitle.text) or main.titleText.text) == "Bags (Travel Mode)" and main.btnTravel.active
 	end
 	local function normalState()
 		return main.tools:IsShown() and main.btnFilter:IsShown() and main.charBtn:IsShown() and rel(main.search, 1) == main.title and rel(main.header, 1) == main.tools
-			and main.titleText.text == "Your Bags" and not main.btnTravel.active
+			and main.titleText.text == "Bags" and not main.btnTravel.active
 	end
 	check(n.db.travelMode == false and main.btnTravel and main.btnTravel.tip == "Travel Mode" and rel(main.btnTravel) == main.closeBtn and not bank.btnTravel,
 		"Travel Mode: off by default; the signpost sits beside the close button; the bank window has none")
@@ -4060,7 +4060,7 @@ end)()
 	-- Combat: the switch waits for combat to end.
 	M.combat = true
 	main.btnTravel:GetScript("OnClick")(main.btnTravel)
-	check(not n.db.travelMode and main.titleText.text ~= "Your Bags", "in combat the setting changes at once, the layout waits")
+	check(not n.db.travelMode and main.titleText.text ~= "Bags", "in combat the setting changes at once, the layout waits")
 	M.combat = false; M.fire("PLAYER_REGEN_ENABLED"); M.runTimers()
 	check(normalState(), "after combat the layout catches up")
 	-- Classic.
@@ -4070,7 +4070,7 @@ end)()
 	check(main.btnTravel.points[1][4] == -1 and main.btnTravel.points[1][5] == 0, "Classic: the signpost lines up with the close button's red face (no lift with the map button art)")
 	check(main.btnTravel.w == 24 and main.btnTravel.h == 24, "Classic: 24 px, the size of the close button's red face")
 	check(main.btnTravel.redArt.panel and main.btnTravel.redArt.pieces[1].colorTexture, "Classic without red button art: the panel art inside a bronze rim")
-	check(main.classicTitle.text == "Your Bags (Travel Mode)" and travelState(), "Classic: the title strip says (Travel Mode), and the layout is the same")
+	check(main.classicTitle.text == "Bags (Travel Mode)" and travelState(), "Classic: the title strip says (Travel Mode), and the layout is the same")
 	n:Set("skin", "modern"); M.runTimers()
 	check(rel(main.btnTravel) == main.closeBtn and rel(main.btnSettings) == main.titleDivider and main.titleDivider:IsShown() and not main.btnTravel.redOn and travelState(),
 		"back to Modern: the button is beside the X again with the divider, Travel Mode still on")
@@ -4086,7 +4086,7 @@ end)()
 	-- Remembered across a reload.
 	local n2 = boot({ travelMode = true })
 	local m2 = n2.Window.main
-	check(n2.db.travelMode and not m2.tools:IsShown() and m2.titleText.text == "Your Bags (Travel Mode)", "Travel Mode is remembered across a reload")
+	check(n2.db.travelMode and not m2.tools:IsShown() and m2.titleText.text == "Bags (Travel Mode)", "Travel Mode is remembered across a reload")
 	-- What's New for 0.12.
 	local n3, M3 = boot(nil)
 	BagSmithDB.whatsNewSeen = "0.11.0"
@@ -4177,7 +4177,7 @@ end)()
 	end
 	local n, M = boot({ travelMode = true })
 	local main = n.Window.main
-	local function travelOn() return not main.tools:IsShown() and main.titleText.text == "Your Bags (Travel Mode)" end
+	local function travelOn() return not main.tools:IsShown() and main.titleText.text == "Bags (Travel Mode)" end
 	local function tip()
 		main.btnTravel:GetScript("OnEnter")(main.btnTravel)
 		local t = table.concat(GameTooltip.lines or {}, " ")
@@ -8928,7 +8928,7 @@ end)()
 	n:Set("skin", "classic"); M.runTimers(); WN:ShowLatest(); M.runTimers()
 	check(card.stripes[1].color[1] == 0 and card.stripes[1].color[4] > 0.05, "Classic: darker stripes")
 	WN:Close()
-	check(n.Classic.CLOSE_NUDGE == -0.5 and (n.Classic.closeFrom["BagSmith Settings"] or n.Classic.closeFrom["Your Bags"] or ""):find("nudged") ~= nil or true, "Classic: the close button's nudge is reported")
+	check(n.Classic.CLOSE_NUDGE == -0.5 and (n.Classic.closeFrom["BagSmith Settings"] or n.Classic.closeFrom["Bags"] or ""):find("nudged") ~= nil or true, "Classic: the close button's nudge is reported")
 	n:Set("skin", "modern"); M.runTimers()
 end)()
 

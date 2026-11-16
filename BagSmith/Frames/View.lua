@@ -1343,14 +1343,15 @@ end
 -- Chrome: title, tools, tabs, footer
 ------------------------------------------------------------------------
 -- The title in its longest form first, then shorter ones for a narrow window (1.6.0): Travel Mode's "(Travel Mode)" goes
--- first (the lit signpost still says so), then "Your Bags" becomes "Bags" and "Bank (Saved)" becomes "Bank".
+-- first (the lit signpost still says so), then "Bank (Saved)" becomes "Bank". (The bags' own title is "Bags" since 1.9.0-beta2.)
 function View:TitleForms()
 	if self.isBank then return { "Bank" } end
 	if not self.isMain then return { self.opts.title or "" } end
 	local saved = self.st.sheet == "Bank"
-	local base, short = saved and "Bank (Saved)" or "Your Bags", saved and "Bank" or "Bags"
-	if self:TravelOn() then return { base .. " (Travel Mode)", base, short } end
-	return { base, short }
+	-- (1.9.0-beta2, Shweep) "Bags", no longer "Your Bags": room in the title row for the globe
+	local base, short = saved and "Bank (Saved)" or "Bags", saved and "Bank" or "Bags"
+	if self:TravelOn() then return base == short and { base .. " (Travel Mode)", base } or { base .. " (Travel Mode)", base, short } end
+	return base == short and { base } or { base, short }
 end
 function View:UpdateTitle()
 	local title = self:TitleForms()[1]
@@ -1475,7 +1476,9 @@ function View:UpdateChrome(shown, total, bagInfo, cached)
 		local data = ns.ui.owner and BagSmithDB.cache[ns.ui.owner] or BagSmithDB.cache[ns:CharKey()]
 		local name, class, level = data and data.name or ns:DisplayName("player"), data and data.class, data and data.level or UnitLevel("player")
 		if not class then local _, c = UnitClass("player"); class = c end
-		self.charBtn.label:SetText(name or "?")
+		-- (1.9.0-beta2, Shweep) a surname as its initial ("Shweepy T."): room in the title row; the full name in the list
+		self.charBtn.label:SetText(ns.ShortName(name) or "?")
+		self.charBtn.fullName = name
 		self.charBtn.label:SetTextColor(ns.ClassColor(class))
 		if self.charLevel then self.charLevel:SetText(tostring(level or 0)) end
 		if CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[class] then

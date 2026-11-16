@@ -204,9 +204,9 @@
 			local _, tEnd = span(V.titleText, V.frame)
 			local cl = span(V.btnClean, V.frame)
 			check(sl >= tEnd and sr <= cl and sr - sl >= 120, ("%s Travel Mode at 440: the search box (%s px) sits between the title (%q) and the icons"):format(skin, fmt(sr - sl), tostring(V.titleText.text)))
-			check(V.titleText.text ~= "Your Bags (Travel Mode)", skin .. " Travel Mode at 440: the title shortens (" .. tostring(V.titleText.text) .. ")")
+			check(V.titleText.text ~= "Bags (Travel Mode)", skin .. " Travel Mode at 440: the title shortens (" .. tostring(V.titleText.text) .. ")")
 			sized(V, 900)
-			check(V.titleText.text == "Your Bags (Travel Mode)", skin .. " Travel Mode at 900: the full title")
+			check(V.titleText.text == "Bags (Travel Mode)", skin .. " Travel Mode at 900: the full title")
 			n:Set("travelMode", false); MM.runTimers()
 		end
 		_G.GetMoney = realMoney; n.db.fav = {}
@@ -216,13 +216,13 @@
 	-- ---- the title's forms
 	n, M, V = boot("modern")
 	local forms = V:TitleForms()
-	check(table.concat(forms, "|") == "Your Bags|Bags", "the bags window's title: Your Bags, then Bags")
+	check(table.concat(forms, "|") == "Bags", "the bags window's title: Bags (\"Your Bags\" until 1.9.0-beta2, by design)")
 	V.st.sheet = "Bank"; forms = V:TitleForms(); V.st.sheet = "All"
 	check(table.concat(forms, "|") == "Bank (Saved)|Bank", "the saved bank: Bank (Saved), then Bank")
 	n:Set("travelMode", true); M.runTimers()
-	check(table.concat(V:TitleForms(), "|") == "Your Bags (Travel Mode)|Your Bags|Bags", "Travel Mode: \"(Travel Mode)\" goes first")
+	check(table.concat(V:TitleForms(), "|") == "Bags (Travel Mode)|Bags", "Travel Mode: \"(Travel Mode)\" goes first")
 	V.title.w = 600; V:LayoutTitleRow()
-	check(V.titleText.text == "Your Bags (Travel Mode)", "with room, the full title, as before")
+	check(V.titleText.text == "Bags (Travel Mode)", "with room, the full title, as before")
 	n:Set("travelMode", false); M.runTimers()
 
 	-- ---- List view sets columns aside as it narrows
