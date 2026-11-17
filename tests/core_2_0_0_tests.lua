@@ -3,6 +3,29 @@
 package.loaded.mock = nil
 local M = require('mock')
 M.shippingAppearance = true
+-- WoW may resolve a backdrop's geometry synchronously, firing the toolbar's
+-- OnSizeChanged while BagOptions.Build is still creating the merge checkbox.
+-- The basic mock does not dispatch that nested geometry notification.
+local createFrame = CreateFrame
+local constructionCallbacks, constructionErrors = 0, {}
+CreateFrame = function(...)
+ local frame = createFrame(...)
+ local setBackdrop = frame.SetBackdrop
+ frame.SetBackdrop = function(self, ...)
+  setBackdrop(self, ...)
+  local parent = self:GetParent()
+  if parent and parent.label and (parent.label:GetText() or ''):match('^Merge') then
+   local toolbar = parent:GetParent()
+   local callback = toolbar and toolbar:GetScript('OnSizeChanged')
+   if callback then
+    constructionCallbacks = constructionCallbacks + 1
+    local ok, err = pcall(callback, toolbar)
+    if not ok then constructionErrors[#constructionErrors+1] = tostring(err) end
+   end
+  end
+ end
+ return frame
+end
 M.sizes[0] = 40
 for i = 1, 20 do
  M.put(0, i, {id=82000+i, name='Sample '..i, q=1, class=i<=12 and 0 or 7, subclass=0, price=123, count=2})
@@ -12,12 +35,19 @@ _G.BagSmithCharDB = {version=1, firstSeen={}}
 _G.BagSmithDB = {version=2, chars={}, cache={}, profiles={Default={skin='modern', view='icons', grp='type', sizeMode='fixed', fixW=720, recentSection=false, mergeStacks=false, compactCategories=true}}}
 local n = M.loadAddon('BagSmith')
 M.fire('ADDON_LOADED','BagSmith'); M.fire('PLAYER_ENTERING_WORLD'); M.runTimers(); M.runTimers()
+CreateFrame = createFrame
+check(constructionCallbacks>=2,'main and bank reproduce nested construction resize callbacks')
+check(#constructionErrors==0,'construction resize callbacks are safe: '..table.concat(constructionErrors,' | '))
 assert((n.errors or 0)==0,table.concat(n.errorLog or {},' | '))
 n.Window:Show(); M.runTimers(); M.runTimers()
 local V = n.Window.main
 V.frame.IsMouseOver = function() return false end
 check(V.optionsDrawer ~= nil, 'bag has an options drawer')
 if not V.optionsDrawer then return end
+check(not V.optionsLayingOut,'construction leaves the layout guard clear')
+for _,key in ipairs({'btnClean','btnGearSets','btnBank','btnCurrency','btnGlobal','btnTravel'}) do
+ if V[key] then check(not V[key]:IsShown() or V[key]:GetParent()==V.optionsContent,key..' is hidden or attached to the drawer after nested resize') end
+end
 local w, h = V.frame:GetWidth(), V.frame:GetHeight()
 V.optionsToggle:GetScript('OnClick')(V.optionsToggle)
 check(V.optionsDrawer:IsShown(), 'bag button opens drawer')

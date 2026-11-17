@@ -154,6 +154,9 @@ function O.Build(v)
 	v.frame:HookScript('OnHide',function() O.Toggle(v,false) end)
 	v.frame:HookScript('OnSizeChanged',function() O.Position(v) end)
 	d:Hide()
+	-- Backdrop geometry can synchronously fire the old toolbar's size callback
+	-- during construction. Publish readiness only after every control exists.
+	v.optionsReady=true
 	O.Layout(v)
 	v:PlaceHeader(); v:PlaceScroll()
 end
@@ -212,7 +215,7 @@ function O.Search(v)
 	if v.title.band then v.title.band:Hide() end
 end
 function O.Layout(v)
-	if not v.optionsDrawer or v.optionsLayingOut then return end
+	if not v.optionsReady or v.optionsLayingOut then return end
 	v.optionsLayingOut=true
 	local c,y=v.optionsContent,4
 	local s=ns.Skins:Current()

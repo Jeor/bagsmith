@@ -1,3 +1,7 @@
+## 2.0.0-alpha3
+
+- Fix the blank Bag Options drawer and detached tool icons caused by a resize callback during drawer construction.
+
 ## 2.0.0-alpha2
 
 - Compact options drawer: grouping and sort menus, checkbox details and stack merging, consistent segmented choices.

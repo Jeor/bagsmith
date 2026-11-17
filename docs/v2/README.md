@@ -27,3 +27,9 @@ The drawer now uses grouping/sort dropdowns and checkbox rows for stack merging 
 Compact categories reserve the tallest heading in each row before finalizing item offsets. This aligns first item rows without dropping vendor/AH metadata, and expands pinned backgrounds accordingly. Dividers are capped at 180 UI pixels. Clear Recent sits on the right; its divider reserves that action's space.
 
 The separate BagSmithTest installation is updated without touching saved settings or regular BagSmith. Alpha1 was backed up before replacement. In-game screenshots remain the visual acceptance check.
+
+## Alpha3 drawer repair
+
+The live client's backdrop sizing can synchronously invoke the old toolbar's `OnSizeChanged` callback while the merge checkbox is being created. Alpha2 entered the drawer layout before `optionsLabels` existed, raised an error, and left `optionsLayingOut` set. Later layout attempts returned early, leaving an empty drawer and detached tools.
+
+Alpha3 publishes `optionsReady` only once drawer construction finishes. Layout ignores earlier resize callbacks without setting its reentrancy guard. A regression fixture recreates the nested callback for main and bank windows and checks that visible tools are attached to the drawer. The normal mock did not simulate that callback timing.
