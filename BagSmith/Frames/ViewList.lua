@@ -398,6 +398,8 @@ function View:LayoutHeader(plan)
 	if self.header:IsShown() ~= head then
 		self.header:SetShown(head)
 		if self.PlaceScroll then self:PlaceScroll() end   -- (1.5.5) Icons view reclaims the headers' room; List view gives it back
+		-- (1.9.0-beta16, Shweep's first report: "First time swapping to list it also loaded blank") checked as on opening
+		if self.frame:IsShown() and self.ScheduleListPlaced then self:ScheduleListPlaced() end
 	end
 end
 

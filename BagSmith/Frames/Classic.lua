@@ -962,6 +962,9 @@ function Classic:Apply(view, on)
 	-- Last step on the way out: Modern repaints its own colors now that
 	-- Classic has stepped aside (the group outlines were left off before).
 	if was and not on then repaint(view.frame) end
+	-- (1.9.0-beta16) a skin switch with the window open re-anchors the list (Classic hangs it from the footer, Modern
+	-- from the tabs): checked as on opening (View:EnsureListPlaced)
+	if (was and true or false) ~= (on and true or false) and view.frame and view.frame:IsShown() and view.ScheduleListPlaced then view:ScheduleListPlaced() end
 end
 
 ------------------------------------------------------------------------

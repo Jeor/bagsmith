@@ -1304,8 +1304,11 @@ function View:ApplyTravel()
 			band:SetPoint("BOTTOM", above, "BOTTOM", 0, -6)
 		end
 		if self.btnTravel then self.btnTravel:SetActive(on) end
+		local changed = self.travelShown ~= on
 		self.travelShown = on
 		self:UpdateTitle()
+		-- (1.9.0-beta16) the header the list hangs from moved: checked as on opening
+		if changed and self.frame:IsShown() and self.ScheduleListPlaced then self:ScheduleListPlaced() end
 	end)
 end
 
@@ -1412,6 +1415,7 @@ function View:ApplySize()
 	-- Native dragging owns size and position until the gesture is saved.
 	if self.sizing or self.dragMoving then return end
 	local f, db = self.frame, ns.db
+	local w0, h0 = f.GetWidth and f:GetWidth(), f.GetHeight and f:GetHeight()
 	f:SetScale(db.scale)
 	if self.isMain then
 		local mw, mh = self:SizeLimits()
@@ -1458,6 +1462,12 @@ function View:ApplySize()
 	end
 	self.grip:SetShown(self.big and not ns:WindowsLocked())   -- (1.7.0-beta2) no grip while Lock Windows is on
 	self:ApplyMinWidth()   -- (1.6.0-beta7, R3) never narrower than the kept columns need
+	-- (1.9.0-beta16) the main or bank window resized while open (Settings, Fit to Items, Global Inventory, a profile):
+	-- the list area is checked as on opening (View:EnsureListPlaced)
+	if self.big and w0 and h0 and f.IsShown and f:IsShown() and self.ScheduleListPlaced
+		and (math.abs((f:GetWidth() or 0) - w0) > 0.5 or math.abs((f:GetHeight() or 0) - h0) > 0.5) then
+		self:ScheduleListPlaced()
+	end
 end
 
 -- (1.9.0-beta13, Shweep: "when you click Global can we pre-expand the window size ... and then leaving it bring it
@@ -2236,6 +2246,7 @@ function View:SetGlobal(on)
 		if self.search then self.search:SetText("") end
 		self:FreshLayout()
 		ns:Safely("globalsize:" .. self.name, function() self:ApplySize() end)   -- (beta13) its own size (after combat, in it)
+		if self.ScheduleListPlaced then self:ScheduleListPlaced() end   -- (beta16) see View:EnsureListPlaced
 		ns:ApplyTravel(); ns:RefreshViews(true)
 		if self.search and self.search.SetFocus and self.frame:IsShown() then self.search:SetFocus() end
 	else
@@ -2250,6 +2261,9 @@ function View:SetGlobal(on)
 		if self.search then self.search:SetText(s.text or ""); if self.search.ClearFocus then self.search:ClearFocus() end end
 		self:FreshLayout()
 		ns:Safely("globalsize:" .. self.name, function() self:ApplySize() end)   -- (beta13) back to your size
+		-- (1.9.0-beta16, Shweep: "Closing Global Inventory has the same problem now ... only impact classic") the size
+		-- and the view change with the window open, where the opening's checks don't run: run them now
+		if self.ScheduleListPlaced then self:ScheduleListPlaced() end
 		ns:ApplyTravel(); ns:RefreshViews(true)
 		if self.scroll and s.scroll then self.scroll:SetVerticalScroll(s.scroll) end
 	end
