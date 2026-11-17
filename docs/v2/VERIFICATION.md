@@ -28,3 +28,14 @@ Implementation: 54946d1, feat/bagsmith-2.0 in Jeor/bagsmith.
 - `git diff --check` passed.
 
 Alpha2 is installed for in-game review. Automated checks do not verify the rendered WoW UI; compact/split layouts and short-window drawer scrolling still need visual acceptance in game.
+
+## 2.0.0-alpha3 verification
+
+- Confirmed root cause from the saved WoW BugGrabber stack: backdrop geometry triggered toolbar OnSizeChanged during BagOptions.Build, before optionsLabels existed; the failed layout left its guard set.
+- A nested-callback regression reproduced the blank drawer and detached controls before the readiness fix, then passed afterward.
+- Full regression run: 219 test sets, exit 0, ALL OK. Two stale version-pattern assertions were corrected before the successful run.
+- The later mutually exclusive currency/options behavior passed the final focused suite: 101 checks. Shipping-appearance currency detail checks: 15 passed. Earlier shipping Global Inventory/sort checks also passed.
+- The final renamed BagSmithTest package passed Lua syntax, namespace isolation and all 101 focused checks. All 138 installed files matched the package, with a backup made first. Regular BagSmith and saved settings were unchanged.
+- Final installed release remains 2.0.0-alpha3. Reload is required to pick up the drawer repair and currency dismissal behavior. In-game visual acceptance remains with the user.
+
+The GitHub Pages demo now includes independent character inventories, all rarity fixtures, mutually exclusive currency/options drawers, per-character sample currency balances, pinning, and all nine bundled font files with interface/header selectors. Twelve model tests and desktop/mobile browser checks passed; the public Pages deployment was verified in the in-app browser. Browser fixtures are visual simulations and do not replace in-game checks.
