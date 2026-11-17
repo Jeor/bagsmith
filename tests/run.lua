@@ -3170,7 +3170,8 @@ end)()
 	check(card:IsShown() and card.points[1][2] == P.frame and card.points[1][1] == "TOPLEFT" and card.points[1][3] == "TOPRIGHT",
 		"opened from Settings, the card sits beside the Settings window")
 	check(card.raisedAt and card.raisedAt > 0, "the card brings itself to the front when it opens")
-	check(card.w == 440 and card.logo:IsShown() and card.logo.texture:find("mark128"), "a wider card (440 since 0.14) with the white BagSmith mark in Modern")
+	-- (by design since 1.9.0-beta11: 476, about 8% wider, Shweep)
+	check(card.w == 476 and card.logo:IsShown() and card.logo.texture:find("mark128"), "a wider card (440 since 0.14, 476 since 1.9.0-beta11) with the white BagSmith mark in Modern")
 	local text = ""; for _, l in ipairs(card.lines) do if l:IsShown() then text = text .. l.text .. " " end end
 	check(text:find("Settings > Dynamic Sections", 1, true) and text:find("Settings > Style", 1, true) and text:find("Split View") and text:find("On by default"), "the bullets point to the right Settings pages (Dynamic Sections, Style)")
 	WN:Close(); P:Hide()
@@ -8912,7 +8913,7 @@ end)()
 	n.version = "0.14.0"   -- (the mock's own version is older than every entry)
 	WN:ShowLatest(); M.runTimers()
 	local card = BagSmithWhatsNew
-	check(card:GetWidth() == 440, "the card is 440 wide")
+	check(card:GetWidth() == 476, "the card is 476 wide (by design since 1.9.0-beta11; 440 before)")
 	local sel = card.entries[card.sel]
 	local bullets, want = #sel.items, math.ceil(#sel.items / 2)
 	local shown = 0
