@@ -84,15 +84,17 @@
 	local seen, order = {}, {}
 	for w = 900, 120, -5 do
 		V.title.w = w; V:LayoutTitleRow()
-		local t = V.subText.text or ""
-		local state = not V.subText:IsShown() and "hidden" or (t:find("\n", 1, true) and "stacked" or "one line")
+		-- (by design since 1.9.0-beta6: stacked is two text pieces, V.subTop over V.subBottom, not one with a line break)
+		local stacked = V.subStacked and V.subTop and V.subTop:IsShown()
+		local t = stacked and (V.subTop.text .. "\n" .. V.subBottom.text) or (V.subText.text or "")
+		local state = not V.subText:IsShown() and "hidden" or (stacked and "stacked" or "one line")
 		if state ~= order[#order] then order[#order + 1] = state; seen[state] = t end
 	end
 	check(table.concat(order, ",") == "one line,stacked,hidden", "wide to narrow: one line, then stacked, then gone: " .. table.concat(order, ","))
 	check(seen["one line"] and seen["one line"]:find("^V: ") and seen["one line"]:find("AH: ", 1, true), "one line: " .. tostring(seen["one line"]))
 	check(seen.stacked and seen.stacked:find("^V: [^\n]+\nAH: "), "stacked: V over AH: " .. tostring(seen.stacked))
 	V.title.w = 900; V:LayoutTitleRow()
-	check(V.subText:IsShown() and not (V.subText.text or ""):find("\n", 1, true), "wide again: one line")
+	check(V.subText:IsShown() and not V.subStacked and not V.subTop:IsShown() and V.subText.alpha == 1, "wide again: one line")
 	n.AH.Available = function() return false end
 	n:RefreshViews(true); M.runTimers()
 	check((V.subText.text or ""):find("^V: ") and not (V.subText.text or ""):find("AH", 1, true), "no price source: vendor only")

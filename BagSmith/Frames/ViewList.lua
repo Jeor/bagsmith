@@ -1710,7 +1710,9 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 				minWidth = 20 + self.compactMeasure:GetStringWidth() + 6 + self.compactCountMeasure:GetStringWidth() + 4 + (hasShardAction(lane) and 94 or 0) + (lane.recent and 94 or 0),
 				fullWidth = (lane.recent and db.splitViewRecentWide) or lane.gearSet or lane.noteOnly or lane.emptyCustom }
 		end
-		for rowIndex, row in ipairs(ns.CompactCategories.Rows(boxes, width, cell, GAP, gutter, COL_GAP, LANE_H + 4 + 2 + 8)) do
+		local planned = ns.CompactCategories.Rows(boxes, width, cell, GAP, gutter, COL_GAP, LANE_H + 4 + 2 + 8)
+		ns.CompactCategories.Justify(planned, boxes, width, cell, GAP, gutter, COL_GAP)   -- (1.9.0-beta6) rows fill the width
+		for rowIndex, row in ipairs(planned) do
 			if rowIndex > 1 then y = y + 8 end
 			local x, bottom = 0, y
 			for _, p in ipairs(row) do

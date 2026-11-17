@@ -1528,6 +1528,29 @@ function View:FitPickerName()
 	b.label:SetText(full)
 	if room > 0 and textWidth(b.label) > room then b.label:SetText(ns.ShortName(full) or full) end
 end
+-- (1.9.0-beta6) Global Inventory's V and AH stacked: two small lines, V over AH, centered on the note's place (which
+-- holds the wider line, unseen); otherwise both hidden and the note shown as itself.
+function View:PlaceStackedNote(sf)
+	local on = self.subStacked and self.subText:IsShown() and sf and true or false
+	if on and not self.subTop then
+		self.subTop = fontString(self.title, "GameFontHighlightSmall")
+		self.subBottom = fontString(self.title, "GameFontHighlightSmall")
+	end
+	if self.subTop then
+		self.subTop:SetShown(on); self.subBottom:SetShown(on)
+		if on then
+			local r, g, b = self.subText:GetTextColor()
+			for i, fs in ipairs({ self.subTop, self.subBottom }) do
+				fs:SetText(sf.lines[i]); fs:SetTextColor(r or 0.6, g or 0.6, b or 0.6)
+				fs:ClearAllPoints()
+			end
+			self.subTop:SetPoint("BOTTOMLEFT", self.subText, "LEFT", 0, 1)
+			self.subBottom:SetPoint("TOPLEFT", self.subText, "LEFT", 0, -1)
+		end
+	end
+	self.subText:SetAlpha(on and 0 or 1)
+end
+
 function View:LayoutTitleRow()
 	if not (self.isMain and self.title and self.titleText) then return end
 	local avail = self.title:GetWidth() or 0
@@ -1576,7 +1599,13 @@ function View:LayoutTitleRow()
 		local stackW = 0
 		for _, l in ipairs(sf.lines) do self.subText:SetText(l); stackW = math.max(stackW, textWidth(self.subText)) end
 		self.subText:SetText(one)
-		notes = { { text = one, w = textWidth(self.subText) }, { text = table.concat(sf.lines, "\n"), w = stackW, stacked = true } }
+		-- (beta6) the stacked form is two text pieces, as the section headers' V and AH are: the game drew only the first
+		-- line of one piece holding a line break (Shweep's /run: stacked, yet one line on screen). The note itself keeps
+		-- the wider line, unseen, so whatever follows it stays where it was.
+		local wide = sf.lines[1]
+		for _, l in ipairs(sf.lines) do self.subText:SetText(l); if textWidth(self.subText) >= stackW then wide = l end end
+		self.subText:SetText(one)
+		notes = { { text = one, w = textWidth(self.subText) }, { text = wide, w = stackW, stacked = true } }
 	end
 	local chosen, tw, note = #forms, 0, nil
 	for i, form in ipairs(forms) do
@@ -1589,7 +1618,6 @@ function View:LayoutTitleRow()
 	self.subStacked = nil
 	if sf then
 		self.subText:SetText(note.text); subW = note.w
-		self.subText:SetWordWrap(note.stacked and true or false)
 		self.subStacked = note.stacked or nil
 	end
 	local subRoom = room - lead - tw - tail
@@ -1603,6 +1631,7 @@ function View:LayoutTitleRow()
 	else
 		self.subText:Hide(); subW = 0
 	end
+	self:PlaceStackedNote(sf)
 	local pw
 	if picker then
 		pw = math.max(PICKER_MIN, math.min(PICKER_W, math.floor(room - lead - tw - subW - 10 - reset)))

@@ -77,3 +77,53 @@ function Compact.Rows(boxes, width, cell, gap, gutter, groupGap, rowOverhead)
 	end
 	return rows
 end
+
+-- (1.9.0-beta6, Shweep: "campact view, can it better utilize the width of the window?") After Rows plans the rows, each
+-- row with room to spare uses it: first more icon columns, whenever that saves the whole row a line of icons; then
+-- the sections stretch, their spare width shared out by size, so the row reaches the right edge. Rows (the plan) is
+-- left as it was; this only widens what it chose. A one-section row already spans the width.
+function Compact.Justify(rows, boxes, width, cell, gap, gutter, groupGap)
+	local step = cell + gap
+	local function lines(p) return math.ceil(math.max(1, boxes[p.index].count) / p.across) end
+	local function widthOf(p, across)
+		local box = boxes[p.index]
+		local headingCols = math.max(1, math.ceil((math.min(width, box.minWidth) - 2 * gutter + gap) / step))
+		return math.min(width, math.max(headingCols, across) * step - gap + 2 * gutter)
+	end
+	local function used(row)
+		local u = 0
+		for j, p in ipairs(row) do u = u + p.width + (j > 1 and groupGap or 0) end
+		return u
+	end
+	for _, row in ipairs(rows) do
+		if #row > 1 then
+			-- 1. a line fewer for the whole row, while it fits
+			while true do
+				local depth = 0
+				for _, p in ipairs(row) do depth = math.max(depth, lines(p)) end
+				if depth <= 1 then break end
+				local trial, total = {}, 0
+				for j, p in ipairs(row) do
+					local across = p.across
+					if lines(p) == depth then across = math.ceil(math.max(1, boxes[p.index].count) / (depth - 1)) end
+					trial[j] = { across = across, width = widthOf(p, across) }
+					total = total + trial[j].width + (j > 1 and groupGap or 0)
+				end
+				if total > width then break end
+				for j, p in ipairs(row) do p.across, p.width = trial[j].across, trial[j].width end
+			end
+			-- 2. the rest shared out, so the row ends at the right edge
+			local spare = width - used(row)
+			if spare > 0 then
+				local base, given = used(row) - (#row - 1) * groupGap, 0
+				for j, p in ipairs(row) do
+					local add = (j == #row) and (spare - given) or math.floor(spare * p.width / base)
+					p.width = p.width + add
+					given = given + add
+				end
+			end
+		end
+	end
+	return rows
+end
+
