@@ -536,7 +536,9 @@ local function writeHeaderValues(infos)
 	for _, i in ipairs(infos) do
 		local h = i.h
 		h.compactValues = i.compact and { v = i.v, ah = i.ah } or nil
-		if i.compact and not i.emptyCustom and not i.emptySet then
+		if i.v2 and not i.recent and not i.emptyCustom and not i.emptySet then
+			-- Already measured and painted before item placement.
+		elseif i.compact and not i.emptyCustom and not i.emptySet then
 			h.sub:Hide(); h.vLabel:Hide(); h.vAmt:Hide(); h.aLabel:Hide(); h.aAmt:Hide()
 			if h.valCoin then h.valCoin:Hide() end
 		else
@@ -1650,7 +1652,8 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 			h.lastY, h.host = y, host
 			h:Show()
 			used[#used + 1] = h; usedSet[h] = true
-			y = y + LANE_H + (iconMode and 4 or 0)   -- icon rows get a little air under the header
+			local headingHeight = self.visualRefresh and ns.CategoryHeader and ns.CategoryHeader.Apply(headerInfos[#headerInfos]) or LANE_H
+			y = y + headingHeight + (iconMode and 4 or 0)   -- icon rows get a little air under the header
 		end
 		if open then
 			local function buttonFor(r)

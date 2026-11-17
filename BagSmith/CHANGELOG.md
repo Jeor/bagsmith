@@ -1,3 +1,13 @@
+## 2.0.0-alpha1
+
+Jeor visual preview, based on upstream 1.9.0-beta18.
+
+- Bag Options opens beside the bag from its bag button; the existing actions move into a scrollable drawer.
+- Compact and split category headers use ivory titles and fine dividers, keeping enabled vendor and auction totals visible.
+- Category detail controls, simpler sheet tabs, and quiet capacity counters.
+- The new appearance is on by default. `/bs v2 off` then `/reload` restores the upstream appearance; `/bs v2` then `/reload` enables it again.
+- In-game visual review is still required for this alpha.
+
 ## 1.9.0
 
 New:

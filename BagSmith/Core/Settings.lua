@@ -64,6 +64,10 @@ local DEFAULTS = {
 	side = "left",             -- left | right
 	reagent = "lane",          -- inline (Mixed In) | lane (Own Section)
 	keys = true, emptySlots = true,
+	visualRefresh = true, -- 2.0 alpha preview; applied when windows are created (reload required)
+	categoryCount = true,
+	categoryVendor = true,
+	categoryAuction = true,
 	splitView = false,         -- icon view with sections: sections side by side in two columns (Sections page)
 	footerTextScale = 1,       -- (1.9.0-beta8) Footer Text Size: the footer's text, 80% to 150% (Style page)
 	globalResize = true,       -- (1.9.0-beta13) Resize for Global Inventory: its own size while it shows (Windows page)

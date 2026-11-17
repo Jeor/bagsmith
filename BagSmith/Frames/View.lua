@@ -450,6 +450,7 @@ function View.New(name, opts)
 	self.big = self.isMain or self.isBank   -- windows with search, tools, header, footer
 	self.st = (self.isBank or opts.bank) and ns.uiBank or ns.ui
 	ns.views[name] = self
+	self.visualRefresh = ns.db.visualRefresh == true
 	self:Build()
 	-- (1.4.1) closing the window ends the session: the next open lays everything out in its true bag order (hooked
 	-- after Build, which sets the frame's own OnHide)
@@ -1086,6 +1087,7 @@ function View:Build()
 
 	Skins:Register(f, function() self:ApplySkin() end)
 	self:ApplySize()
+	if ns.BagOptions then ns.BagOptions.Build(self) end
 end
 
 ------------------------------------------------------------------------
@@ -1117,6 +1119,7 @@ function View:ToolsTotal(level)
 	return w
 end
 function View:LayoutTools()
+	if self.optionsDrawer then return ns.BagOptions.Layout(self) end
 	if not self.toolItems then return end
 	local avail = self.tools:GetWidth()
 	local level = 0
@@ -1214,6 +1217,7 @@ function View:PlaceBelow(shift)
 	if self.scroll then self:PlaceScroll() end
 end
 function View:PlaceSearch()
+	if self.optionsDrawer then return ns.BagOptions.Search(self) end
 	if not (self.search and self.btnFilter and self.title) then return end
 	self.search:ClearAllPoints()
 	local fold = self.btnSearchFold
@@ -1314,6 +1318,7 @@ function View:ApplyTravel()
 		self.travelShown = on
 		self:UpdateTitle()
 		-- (1.9.0-beta16) the header the list hangs from moved: checked as on opening
+		if self.optionsDrawer then ns.BagOptions.Layout(self) end
 		if changed and self.frame:IsShown() and self.ScheduleListPlaced then self:ScheduleListPlaced() end
 	end)
 end
@@ -1354,7 +1359,7 @@ function View:ApplySkin()
 	-- for it this session (then it restores what it recorded).
 	if ns.Classic then
 		if self.big then
-			local on = ns.db.skin == "classic"
+			local on = ns.db.skin == "classic" and not self.visualRefresh
 			if on or self.classicEverApplied then ns.Classic:Apply(self, on) end
 	self:FitDragBand()
 	if self.isMain then self:ApplyTravel() end
@@ -1595,6 +1600,7 @@ function View:FitPickerName()
 	if room > 0 and textWidth(b.label) > room then b.label:SetText(ns.ShortName(full) or full) end
 end
 function View:LayoutTitleRow()
+	if self.optionsDrawer then return ns.BagOptions.Title(self) end
 	if not (self.isMain and self.title and self.titleText) then return end
 	local avail = self.title:GetWidth() or 0
 	local forms = self:TitleForms()
@@ -1716,6 +1722,7 @@ end
 
 -- The Disenchant Helper's toolbar button: shown while the helper is on, lit while its window is open (1.2.0).
 function View:RefreshToolbar()
+	if self.optionsDrawer then return ns.BagOptions.Layout(self) end
 	if not (self.btnDisenchant and self.btnBank) then return end
 	local gs = ns.GearSets and ns.GearSets:Available() and true or false
 	local de = self.kind == "main" and ns.db and ns.db.deEnabled == true
@@ -1788,6 +1795,7 @@ function View:SyncTools()
 		local show = self:TravelOn() and #ids > 0
 		if T:IsShown() ~= show then T:SetShown(show); self:PlaceSearch() end
 	end
+	if self.optionsDrawer then ns.BagOptions.Layout(self); ns.BagOptions.Footer(self) end
 end
 
 -- (1.6.0-beta5, Shweep) The sheet tabs keep to one row in both skins (Classic's hang below the window, where a second
@@ -2010,6 +2018,7 @@ function View:UpdateTabs()
 			ns.Classic.TrimTabEnds(btn, k == 1 and half + 1 or 0, k == #laid and half + 1 or 0)
 		end
 	end
+	if self.optionsDrawer then ns.BagOptions.Tabs(self) end
 end
 
 -- (1.8.0-beta5) The Bags button's tooltip: free slots in ordinary bags, then each kind of special bag (its name in its
@@ -2644,10 +2653,14 @@ end
 function View:PlaceHeader(travel)
 	if not self.header then return end
 	if travel == nil then travel = self.travelShown and true or false end
-	local base = (travel and self.title) or self.headerAnchor or self.tools
+	local base = self.optionsDrawer and self.search or (travel and self.title) or self.headerAnchor or self.tools
 	if travel and self.searchFolded and self.searchOpen and self.search then base = self.search end   -- (1.9.0-beta4) under the open search row
 	local shift = self.belowShift or 0
 	local above, gap = base, travel and -8 or -4
+	if self.optionsDrawer and self.bankBar then
+		self.bankBar:ClearAllPoints(); self.bankBar:SetPoint("TOPLEFT",base,"BOTTOMLEFT",0,-6); self.bankBar:SetPoint("TOPRIGHT",base,"BOTTOMRIGHT",0,-6)
+		above=self.bankBar
+	end
 	if self.bagBar and self.bagBarOpen then
 		self.bagBar:ClearAllPoints()
 		self.bagBar:SetPoint("TOPLEFT", base, "BOTTOMLEFT", (base == self.title) and shift or 0, travel and -8 or -10)

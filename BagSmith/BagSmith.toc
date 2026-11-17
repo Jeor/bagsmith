@@ -1,7 +1,7 @@
 ## Interface: 16001
 ## Title: BagSmith
 ## Notes: Spreadsheet-style bags for WoW Forever.
-## Version: 1.9.0-beta18
+## Version: 2.0.0-alpha1
 ## X-Date: 2026-11-17
 ## Author: BagSmith
 ## IconTexture: Interface\AddOns\BagSmith\Media\icon.tga
@@ -42,6 +42,8 @@ Core\Disenchant.lua
 Core\Buttons.lua
 Core\Corners.lua
 Frames\Outline.lua
+Frames\BagOptions.lua
+Frames\CategoryHeader.lua
 Frames\View.lua
 Frames\CompactCategories.lua
 Frames\ViewList.lua

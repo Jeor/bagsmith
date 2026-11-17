@@ -392,6 +392,11 @@ function M.loadAddon(root)
 			chunk("BagSmith", ns)
 		end
 	end
+	-- Historical suites pin the 1.x presentation. New tests request the
+	-- shipping defaults; no saved variables are fabricated for a first install.
+	if not M.shippingAppearance and not _G.BAGSMITH_TEST_SHIPPING_APPEARANCE then
+		ns.DEFAULTS.visualRefresh = false
+	end
 	return ns
 end
 

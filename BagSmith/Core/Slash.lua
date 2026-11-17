@@ -387,6 +387,12 @@ SlashCmdList.BAGSMITH = function(msg)
 	local cmd, arg = (msg or ""):match("^%s*(%S*)%s*(.-)%s*$")
 	cmd = (cmd or ""):lower()
 	if cmd == "" then cmd = "toggle" end
+	if cmd == "v2" then
+		local on = arg ~= "off"
+		ns:Set("visualRefresh", on, true)
+		ns:Print(on and "2.0 preview enabled. Type /reload to apply it." or "2.0 preview disabled. Type /reload to restore the previous appearance.")
+		return
+	end
 	local fn = commands[cmd]
 	if fn then fn(arg); return end
 	-- plugin commands (registered through BagSmith.API); "gamepad" is the Gamepad companion's, kept as the
