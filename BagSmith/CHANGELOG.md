@@ -4,12 +4,13 @@ New:
 - Global Inventory: the globe beside Travel Mode shows every item on your characters on this realm in one list, with
   who has it and where (bags, bank, worn), one row per item with everyone's count together. Click an item more than
   one character has to see each character's row (class icon and name first). The Bank tab or icon shows only what's
-  in banks, the Filter panel can include your characters on other rulesets, and the Vendor and AH Price columns and the
-  title say what it's all worth (AH Price with a price source; you can turn it off in Global Columns). Buttons that don't apply there are greyed out, and hovering one
-  says why. Its footer shows your characters' gold, free slots and its own pinned currencies together. It uses
-  BagSmith's standard sections, and keeps its own sort, columns, tabs, column widths and pins for your whole account,
-  apart from your profiles: see Global Sections, Global Columns and Global Sheets in Settings. Read only; closing
-  BagSmith or the globe again brings your bags back as they were.
+  in banks, and the Filter panel can include your characters on other rulesets. Vendor and AH Price columns (AH Price
+  with a price source) show what everything is worth, and a Total row at the bottom adds them up for what's shown.
+  Buttons that don't apply there are greyed out, and hovering one says why. Its footer shows your characters' gold,
+  free slots and its own pinned currencies together. It uses BagSmith's standard sections, and keeps its own sort,
+  columns, tabs, column widths and pins for your whole account, apart from your profiles: see Global Inv Sections,
+  Global Inv Columns and Global Inv Sheets in Settings. Read only; closing BagSmith or the globe again brings your
+  bags back as they were.
 - The currency drawer says whose currencies it shows. In Global Inventory it lists every character's, with totals (hover
   one for who has how many), and pins there are Global Inventory's own.
 - Travel Mode: when the window is too narrow for the search box in the title row, it folds into a search icon; click it
@@ -25,6 +26,8 @@ New:
   free slot (All Free Slots).
 - Icon Border Weight (Settings > Item Icons): Normal or Bold item borders, in both looks and both views. Thanks to
   Jeor!
+- Footer Text Size (Settings > Style, under Size): make the text along the bottom of your bags and bank (gold, pinned
+  currencies, free slots) bigger or smaller, from 80% to 150%, on its own.
 - Icon Layout (Settings > Style): Full Width, Split View, or the new Compact View, where sections share rows, each as
   wide as its items need (Icons view, By Section; hover a section's title for its value). Full-Width Recent works with
   Split View and Compact View. In Compact View each row of sections fills the window's width, and each section's
@@ -34,8 +37,10 @@ Changed:
   setting now, no longer tied to the AH Price column) and Show Help Tooltips (was Show Help Tips).
 - The bags window's title reads Bags, and the character picker shows a surname as its initial ("Shweepy T.") when the
   full name doesn't fit, to make room in the title row.
-- Settings: text and buttons sit clear of the line above them, and the window is a little taller, with room for the new
-  Global pages.
+- Settings: text and buttons sit clear of the line above them; the window is a little taller, with room for the new
+  Global Inv pages; and the pages listed under another (Bag Columns, Loot Helper...) show an icon beside their name.
+- Text Size now covers the column headings above the list too.
+- In the Modern look, the footer's gold and buttons sit centered between its line and the bottom of the window.
 - The Disenchant Helper's estimate for green items up to level 15 follows what they give on WoW Forever: more often an
   essence, and no shard.
 
