@@ -81,11 +81,15 @@ end
 -- (1.9.0-beta6, Shweep: "campact view, can it better utilize the width of the window?") After Rows plans the rows, each
 -- row with room to spare uses it: first more icon columns, whenever that saves the whole row a line of icons; then
 -- the sections stretch, their spare width shared out by size, so the row reaches the right edge. Rows (the plan) is
--- left as it was; this only widens what it chose. A one-section row already spans the width.
+-- left as it was; this only widens what it chose, in every row (beta11: one-section rows too).
 function Compact.Justify(rows, boxes, width, cell, gap, gutter, groupGap)
 	local step = cell + gap
 	local function lines(p) return math.ceil(math.max(1, boxes[p.index].count) / p.across) end
+	-- (beta11, found by the random-layout test) more columns than the window holds never fit: capping only the width
+	-- let a section alone in its row take more icons across than it had room for
+	local capacity = math.max(1, math.floor((width - 2 * gutter + gap) / step))
 	local function widthOf(p, across)
+		if across > capacity then return math.huge end
 		local box = boxes[p.index]
 		local headingCols = math.max(1, math.ceil((math.min(width, box.minWidth) - 2 * gutter + gap) / step))
 		return math.min(width, math.max(headingCols, across) * step - gap + 2 * gutter)
@@ -96,7 +100,9 @@ function Compact.Justify(rows, boxes, width, cell, gap, gutter, groupGap)
 		return u
 	end
 	for _, row in ipairs(rows) do
-		if #row > 1 then
+		-- (1.9.0-beta11, Shweep: "sometimes we are still not using full width") a section alone in its row too: it was
+		-- skipped here on the wrong belief that Rows makes it full width (only full-width boxes are)
+		do
 			-- 1. a line fewer for the whole row, while it fits
 			while true do
 				local depth = 0
