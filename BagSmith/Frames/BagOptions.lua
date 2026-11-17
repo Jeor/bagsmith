@@ -174,6 +174,7 @@ function O.Toggle(v,on)
 	local d=v.optionsDrawer
 	if not d then return end
 	if on==nil then on=not d:IsShown() end
+	if on and ns.Drawer then ns.Drawer:Hide() end
 	O.Position(v); d:SetShown(on); v.optionsToggle:SetActive(on)
 end
 function O.Title(v)

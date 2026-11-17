@@ -1,6 +1,7 @@
 ## 2.0.0-alpha3
 
 - Fix the blank Bag Options drawer and detached tool icons caused by a resize callback during drawer construction.
+- Currency and Bag Options drawers dismiss each other when opened, including the gold and pinned-currency shortcuts.
 
 ## 2.0.0-alpha2
 

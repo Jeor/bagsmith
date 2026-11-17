@@ -385,6 +385,13 @@ function Drawer:PlaceList()
 end
 function Drawer:Show()
 	self:Create()
+	-- All entry points (toolbar, gold, pinned currencies) share this transition.
+	if ns.BagOptions then
+		for _,key in ipairs({'main','bank'}) do
+			local view=ns.Window[key]
+			if view and view.optionsDrawer then ns.BagOptions.Toggle(view,false) end
+		end
+	end
 	self.open = nil   -- (beta18) currencies start closed each time the drawer opens
 	self:Position()
 	self.frame:Show()
