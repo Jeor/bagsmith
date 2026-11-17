@@ -1496,12 +1496,18 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 					if ns.Sections and ns.Sections:CursorItem() then
 						if ns.Sections:DropOnSection(btn.laneId) then return end
 					end
-					if mouse == "RightButton" then if ns.Sections then ns.Sections:SectionMenu(btn.laneId, btn) end return end
+					-- (1.9.0-beta5, Shweep: "right clicking a section header in global shows a menu that makes no sense") every
+					-- entry changes your profile's sections; Global Inventory's are its own, so no menu there
+					if mouse == "RightButton" then
+						if ns.Sections and not (btn.view.isMain and ns.ui.global) then ns.Sections:SectionMenu(btn.laneId, btn) end
+						return
+					end
 					btn.view:ToggleLane(btn.laneId)
 				end)
 				h:SetScript("OnReceiveDrag", function(btn) if ns.Sections then ns.Sections:DropOnSection(btn.laneId) end end)
 				-- "All Items" (Sections: All beside Recent) isn't in Section Order, so it doesn't drag.
-				h:SetScript("OnDragStart", function(btn) if btn.laneId == "~all" then return end ns.dragLane = btn.laneId; btn:SetAlpha(0.5) end)
+				-- (1.9.0-beta5) nor in Global Inventory: a drag there would reorder your profile's sections
+				h:SetScript("OnDragStart", function(btn) if btn.laneId == "~all" or (btn.view.isMain and ns.ui.global) then return end ns.dragLane = btn.laneId; btn:SetAlpha(0.5) end)
 				h:SetScript("OnDragStop", function(btn)
 					btn:SetAlpha(1)
 					local target = ns.FrameUnderCursor("laneId")

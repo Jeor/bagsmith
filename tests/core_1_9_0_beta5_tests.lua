@@ -61,6 +61,22 @@
 	tab("GearSets"):GetScript("OnClick")(tab("GearSets"))
 	check(V.st.sheet ~= "GearSets", "and can't open")
 
+	-- (Shweep: "right clicking a section header in global shows a menu that makes no sense") no section menu, no dragging
+	local menus = 0
+	local oldMenu = n.Sections.SectionMenu
+	n.Sections.SectionMenu = function() menus = menus + 1 end
+	local h
+	for _, x in ipairs(V.used) do if x.laneId and x.text and x:IsShown() and x.laneId:sub(1, 1) ~= "~" then h = x end end
+	check(h ~= nil, "(setup) a section header in Global Inventory")
+	h:GetScript("OnClick")(h, "RightButton")
+	check(menus == 0, "right-click: no section menu (its every entry changes your profile)")
+	h:GetScript("OnDragStart")(h)
+	check(n.dragLane == nil, "and no dragging to reorder")
+	local id = h.laneId
+	h:GetScript("OnClick")(h, "LeftButton"); M.runTimers()
+	check(n.IndexOf(n.Inventory:Settings().collapsed, id), "a click still collapses it")
+	h:GetScript("OnClick")(h, "LeftButton"); M.runTimers()
+
 	-- the value note: V and AH on one line; stacked when the row is short; gone when even that won't fit
 	n.AH.Available = function() return true end
 	n.AH.StackValue = function(_, r) return 100 * (r.count or 1) end
@@ -89,6 +105,11 @@
 			check(b:IsEnabled() and b:GetAlpha() == 1 and b.offReason == nil, "left Global Inventory: " .. name .. " usable again")
 		end
 	end
+	h = nil
+	for _, x in ipairs(V.used) do if x.laneId and x.text and x:IsShown() and x.laneId:sub(1, 1) ~= "~" then h = x end end
+	h:GetScript("OnClick")(h, "RightButton")
+	check(menus == 1, "outside it, right-click opens the section menu as before")
+	n.Sections.SectionMenu = oldMenu
 	GameTooltip.lines = {}
 	M.enter(V.btnMerge)
 	check(not table.concat(GameTooltip.lines or {}, " "):find(OFF, 1, true), "Merge Stacks' tooltip is its own again")
