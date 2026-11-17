@@ -56,7 +56,8 @@ local function globe(V, M) V.btnGlobal:GetScript("OnClick")(V.btnGlobal); M.runT
 	P:Show(); P:ShowPage("window")
 	local found
 	for _, c in ipairs(P.pools.check) do if c:IsShown() and c.key == "globalResize" then found = c end end
-	check(found and found.text.text == "Resize for Global Inventory" and found.box:GetChecked(), "Settings > Windows: Resize for Global Inventory, ticked")
+	-- (by design since 1.9.0-beta14: Shweep's name for it)
+	check(found and found.text.text == "Global Inventory: Custom Window Size" and found.box:GetChecked(), "Settings > Windows: Global Inventory: Custom Window Size, ticked")
 	check((n.errors or 0) == 0, "no errors")
 end)()
 
@@ -65,7 +66,8 @@ end)()
 	local n, M, V = boot({ fixW = 900, fixH = 700 })
 	globe(V, M)
 	local w, h = size(V)
-	check(w == 900 and h == 620, "wider than 750: it keeps its width (900), 620 tall")
+	-- (by design since 1.9.0-beta14: Width and Height in Settings decide, so a wider window no longer keeps its width)
+	check(w == 750 and h == 620, "a window wider than 750: Global Inventory is still 750 by 620, as Settings shows")
 	n, M, V = boot({ sizeMode = "auto", maxW = 620, maxH = 560 })
 	globe(V, M)
 	w, h = size(V)

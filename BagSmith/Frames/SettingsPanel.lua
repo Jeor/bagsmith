@@ -751,8 +751,19 @@ end
 -- Number rows: minus, a box you can type into, plus. Whole numbers only;
 -- percentages are typed as whole percents (85 for 85%). Out-of-range
 -- values snap to the nearest limit.
+-- (1.9.0-beta14) a number row's value: a setting, or Global Inventory's window size (saved apart from profiles)
+local GLOBAL_STEP = { __globalW = { "w", 440, 1400 }, __globalH = { "h", 300, 1200 } }
+function Panel.StepValue(key)
+	local g = GLOBAL_STEP[key]
+	if g then
+		local V = ns.View
+		local G = ns.Inventory and ns.Inventory:Settings() or {}
+		return G[g[1]] or (g[1] == "w" and (V and V.GLOBAL_W or 750) or (V and V.GLOBAL_H or 620))
+	end
+	return ns.db[key]
+end
 local function stepShow(w)
-	local v = ns.db[w.key] or 0
+	local v = Panel.StepValue(w.key) or 0
 	w.value:SetText(tostring(w.percent and math.floor(v * 100 + 0.5) or math.floor(v + 0.5)))
 end
 local function stepCommit(box)
@@ -765,7 +776,9 @@ local function stepCommit(box)
 end
 -- info (1.4.2): an optional { title, lines, keywords } for a small info icon beside the label, with its own tooltip
 -- (the same icon BagSmith uses for its held-back explanations); its words are searchable too.
-function Panel:Step(key, label, step, fmt, help, info)
+-- opts (1.9.0-beta14, optional): { disabled = true } greys the row out, its value shown but fixed (a sub-setting whose
+-- switch is off).
+function Panel:Step(key, label, step, fmt, help, info, opts)
 	local s = acquire(self, "step", function(p)
 		local w = CreateFrame("Frame", nil, p); w:SetSize(ROW_W, LINE)
 		w.text = fs(w); w.help = fs(w)
@@ -780,8 +793,8 @@ function Panel:Step(key, label, step, fmt, help, info)
 		w.unit = w.value:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 		w.unit:SetPoint("RIGHT", w.value, "RIGHT", -6, 0)
 		w.unit:SetText("%")
-		w.minus = ns.IconButton(w, "Interface\\AddOns\\BagSmith\\Media\\ui-minus.tga", "Decrease", function(b) local pr = b:GetParent(); ns:Set(pr.key, ns.db[pr.key] - pr.step) end); w.minus:SetSize(22, 22)
-		w.plus = ns.IconButton(w, "Interface\\AddOns\\BagSmith\\Media\\ui-plus.tga", "Increase", function(b) local pr = b:GetParent(); ns:Set(pr.key, ns.db[pr.key] + pr.step) end); w.plus:SetSize(22, 22)
+		w.minus = ns.IconButton(w, "Interface\\AddOns\\BagSmith\\Media\\ui-minus.tga", "Decrease", function(b) local pr = b:GetParent(); ns:Set(pr.key, Panel.StepValue(pr.key) - pr.step) end); w.minus:SetSize(22, 22)
+		w.plus = ns.IconButton(w, "Interface\\AddOns\\BagSmith\\Media\\ui-plus.tga", "Increase", function(b) local pr = b:GetParent(); ns:Set(pr.key, Panel.StepValue(pr.key) + pr.step) end); w.plus:SetSize(22, 22)
 		return w
 	end)
 	s.key, s.step = key, step
@@ -796,6 +809,13 @@ function Panel:Step(key, label, step, fmt, help, info)
 	-- same spot whether or not the % is shown in the right-hand space.
 	if s.value.SetTextInsets then s.value:SetTextInsets(12, 12, 0, 0) end
 	stepShow(s)
+	local off = opts and opts.disabled and true or false
+	for _, b in ipairs({ s.minus, s.plus, s.value }) do
+		if off then if b.Disable then b:Disable() end else if b.Enable then b:Enable() end end
+		if b.EnableMouse then b:EnableMouse(not off) end
+		b:SetAlpha(off and 0.5 or 1)
+	end
+	if off then s.text:SetTextColor(Skins:Color("muted")) end
 	if info then
 		if not s.info then s.info = ns.Why.InfoButton(s) end
 		s.info.title, s.info.lines = info.title, info.lines
@@ -1792,8 +1812,14 @@ pages.window = function(self, db)
 	else
 		self:Step("fixW", "Width", 20, "%d"); self:Step("fixH", "Height", 20, "%d")
 	end
-	-- (1.9.0-beta13, Shweep: "this can be a setting (Windows) default true")
-	self:Check("globalResize", "Resize for Global Inventory", "Opening Global Inventory makes your bags window 750 wide and about as tall as Settings, or the size you last gave it there. Leaving puts your own size back.")
+	-- (1.9.0-beta13, Shweep: "this can be a setting (Windows) default true"; beta14: his name and words, and "preset width
+	-- and height as sub-settings if checked but let players change it")
+	self:Check("globalResize", "Global Inventory: Custom Window Size", "Opens Global Inventory in a custom window size, then puts your bags back to their previous size when you leave Global Inventory.")
+	self:Indented(function()
+		local off = not db.globalResize and { disabled = true } or nil
+		self:Step("__globalW", "Width", 20, "%d", nil, nil, off)
+		self:Step("__globalH", "Height", 20, "%d", nil, nil, off)
+	end)
 	-- (1.9.0-beta1, Shweep) 1.8's count left special bags out; players choose
 	self:Seg("bagSlotCount", "Bag Slot Count", { { "exclude", "Exclude Special Bags" }, { "all", "All Free Slots" } },
 		"The free-slot count in the corner of your bags. Exclude Special Bags counts only slots anything fits in, not a quiver's or a herb bag's. Hover the count to see every bag's room either way.")
@@ -2563,6 +2589,18 @@ local origSet = ns.Set
 function ns:Set(key, value, silent)
 	if key == "__profile" then local ok, err = ns.Profiles:Use(value); if not ok then ns:Print(err) end return ok end
 	-- When the Main Window Opens: two stored switches behind one choice.
+	-- (1.9.0-beta14) Global Inventory's window size, from Settings > Windows
+	local g = GLOBAL_STEP[key]
+	if g then
+		local v = tonumber(value)
+		if not v or not ns.Inventory then return false end
+		v = math.max(g[2], math.min(g[3], math.floor(v + 0.5)))
+		ns.Inventory:Settings()[g[1]] = v
+		local V = ns.Window and ns.Window.main
+		if V and ns.ui.global then ns:Safely("globalsize:" .. V.name, function() V:ApplySize() end) end
+		ns:Fire("SETTINGS_CHANGED", "globalInv")
+		return true
+	end
 	-- (1.9.0-beta6) Global Sections' Open with Sections: Global Inventory's own, outside every profile
 	if key == "__globalGrp" then
 		if not (value == "none" or value == "type") or not ns.Inventory then return false end

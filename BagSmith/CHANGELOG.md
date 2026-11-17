@@ -9,9 +9,9 @@ New:
   Buttons that don't apply there are greyed out, and hovering one says why. Its footer shows your characters' gold,
   free slots and its own pinned currencies together. It uses BagSmith's standard sections, and keeps its own sort,
   columns, tabs, column widths and pins for your whole account, apart from your profiles: see Global Inv Sections,
-  Global Inv Columns and Global Inv Sheets in Settings. It opens at a roomier size, or the size you last gave it
-  (Resize for Global Inventory, in Settings > Windows). Read only; closing BagSmith or the globe again brings your
-  bags back as they were, size included.
+  Global Inv Columns and Global Inv Sheets in Settings. It opens in its own window size, 750 by 620 to start (set it
+  in Settings > Windows > Global Inventory: Custom Window Size, or drag the corner while it's open). Read only;
+  closing BagSmith or the globe again brings your bags back as they were, size included.
 - The currency drawer says whose currencies it shows. In Global Inventory it lists every character's, with totals (hover
   one for who has how many), and pins there are Global Inventory's own.
 - Travel Mode: when the window is too narrow for the search box in the title row, it folds into a search icon; click it
