@@ -8734,7 +8734,7 @@ end)()
 	local function checksOn(page)
 		P:ShowPage(page)
 		local t = {}
-		for _, pool in ipairs({P.pools.check, P.pools.dropdown or {}}) do for _, w in ipairs(pool) do if w:IsShown() then t[w.key] = true end end end
+		for _, pool in ipairs({P.pools.check, P.pools.seg or {}}) do for _, w in ipairs(pool) do if w:IsShown() then t[w.key] = true end end end
 		return t
 	end
 	local function headsOn(page)
@@ -8821,7 +8821,7 @@ end)()
 	local byKey = {}
 	for _, w in ipairs(checks) do byKey[w.key] = w end
 	check(byKey.dense and byKey.dense.points[1][4] == 10, "rows sit inside the card (inset)")
-	local layouts = shown("dropdown"); for _, w in ipairs(layouts) do byKey[w.key] = w end
+	local layouts = shown("seg"); for _, w in ipairs(layouts) do byKey[w.key] = w end
 	check(byKey.dense and byKey.iconLayout and byKey.emptySlots, "Compact Rows, Split View and Show Empty Slots are on the Style page")
 	local rowsInCards = 0
 	for kind, pool in pairs(P.pools) do

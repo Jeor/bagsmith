@@ -52,9 +52,9 @@ end
 -- Text Size, Font, Gold Frame for Quest Items).
 Panel.NEW = {
 	release = "1.9",
-	pages = { general = true, window = true, icons = true },
+	pages = { general = true, window = true, icons = true, look = true },
 	heads = {},
-	keys = { tipInventory = "general", tipAHPrice = "general", bagSlotCount = "window", borderWeight = "icons" },
+	keys = { tipInventory = "general", tipAHPrice = "general", bagSlotCount = "window", borderWeight = "icons", iconLayout = "look" },
 }
 Panel.NEW_COLOR = { 0.55, 0.78, 1 }   -- the soft blue of What's New's links
 local function release() return tostring(ns.version or ""):match("^(%d+%.%d+)") end
@@ -607,6 +607,11 @@ function Panel:Check(key, label, help, opts)
 	self.y = self.y + c:GetHeight()
 end
 
+-- (1.9.0-beta5) Icon Layout's one choice from its two stored switches; Compact wins if an old profile has both
+function Panel.IconLayout()
+	return ns.db.compactCategories and "compact" or (ns.db.splitView and "split" or "full")
+end
+
 -- below: the options go on their own line under the label and help, left
 -- to right, wrapping only if they don't fit (for long option labels).
 -- extra (optional): { label = ..., onClick = fn }, a small button under the
@@ -633,6 +638,7 @@ function Panel:Seg(key, label, options, help, below, extra)
 		b:SetWidth(b.w)
 		local current
 		if key == "__openWindows" then current = ns.db.bagWindows and "all" or (ns.db.reagentWindow and "reagent" or "main")
+		elseif key == "iconLayout" then current = Panel.IconLayout()
 		else current = ns.db[key] end
 		b:SetActive(current == opt[1])
 		b:Show()
@@ -1506,21 +1512,18 @@ pages.look = function(self, db)
 		self:Dropdown("fontName", "Font", choices, "The same item text in another font: BagSmith's own, the game's, or one another addon shares.")
 	end
 	self:Head("Layout")
-	local function layout() return ns.db.compactCategories and "compact" or (ns.db.splitView and "split" or "standard") end
-	local help = { standard = "Shows each section across the full width.", split = "Shows sections in two columns in By Section or By Bag.", compact = "Fits categories into compact rows in By Section." }
-	self:Dropdown("iconLayout", "Icon Layout", { {key="standard",label="Standard"}, {key="split",label="Split"}, {key="compact",label="Compact"} }, help[layout()], {
-		get = layout,
-		set = function(value)
-			-- Keep existing saved-profile keys, updating both before one refresh.
-			ns:Set("splitView", value == "split", true)
-			ns:Set("compactCategories", value == "compact")
-		end,
-	})
-	if layout() ~= "standard" then
-		self:Indented(function()
-			self:Check("splitViewRecentWide", "Full-Width Recent", "Gives Recent Items its own full-width row instead of sharing space with other sections.")
-		end)
-	end
+	-- (1.9.0-beta5, Jeor's compact layout; Shweep: "a 3-way button with Full Width, Split View and Compact View") two
+	-- stored switches (splitView, compactCategories) behind one choice, like When the Main Window Opens
+	local help = { full = "Each section spans the full width of the window.",
+		split = "Sections side by side in two columns. Works with By Section or By Bag when the window is wide enough.",
+		compact = "Sections share rows, each as wide as its items need. Works with By Section." }
+	local layout = Panel.IconLayout()
+	self:Seg("iconLayout", "Icon Layout", { { "full", "Full Width" }, { "split", "Split View" }, { "compact", "Compact View" } }, help[layout])
+	-- greyed (not hidden) while Full Width leaves Recent nothing to span
+	self:Indented(function()
+		self:Check("splitViewRecentWide", "Full-Width Recent", "Gives Recent Items its own full-width row instead of sharing space with other sections.",
+			layout == "full" and { disabled = true, checked = db.splitViewRecentWide } or nil)
+	end)
 	self:Check("emptySlots", "Show Empty Slots", "Shows your free bag spaces as empty squares in Icons view. Not shown in By Section.")
 end
 
@@ -2403,6 +2406,11 @@ local origSet = ns.Set
 function ns:Set(key, value, silent)
 	if key == "__profile" then local ok, err = ns.Profiles:Use(value); if not ok then ns:Print(err) end return ok end
 	-- When the Main Window Opens: two stored switches behind one choice.
+	-- (1.9.0-beta5) so is Icon Layout: Full Width, Split View or Compact View
+	if key == "iconLayout" then
+		origSet(self, "splitView", value == "split", true)
+		return origSet(self, "compactCategories", value == "compact", silent)
+	end
 	if key == "__openWindows" then
 		origSet(self, "bagWindows", value == "all", true)
 		return origSet(self, "reagentWindow", value == "all" or value == "reagent", silent)

@@ -275,7 +275,8 @@
 		check(c and c.text.text == "Full-Width Recent" and c.box:IsEnabled(), S .. "Settings > Style: Full-Width Recent, under Split View")
 		n:Set("splitView", false); M.runTimers()
 		c = box()
-		check(not c and n.db.splitViewRecentWide, S .. "hidden in Standard, preserving its setting")
+		-- (1.9.0-beta5, by design) greyed again under Full Width (Shweep: "disabled/greyed out as not used")
+		check(c and not c.box:IsEnabled() and c.box:GetChecked(), S .. "greyed under Full Width, showing its setting")
 		P:Hide()
 	end
 end)()

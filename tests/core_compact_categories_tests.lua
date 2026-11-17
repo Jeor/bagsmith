@@ -152,7 +152,8 @@ for _, skin in ipairs({ "classic", "modern" }) do
 	end
 	n.SettingsPanel:Show(); n.SettingsPanel:ShowPage("look"); M.runTimers()
 	local found = false
-	for _, w in ipairs(n.SettingsPanel.pools.dropdown or {}) do if w:IsShown() and w.key == "iconLayout" then found = true end end
+	-- (1.9.0-beta5, by design) a 3-way button (Full Width | Split View | Compact View) in place of the dropdown
+	for _, w in ipairs(n.SettingsPanel.pools.seg or {}) do if w:IsShown() and w.key == "iconLayout" then found = true end end
 	check(found, skin .. ": icon layout selector available in Style")
 	n.SettingsPanel:Hide()
 	n:Set("compactCategories", true); M.runTimers()
@@ -244,43 +245,48 @@ for _, skin in ipairs({"classic", "modern"}) do
 	end
 	n:Set("splitView", true); n:Set("compactCategories", true)
 	P:Show(); P:ShowPage("look"); M.runTimers()
-	local selector = control("dropdown", "iconLayout")
-	check(selector and selector.btn.label:GetText() == "Compact", skin .. ": old combined flags display Compact")
-	check(not control("check","compactCategories") and not control("check","splitView"), skin .. ": old checkboxes replaced")
-	assert(selector, "Icon Layout selector missing")
-	local menu, oldMenu = nil, n.ShowMenu
-	n.ShowMenu = function(items) menu = items end
+	-- (1.9.0-beta5, by design) Shweep: "a 3-way button with Full Width, Split View and Compact View w/ the sub-setting
+	-- of Full-Width Recent if Split View or Compact View are selected, otherwise that setting is disabled/greyed out"
+	local function seg() return control("seg", "iconLayout") end
+	local function active()
+		for _, b in ipairs(seg().btns) do if b:IsShown() and b.active then return b.label:GetText() end end
+	end
 	local function choose(name)
-		selector = control("dropdown", "iconLayout")
-		selector.btn:GetScript("OnClick")(selector.btn)
-		for _, item in ipairs(menu) do if item.text == name then item.onClick(); M.runTimers(); return end end
+		for _, b in ipairs(seg().btns) do if b:IsShown() and b.label:GetText() == name then b:GetScript("OnClick")(b); M.runTimers(); return end end
 		error("Missing layout choice: " .. name)
 	end
-	choose("Standard")
-	check(not n.db.splitView and not n.db.compactCategories and not control("check","splitViewRecentWide"), skin .. ": Standard has no Recent width option")
-	choose("Split")
-	check(n.db.splitView and not n.db.compactCategories and control("check","splitViewRecentWide"), skin .. ": Split exposes Recent width option")
-	choose("Compact")
-	check(not n.db.splitView and n.db.compactCategories and control("check","splitViewRecentWide"), skin .. ": Compact exposes same Recent width option")
+	local function recentRow()
+		local c = control("check", "splitViewRecentWide")
+		return c, c and c.box:IsEnabled()
+	end
+	assert(seg(), "Icon Layout selector missing")
+	local labels = {}
+	for _, b in ipairs(seg().btns) do if b:IsShown() then labels[#labels + 1] = b.label:GetText() end end
+	check(table.concat(labels, "|") == "Full Width|Split View|Compact View", skin .. ": three choices: " .. table.concat(labels, "|"))
+	check(active() == "Compact View", skin .. ": old combined flags display Compact View")
+	check(not control("check","compactCategories") and not control("check","splitView"), skin .. ": old checkboxes replaced")
+	choose("Full Width")
+	local row, on = recentRow()
+	check(not n.db.splitView and not n.db.compactCategories and active() == "Full Width", skin .. ": Full Width clears both")
+	check(row and not on, skin .. ": Full Width: Full-Width Recent shown but greyed")
+	choose("Split View")
+	row, on = recentRow()
+	check(n.db.splitView and not n.db.compactCategories and row and on, skin .. ": Split View enables Full-Width Recent")
+	choose("Compact View")
+	row, on = recentRow()
+	check(not n.db.splitView and n.db.compactCategories and row and on, skin .. ": Compact View enables the same Full-Width Recent")
+	-- the font dropdown (Jeor's binding left it its own setting) still picks a font
+	local menu, oldMenu = nil, n.ShowMenu
+	n.ShowMenu = function(items) menu = items end
 	local font = control("dropdown", "fontName")
 	font.btn:GetScript("OnClick")(font.btn)
 	check(menu[1].checked, skin .. ": regular font dropdown retains saved selection")
 	local selectedFont = font.choices[2].key
 	menu[2].onClick(); M.runTimers()
-	check(n.db.fontName == selectedFont and n.db.compactCategories and not n.db.splitView, skin .. ": font dropdown does not inherit layout binding")
+	check(n.db.fontName == selectedFont and n.db.compactCategories and not n.db.splitView, skin .. ": font dropdown leaves the layout alone")
 	font = control("dropdown", "fontName")
 	font.btn:GetScript("OnClick")(font.btn); menu[1].onClick(); M.runTimers()
-	-- An open menu keeps its original setting even if search reuses its owner.
-	P.frame.search:SetText("compact"); P.frame.search:GetScript("OnTextChanged")(P.frame.search, true)
-	selector = control("dropdown", "iconLayout")
-	selector.btn:GetScript("OnClick")(selector.btn)
-	local staleCompact
-	for _, item in ipairs(menu) do if item.text == "Compact" then staleCompact = item.onClick end end
-	P.frame.search:SetText("font"); P.frame.search:GetScript("OnTextChanged")(P.frame.search, true)
-	n:Set("compactCategories", false, true)
-	staleCompact(); M.runTimers()
-	check(n.db.compactCategories and n.db.fontName == "", skin .. ": stale layout menu cannot modify Font after pool reuse")
-	P.frame.search:SetText(""); P.frame.search:GetScript("OnTextChanged")(P.frame.search, true)
+	check(n.db.fontName == "", skin .. ": and back to Default Font")
 	n.ShowMenu = oldMenu; P:Hide()
 	n.RecentRecords = function() return { n.items[1] } end
 	n:Set("recentSection",true); n:Set("splitViewRecentWide",true); M.runTimers()
