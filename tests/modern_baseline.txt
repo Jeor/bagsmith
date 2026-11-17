@@ -49,12 +49,13 @@
 # (1.8.0-beta12, by design, Shweep) the bags window's gold is a button (it opens the currency drawer): a new
 # footer child, main.8.1, so the footer's other children are numbered one higher. Nothing else changed (checked).
 #   1.9.0-beta2  the globe (Global Inventory) in the title row, between the divider and Travel Mode: checked to differ only by its insertion (later siblings renumbered), then re-recorded
+# 1.9.0-beta8 (Shweep: the footer "rides high"): footer 6 px lower (12 -> 6), its line raised 6 px to stay where it was; the only difference in all three scenarios, checked against beta7's snapshot
 title | w=nil h=26 shown=true | TOPLEFT,window,TOPLEFT,12,-12 ; TOPRIGHT,window,TOPRIGHT,-12,-12
 scroll | w=nil h=nil shown=true | TOPLEFT,header,BOTTOMLEFT,0,-2 ; BOTTOMRIGHT,tabs,TOPRIGHT,0,4
 tabs | w=nil h=22 shown=true | BOTTOMLEFT,window,BOTTOMLEFT,12,40 ; BOTTOMRIGHT,window,BOTTOMRIGHT,-12,40
 tabAdd | w=20 h=20 shown=true | TOPLEFT,tabs,TOPLEFT,386,-0
 tabEdit | w=20 h=20 shown=true | 
-footer | w=nil h=26 shown=true | BOTTOMLEFT,window,BOTTOMLEFT,12,12 ; BOTTOMRIGHT,window,BOTTOMRIGHT,-12,12
+footer | w=nil h=26 shown=true | BOTTOMLEFT,window,BOTTOMLEFT,12,6 ; BOTTOMRIGHT,window,BOTTOMRIGHT,-12,6
 header | w=nil h=20 shown=true | TOPLEFT,tools,BOTTOMLEFT,0,-4 ; TOPRIGHT,tools,BOTTOMRIGHT,0,-4
 btnSort | w=96 h=20 shown=true | LEFT,tools,LEFT,250,0
 btnMerge | w=92 h=20 shown=true | LEFT,tools,LEFT,354,0

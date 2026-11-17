@@ -155,20 +155,10 @@ end)()
 end)()
 
 ;(function()
-	-- Global Inventory's V and AH stacked: two text pieces, V over AH, the note's place kept (unseen) for what follows
+	-- (by design since 1.9.0-beta8) the stacked note is gone: Global Inventory's worth is its Total row (beta8's set)
 	local n, M, V = boot()
-	n.AH.Available = function() return true end
-	n.AH.StackValue = function(_, r) return 100 * (r.count or 1) end
 	V.btnGlobal:GetScript("OnClick")(V.btnGlobal); M.runTimers(); M.runTimers()
-	local w = 900
-	while w > 120 and not V.subStacked do w = w - 5; V.title.w = w; V:LayoutTitleRow() end
-	check(V.subStacked and V.subTop:IsShown() and V.subBottom:IsShown(), "narrow: stacked, at " .. w)
-	check(V.subTop.text:find("^V: ") and V.subBottom.text:find("^AH: ") and not V.subTop.text:find("\n", 1, true), "V over AH, each its own line")
-	check(V.subText.alpha == 0 and V.subText:IsShown(), "the note keeps its place, unseen")
-	local p1, p2 = { V.subTop:GetPoint(1) }, { V.subBottom:GetPoint(1) }
-	check(p1[1] == "BOTTOMLEFT" and p1[2] == V.subText and p2[1] == "TOPLEFT" and p2[2] == V.subText, "one above the middle of the row, one below")
-	V.title.w = 900; V:LayoutTitleRow()
-	check(not V.subTop:IsShown() and V.subText.alpha == 1, "wide: one line again")
+	check(V.totalRow and V.totalRow:IsShown() and V.subTop == nil, "a Total row; no stacked note")
 	check((n.errors or 0) == 0, "no errors")
 end)()
 

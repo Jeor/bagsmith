@@ -61,8 +61,8 @@
 	local at = n.IndexOf(keys, "n")
 	check(keys[at + 3] == "v", "Who, Where, then a value (Vendor, with no price source): " .. table.concat(keys, ","))
 	n:RefreshViews(true); M.runTimers()
-	-- (by design since 1.9.0-beta5: V and AH, as the section headers write them)
-	check((V.subText.text or ""):find("^V: "), "the title's note says what it's worth: " .. tostring(V.subText.text))
+	-- (by design since 1.9.0-beta8: a Total row under the columns, not a note by the title)
+	check(V.totalRow and V.totalRow:IsShown() and tostring(V.totalRow.cells.v.text) ~= "-", "the Total row says what it's worth: " .. tostring(V.totalRow and V.totalRow.cells.v.text))
 
 	-- the footer: gold, free slots, pins
 	local _, realmGold = n.Inventory:Gold(false)

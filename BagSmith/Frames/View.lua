@@ -1552,29 +1552,6 @@ function View:FitPickerName()
 	b.label:SetText(full)
 	if room > 0 and textWidth(b.label) > room then b.label:SetText(ns.ShortName(full) or full) end
 end
--- (1.9.0-beta6) Global Inventory's V and AH stacked: two small lines, V over AH, centered on the note's place (which
--- holds the wider line, unseen); otherwise both hidden and the note shown as itself.
-function View:PlaceStackedNote(sf)
-	local on = self.subStacked and self.subText:IsShown() and sf and true or false
-	if on and not self.subTop then
-		self.subTop = fontString(self.title, "GameFontHighlightSmall")
-		self.subBottom = fontString(self.title, "GameFontHighlightSmall")
-	end
-	if self.subTop then
-		self.subTop:SetShown(on); self.subBottom:SetShown(on)
-		if on then
-			local r, g, b = self.subText:GetTextColor()
-			for i, fs in ipairs({ self.subTop, self.subBottom }) do
-				fs:SetText(sf.lines[i]); fs:SetTextColor(r or 0.6, g or 0.6, b or 0.6)
-				fs:ClearAllPoints()
-			end
-			self.subTop:SetPoint("BOTTOMLEFT", self.subText, "LEFT", 0, 1)
-			self.subBottom:SetPoint("TOPLEFT", self.subText, "LEFT", 0, -1)
-		end
-	end
-	self.subText:SetAlpha(on and 0 or 1)
-end
-
 function View:LayoutTitleRow()
 	if not (self.isMain and self.title and self.titleText) then return end
 	local avail = self.title:GetWidth() or 0
@@ -1615,39 +1592,14 @@ function View:LayoutTitleRow()
 		self.titleText:SetText(form)
 		return textWidth(self.titleText) + 8
 	end
-	-- (1.9.0-beta5) Global Inventory's V and AH: on one line, else stacked, before the title takes its shorter form
-	local sf = self.subForms
-	local notes = { { w = subW } }
-	if sf then
-		local one = table.concat(sf.lines, "   ")
-		local stackW = 0
-		for _, l in ipairs(sf.lines) do self.subText:SetText(l); stackW = math.max(stackW, textWidth(self.subText)) end
-		self.subText:SetText(one)
-		-- (beta6) the stacked form is two text pieces, as the section headers' V and AH are: the game drew only the first
-		-- line of one piece holding a line break (Shweep's /run: stacked, yet one line on screen). The note itself keeps
-		-- the wider line, unseen, so whatever follows it stays where it was.
-		local wide = sf.lines[1]
-		for _, l in ipairs(sf.lines) do self.subText:SetText(l); if textWidth(self.subText) >= stackW then wide = l end end
-		self.subText:SetText(one)
-		notes = { { text = one, w = textWidth(self.subText) }, { text = wide, w = stackW, stacked = true } }
-	end
-	local chosen, tw, note = #forms, 0, nil
+	local chosen, tw = #forms, 0
 	for i, form in ipairs(forms) do
 		tw = titleW(form)
-		for _, n in ipairs(notes) do if lead + tw + n.w + tail <= room then note = n; break end end
-		if note then chosen = i; break end
+		if lead + tw + subW + tail <= room then chosen = i; break end
 	end
 	if chosen == #forms then tw = titleW(forms[#forms]) end
-	note = note or notes[#notes]
-	self.subStacked = nil
-	if sf then
-		self.subText:SetText(note.text); subW = note.w
-		self.subStacked = note.stacked or nil
-	end
 	local subRoom = room - lead - tw - tail
-	if self.subStacked and subW > subRoom then
-		self.subText:Hide(); subW = 0   -- two lines can't be cut short tidily: too narrow even stacked, the note goes
-	elseif subW <= subRoom then
+	if subW <= subRoom then
 		self.subText:SetWidth(0); self.subText:Show()
 	elseif subRoom >= 24 then
 		self.subText:SetWidth(subRoom); self.subText:SetWordWrap(false); self.subText:Show()
@@ -1655,7 +1607,6 @@ function View:LayoutTitleRow()
 	else
 		self.subText:Hide(); subW = 0
 	end
-	self:PlaceStackedNote(sf)
 	local pw
 	if picker then
 		pw = math.max(PICKER_MIN, math.min(PICKER_W, math.floor(room - lead - tw - subW - 10 - reset)))
@@ -1684,29 +1635,10 @@ function View:UpdateChrome(shown, total, bagInfo, cached)
 	elseif self.isBank then
 		sub = ns.atBank and "" or "saved view"
 	end
-	-- (1.9.0-beta4, Shweep) Global Inventory: what it's all worth. (beta5, Shweep: "should show V and AH stack (if you
-	-- can) if window narrows") vendor, and AH with a price source, as the section headers write them: on one line, or
-	-- stacked in two small lines when the title row is short of room (LayoutTitleRow picks).
-	self.subForms = nil
+	-- (1.9.0-beta8, Shweep: the value note "is getting lost ... hard to understand") Global Inventory's worth is its Total
+	-- row now (UpdateTotalRow), under the Vendor and AH Price columns; the title keeps only "N of M shown"
 	local shownNote = #shown ~= total and ("%d of %d shown"):format(#shown, total) or nil
-	if self.isMain and ns.ui.global then
-		-- (beta7) AH only while Global Columns shows AH Price, as section headers do
-		local v, a, ah = 0, 0, ns.AH and ns.AH:Available() and ns.IndexOf(self:Pref("cols"), "ah") ~= nil
-		for _, r in ipairs(shown) do
-			if not r.hasNoValue and r.sellPrice then v = v + r.sellPrice * (r.count or 1) end
-			if ah then a = a + (ns.AH:StackValue(r) or 0) end
-		end
-		local lines = {}
-		if v > 0 then lines[#lines + 1] = "V: " .. ns.Money(v) end
-		if ah and a > 0 then lines[#lines + 1] = "AH: " .. ns.Money(a) end
-		if shownNote then
-			if #lines > 0 then lines[#lines] = lines[#lines] .. ", " .. shownNote else lines[1] = shownNote end
-		end
-		sub = table.concat(lines, "   ")
-		if #lines == 2 then self.subForms = { lines = lines } end
-	elseif shownNote then
-		sub = (sub ~= "" and sub .. ", " or "") .. shownNote
-	end
+	if shownNote then sub = (sub ~= "" and sub .. ", " or "") .. shownNote end
 	self.subText:SetText(sub)
 	if self.charBtn then
 		local data = ns.ui.owner and BagSmithDB.cache[ns.ui.owner] or BagSmithDB.cache[ns:CharKey()]
@@ -2086,9 +2018,10 @@ function View:LayoutFooter()
 	if self.footerKey ~= key then
 		self.footerKey = key
 		footer:ClearAllPoints()
-		footer:SetPoint("BOTTOMLEFT", PAD, PAD - drop); footer:SetPoint("BOTTOMRIGHT", -PAD, PAD - drop)
+		footer:SetPoint("BOTTOMLEFT", PAD, PAD - drop); footer:SetPoint("BOTTOMRIGHT", -PAD, PAD - drop)   -- (as built: to its parent)
 		footer:SetHeight(h)
-		footer.line:ClearAllPoints(); footer.line:SetPoint("TOPLEFT", 0, drop); footer.line:SetPoint("TOPRIGHT", 0, drop)
+		footer.line:ClearAllPoints()
+		footer.line:SetPoint("TOPLEFT", footer, "TOPLEFT", 0, drop); footer.line:SetPoint("TOPRIGHT", footer, "TOPRIGHT", 0, drop)
 		if self.tabs and not self.classicApplied then
 			self.tabs:ClearAllPoints()
 			self.tabs:SetPoint("BOTTOMLEFT", PAD, PAD + h + 2); self.tabs:SetPoint("BOTTOMRIGHT", -PAD, PAD + h + 2)
@@ -2424,6 +2357,76 @@ function View:Hide() if self.frame:IsShown() then self.frame:Hide() end end
 function View:Toggle() if self.frame:IsShown() then self:Hide() else self:Show() end end
 function View:IsShown() return self.frame:IsShown() end
 
+-- (1.9.0-beta8, Shweep: Global Inventory's value "is getting lost ... hard to understand"; "I like" a total row pinned at
+-- the bottom) A spreadsheet's Total row: "Total (N items shown)" under Item, the sums under Vendor and AH Price, as the
+-- columns stand; it follows the search, tab and filters. Hover: what the numbers mean.
+function View:UpdateTotalRow(shown, plan)
+	local on = self.isMain and ns.ui.global and plan ~= nil and true or false
+	local r = self.totalRow
+	if not on and not r then return end
+	if not r then
+		r = CreateFrame("Frame", nil, self.frame)
+		r.line = r:CreateTexture(nil, "ARTWORK"); r.line:SetPoint("TOPLEFT"); r.line:SetPoint("TOPRIGHT"); r.line:SetHeight(1)
+		r.bg = r:CreateTexture(nil, "BACKGROUND"); r.bg:SetAllPoints(); r.bg:SetTexture("Interface\\Buttons\\WHITE8X8")
+		local font = ns.Fonts and ns.Fonts:Name("GameFontHighlightSmall") or "GameFontHighlightSmall"
+		r.label = fontString(r, ns.Fonts and ns.Fonts:Name("GameFontNormal") or "GameFontNormal")
+		r.count = fontString(r, font)
+		r.cells = {}
+		for _, key in ipairs({ "v", "ah" }) do r.cells[key] = fontString(r, font, "RIGHT") end
+		r:EnableMouse(true)
+		r:SetScript("OnEnter", function(row)
+			if not ns.TooltipsOK() then return end
+			GameTooltip:SetOwner(row, "ANCHOR_TOP")
+			ns.TipText(GameTooltip, "Total")
+			ns.TipLine(GameTooltip, "Everything shown above, on all your characters: it follows your search, tab and filters.", 0.8, 0.8, 0.8, true)
+			ns.TipLine(GameTooltip, "Vendor: what a vendor would pay for all of it.", 1, 1, 1, true)
+			if row.cells.ah:IsShown() then
+				ns.TipLine(GameTooltip, "AH Price: at your price source's prices. Items it hasn't priced count as nothing.", 1, 1, 1, true)
+			end
+			GameTooltip:Show()
+		end)
+		r:SetScript("OnLeave", function() GameTooltip:Hide() end)
+		self.totalRow = r
+	end
+	local was = r.on
+	r.on = on
+	r:SetShown(on)
+	if on then
+		local sk = Skins:Current()
+		r.line:SetColorTexture(unpack(sk.line))
+		r.bg:SetVertexColor(1, 1, 1, 0.04)
+		r.label:SetTextColor(unpack(sk.heading))
+		r.count:SetTextColor(unpack(sk.muted))
+		r:SetHeight(ns.Fonts and ns.Fonts:RowNeed() or 20)
+		local v, a, priced = 0, 0, ns.AH and ns.AH:Available()
+		for _, rec in ipairs(shown or {}) do
+			if not rec.hasNoValue and rec.sellPrice then v = v + rec.sellPrice * (rec.count or 1) end
+			if priced then a = a + (ns.AH:StackValue(rec) or 0) end
+		end
+		local n = #(shown or {})
+		r.label:SetText("Total")
+		r.count:SetText(n == 1 and "(1 item shown)" or ("(%d items shown)"):format(n))
+		local at = {}
+		for _, col in ipairs(plan) do at[col.key] = col end
+		local item = at.n
+		r.label:ClearAllPoints(); r.label:SetPoint("LEFT", r, "LEFT", (item and item.colX or 0) + 4, 0)
+		r.count:ClearAllPoints(); r.count:SetPoint("LEFT", r.label, "RIGHT", 6, 0)
+		for key, cell in pairs(r.cells) do
+			local col = at[key]
+			if col then
+				cell:ClearAllPoints(); cell:SetPoint("LEFT", r, "LEFT", col.x, 0); cell:SetWidth(col.width)
+				local sum = key == "v" and v or a
+				cell:SetText(sum > 0 and ns.Money(sum) or "-")
+				cell:SetTextColor(unpack(sk.text))
+				cell:Show()
+			else
+				cell:Hide()
+			end
+		end
+	end
+	if was ~= on then self:PlaceScroll() end
+end
+
 -- The list's place in its window. The scrollbar's lane on the right is
 -- given back to the list when nothing scrolls, so the margins match.
 function View:PlaceScroll(classic)
@@ -2439,8 +2442,16 @@ function View:PlaceScroll(classic)
 		-- (1.5.5) Icons view has no column headers: the list starts where they would, not below their hidden row
 		if self:Pref("view") == "list" and self.kind ~= "bag" then sc:SetPoint("TOPLEFT", self.header, "BOTTOMLEFT", 0, -2)
 		else sc:SetPoint("TOPLEFT", self.header, "TOPLEFT", 0, 0) end
-		if classic and self.tabs then sc:SetPoint("BOTTOMRIGHT", self.footer, "TOPRIGHT", room, 6)
-		else sc:SetPoint("BOTTOMRIGHT", self.tabs or self.footer, "TOPRIGHT", room, 4) end
+		-- (1.9.0-beta8) Global Inventory's Total row takes the list's last line, pinned above the tabs
+		local below = (self.totalRow and self.totalRow.on) and (self.totalRow:GetHeight() + 2) or 0
+		local base, y = self.tabs or self.footer, 4
+		if classic and self.tabs then base, y = self.footer, 6 end
+		sc:SetPoint("BOTTOMRIGHT", base, "TOPRIGHT", room, y + below)
+		if self.totalRow then
+			self.totalRow:ClearAllPoints()
+			self.totalRow:SetPoint("BOTTOMLEFT", base, "TOPLEFT", 0, y)
+			self.totalRow:SetPoint("BOTTOMRIGHT", base, "TOPRIGHT", room, y)
+		end
 	else
 		sc:SetPoint("TOPLEFT", self.title, "BOTTOMLEFT", self.belowShift or 0, classic and -4 or -12)
 		sc:SetPoint("BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", -PAD + room, PAD)

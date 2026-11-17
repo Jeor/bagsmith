@@ -829,6 +829,7 @@ function View:Refresh(force, reason)
 	self.planWidth = width
 	self:WatchRowWidth()
 	self:LayoutHeader(plan)
+	if self.isMain then self:UpdateTotalRow(shown, plan) end   -- (1.9.0-beta8) Global Inventory's Total row
 	local height
 	if self.isMain and ns.ui.global then   -- (1.9.0-beta6) Global Inventory's sections: BagSmith's defaults
 		height = ns:WithDefaultSections(self.Layout, self, shown, all, plan, width, bagInfo, bank, cached)

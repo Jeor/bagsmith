@@ -77,27 +77,17 @@
 	check(n.IndexOf(n.Inventory:Settings().collapsed, id), "a click still collapses it")
 	h:GetScript("OnClick")(h, "LeftButton"); M.runTimers()
 
-	-- the value note: V and AH on one line; stacked when the row is short; gone when even that won't fit
+	-- (by design since 1.9.0-beta8, Shweep: the note "is getting lost") the worth is a Total row under the Vendor and AH
+	-- Price columns, not a note beside the title (the stacking that note needed is gone with it)
 	n.AH.Available = function() return true end
 	n.AH.StackValue = function(_, r) return 100 * (r.count or 1) end
 	n:RefreshViews(true); M.runTimers()
-	local seen, order = {}, {}
-	for w = 900, 120, -5 do
-		V.title.w = w; V:LayoutTitleRow()
-		-- (by design since 1.9.0-beta6: stacked is two text pieces, V.subTop over V.subBottom, not one with a line break)
-		local stacked = V.subStacked and V.subTop and V.subTop:IsShown()
-		local t = stacked and (V.subTop.text .. "\n" .. V.subBottom.text) or (V.subText.text or "")
-		local state = not V.subText:IsShown() and "hidden" or (stacked and "stacked" or "one line")
-		if state ~= order[#order] then order[#order + 1] = state; seen[state] = t end
-	end
-	check(table.concat(order, ",") == "one line,stacked,hidden", "wide to narrow: one line, then stacked, then gone: " .. table.concat(order, ","))
-	check(seen["one line"] and seen["one line"]:find("^V: ") and seen["one line"]:find("AH: ", 1, true), "one line: " .. tostring(seen["one line"]))
-	check(seen.stacked and seen.stacked:find("^V: [^\n]+\nAH: "), "stacked: V over AH: " .. tostring(seen.stacked))
-	V.title.w = 900; V:LayoutTitleRow()
-	check(V.subText:IsShown() and not V.subStacked and not V.subTop:IsShown() and V.subText.alpha == 1, "wide again: one line")
+	local T = V.totalRow
+	check(T and T:IsShown() and T.cells.v:IsShown() and T.cells.ah:IsShown() and not (V.subText.text or ""):find("V: ", 1, true),
+		"the worth: a Total row with Vendor and AH, no note by the title")
 	n.AH.Available = function() return false end
 	n:RefreshViews(true); M.runTimers()
-	check((V.subText.text or ""):find("^V: ") and not (V.subText.text or ""):find("AH", 1, true), "no price source: vendor only")
+	check(T.cells.v:IsShown() and not T.cells.ah:IsShown(), "no price source: Vendor only")
 
 	-- leaving: everything usable again, tooltips as before
 	V.btnGlobal:GetScript("OnClick")(V.btnGlobal); M.runTimers(); M.runTimers()
