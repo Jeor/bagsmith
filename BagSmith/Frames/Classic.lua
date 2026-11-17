@@ -908,7 +908,6 @@ function Classic:Apply(view, on)
 	-- (1.6.0) the narrowest toolbar's Merge Stacks and List / Icons icons
 	if view.btnMergeIcon then squareButton(view.btnMergeIcon, on) end
 	if view.btnViewIcon then squareButton(view.btnViewIcon, on) end
-	if view.btnGlobal then squareButton(view.btnGlobal, on) end   -- (1.9.0-beta5) the globe, gold like the others
 	if view.LayoutTools then view:LayoutTools() end
 
 	-- Travel Mode: beside Blizzard's red close button in the title strip (the
@@ -917,26 +916,27 @@ function Classic:Apply(view, on)
 	if view.btnTravel then
 		-- The size of the red close button's face, right beside it.
 		redButton(view.btnTravel, on, TRAVEL_SIZE)
+		-- (1.9.0-beta5, Shweep: "not seeing a Global button in Classic Style ... globe goes beside the Travel Mode") the
+		-- globe follows the signpost into the title strip, in the same red button, drawn above the strip's art (it was
+		-- left Modern-styled at the title's level, hidden behind it)
+		if view.btnGlobal then
+			redButton(view.btnGlobal, on, TRAVEL_SIZE)
+			view.btnGlobal:ClearAllPoints()
+			view.btnGlobal:SetPoint("RIGHT", view.btnTravel, "LEFT", on and view.classicClose and -1 or 0, 0)
+		end
 		view.btnTravel:ClearAllPoints()
 		view.btnSettings:ClearAllPoints()
 		if view.titleDivider then view.titleDivider:SetShown(not on) end
 		if on and view.classicClose then
 			view.btnTravel:SetPoint("RIGHT", view.classicClose, "LEFT", -1, TRAVEL_LIFT)
 			view.btnTravel:SetFrameLevel(view.classicClose:GetFrameLevel())
+			if view.btnGlobal then view.btnGlobal:SetFrameLevel(view.classicClose:GetFrameLevel()) end
 			note(("Travel Mode button %d px, %d px up, in line with the close button's face"):format(TRAVEL_SIZE, TRAVEL_LIFT), true)
-			-- (1.9.0-beta5, Shweep: "not seeing a Global button in Classic Style") the globe followed the signpost up into
-			-- the title strip, behind its art: it stays in the row below, right of Settings (Modern's order)
-			if view.btnGlobal then
-				view.btnGlobal:ClearAllPoints()
-				view.btnGlobal:SetPoint("RIGHT", view.closeBtn, "LEFT", 0, 0)
-				view.btnSettings:SetPoint("RIGHT", view.btnGlobal, "LEFT", 0, 0)
-			else
-				view.btnSettings:SetPoint("RIGHT", view.closeBtn, "LEFT", 0, 0)
-			end
+			view.btnSettings:SetPoint("RIGHT", view.closeBtn, "LEFT", 0, 0)
 		else
 			view.btnTravel:SetPoint("RIGHT", view.closeBtn, "LEFT", 0, 0)
 			view.btnTravel:SetFrameLevel(view.title:GetFrameLevel() + 1)
-			if view.btnGlobal then view.btnGlobal:ClearAllPoints(); view.btnGlobal:SetPoint("RIGHT", view.btnTravel, "LEFT", 0, 0) end
+			if view.btnGlobal then view.btnGlobal:SetFrameLevel(view.title:GetFrameLevel() + 1) end
 			view.btnSettings:SetPoint("RIGHT", view.titleDivider or view.btnTravel, "LEFT", view.titleDivider and -4 or 0, 0)
 		end
 	end

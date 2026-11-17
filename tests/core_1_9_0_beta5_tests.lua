@@ -139,8 +139,9 @@ end)()
 end)()
 
 ;(function()
-	-- (Shweep: "not seeing a Global button in Classic Style") in Classic the signpost goes up beside the red close button,
-	-- and the globe went with it, behind the title art. It stays in the row below now, right of Settings, gold and square.
+	-- (Shweep: "not seeing a Global button in Classic Style ... globe goes beside the Travel Mode in Classic") in Classic
+	-- the signpost goes up beside the red close button, and the globe with it, but it stayed Modern-styled at the title's
+	-- level, hidden behind the strip's art. It's a red button like the signpost now, drawn above the art.
 	package.loaded.mock = nil
 	local M = require("mock")
 	_G.BagSmithCharDB = { version = 1, firstSeen = {} }
@@ -151,9 +152,10 @@ end)()
 	local V = n.Window.main
 	local G = V.btnGlobal
 	check(V.classicApplied, "(setup) Classic")
-	check(G:IsShown() and select(2, G:GetPoint(1)) == V.closeBtn, "Classic: the globe in the row below, at its right end")
-	check(select(2, V.btnSettings:GetPoint(1)) == G, "Settings just left of it")
-	check(G.squareOn, "a gold square button like the others")
+	check(G:IsShown() and select(2, G:GetPoint(1)) == V.btnTravel, "Classic: the globe beside the signpost, in the title strip")
+	check(G.redOn and G:GetWidth() == V.btnTravel:GetWidth(), "a red button like the signpost, the same size")
+	check(G:GetFrameLevel() == V.btnTravel:GetFrameLevel(), "drawn at the signpost's level, above the strip's art")
+	check(select(2, V.btnSettings:GetPoint(1)) == V.closeBtn, "Settings stays where it was")
 	G:GetScript("OnClick")(G); M.runTimers(); M.runTimers()
 	check(n.ui.global == true, "and it opens Global Inventory")
 	G:GetScript("OnClick")(G); M.runTimers(); M.runTimers()
