@@ -2517,7 +2517,7 @@ function View:PlaceScroll(classic)
 		local below = (self.totalRow and self.totalRow.on) and (self.totalRow:GetHeight() + 2) or 0
 		local base, y = self.tabs or self.footer, 4
 		if classic and self.tabs then base, y = self.footer, 6 end
-		sc:SetPoint("BOTTOMRIGHT", base, "TOPRIGHT", room, y + below)
+		sc:SetPoint("BOTTOMRIGHT", base, "TOPRIGHT", room, y + below + (self.placeNudge or 0))   -- (beta15) see EnsureListPlaced
 		if self.totalRow then
 			self.totalRow:ClearAllPoints()
 			self.totalRow:SetPoint("BOTTOMLEFT", base, "TOPLEFT", 0, y)
@@ -2525,7 +2525,7 @@ function View:PlaceScroll(classic)
 		end
 	else
 		sc:SetPoint("TOPLEFT", self.title, "BOTTOMLEFT", self.belowShift or 0, classic and -4 or -12)
-		sc:SetPoint("BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", -PAD + room, PAD)
+		sc:SetPoint("BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", -PAD + room, PAD + (self.placeNudge or 0))
 	end
 end
 
