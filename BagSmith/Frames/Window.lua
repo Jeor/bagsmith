@@ -604,7 +604,7 @@ ns:OnSignal("CURRENCY_CHANGED", refreshFooters)
 ns:OnSignal("MONEY_CHANGED", refreshFooters)
 ns:OnSignal("SETTINGS_CHANGED", function(key)
 	if not Window.main then return end
-	if key == nil or key == "scale" or key == "sizeMode" or key == "fixW" or key == "fixH" or key == "maxW" or key == "maxH" or key == "point"
+	if key == nil or key == "scale" or key == "sizeMode" or key == "fixW" or key == "fixH" or key == "maxW" or key == "maxH" or key == "globalResize" or key == "point"
 		or key == "bagCols" or key == "bagScale" or key == "bagMaxH" or key == "iconSize" then
 		-- A profile change: small windows go to that profile's saved spots.
 		if key == nil then

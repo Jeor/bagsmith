@@ -84,7 +84,7 @@ Panel.NEW = {
 	pages = { general = true, window = true, icons = true, look = true, sections = true, columns = true, sheets = true,
 		globalsections = true, globalcols = true, globalsheets = true },
 	heads = {},
-	keys = { tipInventory = "general", tipAHPrice = "general", bagSlotCount = "window", borderWeight = "icons", iconLayout = "look", footerTextScale = "look" },
+	keys = { tipInventory = "general", tipAHPrice = "general", bagSlotCount = "window", borderWeight = "icons", iconLayout = "look", footerTextScale = "look", globalResize = "window" },
 }
 Panel.NEW_COLOR = { 0.55, 0.78, 1 }   -- the soft blue of What's New's links
 local function release() return tostring(ns.version or ""):match("^(%d+%.%d+)") end
@@ -1792,6 +1792,8 @@ pages.window = function(self, db)
 	else
 		self:Step("fixW", "Width", 20, "%d"); self:Step("fixH", "Height", 20, "%d")
 	end
+	-- (1.9.0-beta13, Shweep: "this can be a setting (Windows) default true")
+	self:Check("globalResize", "Resize for Global Inventory", "Opening Global Inventory makes your bags window 750 wide and about as tall as Settings, or the size you last gave it there. Leaving puts your own size back.")
 	-- (1.9.0-beta1, Shweep) 1.8's count left special bags out; players choose
 	self:Seg("bagSlotCount", "Bag Slot Count", { { "exclude", "Exclude Special Bags" }, { "all", "All Free Slots" } },
 		"The free-slot count in the corner of your bags. Exclude Special Bags counts only slots anything fits in, not a quiver's or a herb bag's. Hover the count to see every bag's room either way.")

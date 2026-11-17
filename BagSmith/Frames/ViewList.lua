@@ -855,7 +855,7 @@ function View:Refresh(force, reason)
 	-- content still overflows it.
 	if self.scroll.ScrollBar then
 		local visible = self.scroll:GetHeight()
-		if self.isMain and ns.db.sizeMode == "auto" then visible = math.min(ns.db.maxH, self.autoHeight) - chrome - 4
+		if self.isMain and ns.db.sizeMode == "auto" then visible = math.min(select(2, self:SizeLimits()), self.autoHeight) - chrome - 4
 		elseif self.kind == "bag" then visible = math.min(ns.db.bagMaxH, self.autoHeight) - chrome - 4 end
 		self:UpdateBarSpace(height, visible)
 		self:SyncScrollBar()

@@ -66,6 +66,7 @@ local DEFAULTS = {
 	keys = true, emptySlots = true,
 	splitView = false,         -- icon view with sections: sections side by side in two columns (Sections page)
 	footerTextScale = 1,       -- (1.9.0-beta8) Footer Text Size: the footer's text, 80% to 150% (Style page)
+	globalResize = true,       -- (1.9.0-beta13) Resize for Global Inventory: its own size while it shows (Windows page)
 	compactCategories = false, -- Icons + By Section: variable-width category rows
 	splitViewRecentWide = false,   -- (1.7.0-beta2) Split View: Recent spans both columns instead of pairing
 	recentSection = true,      -- a Recent section pinned at the top of the bags window (Sections page)
@@ -850,6 +851,9 @@ local function loadDB(saved)
 	if type(saved) == "table" and type(saved.globalInv) == "table" then
 		local g = saved.globalInv
 		local out = { allRealms = g.allRealms == true, colWidths = {}, collapsed = {}, pins = {}, ahOn = g.ahOn == true }
+		-- (1.9.0-beta13) the size you gave it there
+		if finite(g.w) and g.w >= 440 and g.w <= 1400 then out.w = math.floor(g.w + 0.5) end
+		if finite(g.h) and g.h >= 300 and g.h <= 1200 then out.h = math.floor(g.h + 0.5) end
 		if type(g.sort) == "string" and #g.sort <= 20 then out.sort = g.sort end
 		if g.grp == "type" or g.grp == "none" then out.grp = g.grp end
 		for k, w in pairs(type(g.colWidths) == "table" and g.colWidths or {}) do

@@ -1016,6 +1016,9 @@ function View:Build()
 		local w, h = math.floor(f:GetWidth() + 0.5), math.floor(f:GetHeight() + 0.5)
 		if self.isBank then
 			ns:Set("bankW", w, true); ns:Set("bankH", h, true)
+		elseif self:GlobalSize() then
+			-- (1.9.0-beta13) resized in Global Inventory: its own size, never the bags'
+			local G = ns.Inventory:Settings(); G.w, G.h = w, h
 		elseif ns.db.sizeMode == "auto" then
 			ns:Set("maxW", w, true); ns:Set("maxH", h, true)
 		else
@@ -1024,7 +1027,7 @@ function View:Build()
 		-- Keep the window exactly where the resize left it (the saved spot
 		-- was from before, so re-applying it made the window jump).
 		self:SaveSizedPosition()
-		self:ShowSizeInSettings()   -- (1.7.3-beta6) an open Settings panel shows the size just saved
+		if not self:GlobalSize() then self:ShowSizeInSettings() end   -- (1.7.3-beta6) an open Settings panel shows the size just saved
 		self.refreshWanted = nil
 		self:ApplySize(); self:Refresh(true)
 		-- Once more on the next frame: the client can settle the new size a
@@ -1403,21 +1406,41 @@ function View:ShowSizeInSettings(w, h)
 	end
 end
 
+-- (1.9.0-beta13, Shweep: "when you click Global can we pre-expand the window size ... and then leaving it bring it
+-- back", "approx as tall as settings is, maybe a tad more", "you can go 750 for width") Global Inventory's own size
+-- while it shows, when Resize for Global Inventory is on: the size you last gave it there (saved for the account),
+-- else 750 wide (or the window's width, if wider) and 620 tall. In Fit to Items it's the largest size, as maxW/maxH.
+View.GLOBAL_W, View.GLOBAL_H = 750, 620
+function View:GlobalSize()
+	if not (self.isMain and ns.ui.global and ns.db and ns.db.globalResize and ns.Inventory) then return nil end
+	local G, db = ns.Inventory:Settings(), ns.db
+	local bagsW = db.sizeMode == "fixed" and db.fixW or db.maxW
+	return G.w or math.max(View.GLOBAL_W, bagsW or 0), G.h or View.GLOBAL_H
+end
+-- The main window's width and height (its largest, in Fit to Items) as they stand: Global Inventory's, or the bags'.
+function View:SizeLimits()
+	local gw, gh = self:GlobalSize()
+	if gw then return gw, gh end
+	local db = ns.db
+	if db.sizeMode == "fixed" then return db.fixW, db.fixH end
+	return db.maxW, db.maxH
+end
 function View:ApplySize()
 	-- Native dragging owns size and position until the gesture is saved.
 	if self.sizing or self.dragMoving then return end
 	local f, db = self.frame, ns.db
 	f:SetScale(db.scale)
 	if self.isMain then
-		if db.sizeMode == "fixed" then f:SetSize(db.fixW, db.fixH) else
-			local height = math.min(db.maxH, self.autoHeight or db.maxH)
+		local mw, mh = self:SizeLimits()
+		if db.sizeMode == "fixed" then f:SetSize(mw, mh) else
+			local height = math.min(mh, self.autoHeight or mh)
 			-- Convert old saved top/center anchors before changing height. On
 			-- first use of a profile, use its full height like a fresh login:
 			-- neither the frame nor autoHeight belongs to that profile yet.
 			local oldHeight = self.sizeProfile == db and f:GetHeight() or 0
-			local p = bottomPosition(db.point, oldHeight and oldHeight > 0 and oldHeight or db.maxH)
+			local p = bottomPosition(db.point, oldHeight and oldHeight > 0 and oldHeight or mh)
 			if p ~= db.point then ns:Set("point", p, true) end
-			f:SetSize(db.maxW, height)
+			f:SetSize(mw, height)
 		end
 		f:ClearAllPoints()
 		local p = db.point
@@ -2209,6 +2232,7 @@ function View:SetGlobal(on)
 		if self.st.filters then self.st.filters.text = "" end
 		if self.search then self.search:SetText("") end
 		self:FreshLayout()
+		ns:Safely("globalsize:" .. self.name, function() self:ApplySize() end)   -- (beta13) its own size (after combat, in it)
 		ns:ApplyTravel(); ns:RefreshViews(true)
 		if self.search and self.search.SetFocus and self.frame:IsShown() then self.search:SetFocus() end
 	else
@@ -2222,6 +2246,7 @@ function View:SetGlobal(on)
 		if self.st.filters then self.st.filters.text = s.text or "" end
 		if self.search then self.search:SetText(s.text or ""); if self.search.ClearFocus then self.search:ClearFocus() end end
 		self:FreshLayout()
+		ns:Safely("globalsize:" .. self.name, function() self:ApplySize() end)   -- (beta13) back to your size
 		ns:ApplyTravel(); ns:RefreshViews(true)
 		if self.scroll and s.scroll then self.scroll:SetVerticalScroll(s.scroll) end
 	end
@@ -2517,7 +2542,7 @@ function View:UpdateBarSpace(height, visible)
 	if not visible then
 		local chrome = self.lastChrome or 0
 		visible = self.scroll:GetHeight()
-		if self.isMain and ns.db.sizeMode == "auto" and self.autoHeight then visible = math.min(ns.db.maxH, self.autoHeight) - chrome - 4
+		if self.isMain and ns.db.sizeMode == "auto" and self.autoHeight then visible = math.min(select(2, self:SizeLimits()), self.autoHeight) - chrome - 4
 		elseif self.kind == "bag" and self.autoHeight then visible = math.min(ns.db.bagMaxH, self.autoHeight) - chrome - 4 end
 	end
 	if height <= 0 then visible = math.max(visible or 0, 1)   -- an empty list fits (not "not laid out yet")
