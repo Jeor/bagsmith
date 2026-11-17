@@ -1,7 +1,7 @@
 ## 1.9.0
 
 New:
-- Global Inventory: the globe beside Travel Mode shows every item on your characters on this realm in one list, with
+- Global Inventory: the globe beside Travel Mode shows every item on your characters on this ruleset in one list, with
   who has it and where (bags, bank, worn), one row per item with everyone's count together. Click an item more than
   one character has to see each character's row (class icon and name first). The Bank tab or icon shows only what's
   in banks, and the Filter panel can include your characters on other rulesets. Vendor and AH Price columns (AH Price
