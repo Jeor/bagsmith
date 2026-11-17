@@ -25,7 +25,10 @@
 	main.btnReagent:GetScript("OnEnter")(main.btnReagent)
 	local tl = table.concat(GameTooltip.lines or {}, " | ")
 	check(GameTooltip.shown and tl:find("Bags (anything fits)", 1, true) and tl:find("Reagent Bag", 1, true), "hovering the reagent count: the free-slot breakdown: " .. tl)
-	check(n.Window.bank == nil or n.Window.bank.moneyButton == nil, "the bank window's gold stays plain (the drawer belongs to the bags window)")
+	-- (by design since 1.9.1-beta1, Shweep: the bank's gold has the bags' gold tooltip) it still opens nothing: the drawer
+	-- belongs to the bags window
+	local bmb = n.Window.bank and n.Window.bank.moneyButton
+	check(bmb == nil or bmb:GetScript("OnClick") == nil, "the bank window's gold opens nothing (the drawer belongs to the bags window)")
 	check((n.errors or 0) == 0, "no errors")
 end)()
 
