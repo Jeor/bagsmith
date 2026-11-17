@@ -68,6 +68,7 @@
 # 1.6.0-beta11 (Shweep): the character picker's level is its own text (main.2.6.r3, muted), so a long name can be cut short
 # before it, clear of the dropdown arrow. Nothing else changed.
 # 1.9.0-beta2: the globe (Global Inventory) in the title row, between the divider and Travel Mode: both scenarios checked to differ only by its insertion (later siblings renumbered), then re-recorded
+# 1.9.0-beta5 (Shweep: "not seeing a Global button in Classic Style"): the globe (main.2.2) leaves the title strip, where it hid behind the art, for the row below at the close button's place, a gold square button; Settings (main.2.3) now sits left of it. Both scenarios checked to differ only there, Modern unchanged, then re-recorded
 == classic
 look main bg=0.09,0.09,0.10,0.00 border=0.00,0.00,0.00,0.00 w=620 h=560 at=BOTTOMRIGHT,UIParent,BOTTOMRIGHT,-80,140
 look main.1 w=nil h=54 at=TOPLEFT,parent,TOPLEFT,0,0;TOPRIGHT,parent,TOPRIGHT,0,0
@@ -79,9 +80,10 @@ look main.2.1.r1 color=1.00,0.82,0.00,1.00 w=14 h=14 at=CENTER,parent,CENTER,0,0
 look main.2.1.r3 color=0.24,0.16,0.08,1.00 w=nil h=nil at=TOPLEFT,parent,TOPLEFT,-2,2;BOTTOMRIGHT,parent,BOTTOMRIGHT,2,-2 layer=BACKGROUND/-1
 look main.2.1.r4 w=nil h=nil at=TOPLEFT,parent,TOPLEFT,0,0;BOTTOMRIGHT,main.2.1,BOTTOM,0,0 layer=BACKGROUND/nil
 look main.2.1.r5 w=nil h=nil at=TOPRIGHT,parent,TOPRIGHT,0,0;BOTTOMLEFT,main.2.1,BOTTOM,0,0 layer=BACKGROUND/nil
-look main.2.2 w=24 h=24 at=RIGHT,main.2.1,LEFT,0,0
-look main.2.2.r1 color=0.62,0.60,0.55,1.00 w=16 h=16 at=CENTER,parent,CENTER,0,0 layer=ARTWORK/nil
-look main.2.3 w=26 h=26 at=RIGHT,Button,LEFT,0,0
+look main.2.2 w=26 h=26 at=RIGHT,Button,LEFT,0,0
+look main.2.2.r1 color=1.00,0.82,0.00,1.00 w=14 h=14 at=CENTER,parent,CENTER,0,0 layer=ARTWORK/nil
+look main.2.2.r3 w=nil h=nil at= layer=BACKGROUND/nil
+look main.2.3 w=26 h=26 at=RIGHT,main.2.2,LEFT,0,0
 look main.2.3.r1 color=1.00,0.82,0.00,1.00 w=14 h=14 at=CENTER,parent,CENTER,0,0 layer=ARTWORK/nil
 look main.2.3.r3 w=nil h=nil at= layer=BACKGROUND/nil
 look main.2.4 w=26 h=26 at=RIGHT,main.2.3,LEFT,0,0
@@ -512,9 +514,10 @@ look main.2.1.r1 color=1.00,0.82,0.00,1.00 w=14 h=14 at=CENTER,parent,CENTER,0,0
 look main.2.1.r3 color=0.24,0.16,0.08,1.00 w=nil h=nil at=TOPLEFT,parent,TOPLEFT,-2,2;BOTTOMRIGHT,parent,BOTTOMRIGHT,2,-2 layer=BACKGROUND/-1
 look main.2.1.r4 w=nil h=nil at=TOPLEFT,parent,TOPLEFT,0,0;BOTTOMRIGHT,main.2.1,BOTTOM,0,0 layer=BACKGROUND/nil
 look main.2.1.r5 w=nil h=nil at=TOPRIGHT,parent,TOPRIGHT,0,0;BOTTOMLEFT,main.2.1,BOTTOM,0,0 layer=BACKGROUND/nil
-look main.2.2 w=24 h=24 at=RIGHT,main.2.1,LEFT,0,0
-look main.2.2.r1 color=0.62,0.60,0.55,1.00 w=16 h=16 at=CENTER,parent,CENTER,0,0 layer=ARTWORK/nil
-look main.2.3 w=26 h=26 at=RIGHT,Button,LEFT,0,0
+look main.2.2 w=26 h=26 at=RIGHT,Button,LEFT,0,0
+look main.2.2.r1 color=1.00,0.82,0.00,1.00 w=14 h=14 at=CENTER,parent,CENTER,0,0 layer=ARTWORK/nil
+look main.2.2.r3 w=nil h=nil at= layer=BACKGROUND/nil
+look main.2.3 w=26 h=26 at=RIGHT,main.2.2,LEFT,0,0
 look main.2.3.r1 color=1.00,0.82,0.00,1.00 w=14 h=14 at=CENTER,parent,CENTER,0,0 layer=ARTWORK/nil
 look main.2.3.r3 w=nil h=nil at= layer=BACKGROUND/nil
 look main.2.4 w=26 h=26 at=RIGHT,main.2.3,LEFT,0,0

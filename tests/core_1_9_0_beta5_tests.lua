@@ -137,3 +137,29 @@ end)()
 	check(V.compactCategories == true, "back: Compact View again")
 	check((n.errors or 0) == 0, "no errors")
 end)()
+
+;(function()
+	-- (Shweep: "not seeing a Global button in Classic Style") in Classic the signpost goes up beside the red close button,
+	-- and the globe went with it, behind the title art. It stays in the row below now, right of Settings, gold and square.
+	package.loaded.mock = nil
+	local M = require("mock")
+	_G.BagSmithCharDB = { version = 1, firstSeen = {} }
+	_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = { skin = "classic" } } }
+	local n = M.loadAddon("BagSmith")
+	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
+	n.Window:Show(); M.runTimers(); M.runTimers()
+	local V = n.Window.main
+	local G = V.btnGlobal
+	check(V.classicApplied, "(setup) Classic")
+	check(G:IsShown() and select(2, G:GetPoint(1)) == V.closeBtn, "Classic: the globe in the row below, at its right end")
+	check(select(2, V.btnSettings:GetPoint(1)) == G, "Settings just left of it")
+	check(G.squareOn, "a gold square button like the others")
+	G:GetScript("OnClick")(G); M.runTimers(); M.runTimers()
+	check(n.ui.global == true, "and it opens Global Inventory")
+	G:GetScript("OnClick")(G); M.runTimers(); M.runTimers()
+	n:Set("skin", "modern"); M.runTimers(); M.runTimers()
+	if not V.classicApplied then
+		check(select(2, G:GetPoint(1)) == V.btnTravel and select(2, V.titleDivider:GetPoint(1)) == G, "back to Modern: left of Travel Mode again, the divider beside it")
+	end
+	check((n.errors or 0) == 0, "no errors")
+end)()
