@@ -1406,25 +1406,6 @@ function View:ShowSizeInSettings(w, h)
 	end
 end
 
--- (1.9.0-beta13, Shweep: "when you click Global can we pre-expand the window size ... and then leaving it bring it
--- back", "approx as tall as settings is, maybe a tad more", "you can go 750 for width") Global Inventory's own size
--- while it shows, when Resize for Global Inventory is on: the size you last gave it there (saved for the account),
--- else 750 wide (or the window's width, if wider) and 620 tall. In Fit to Items it's the largest size, as maxW/maxH.
-View.GLOBAL_W, View.GLOBAL_H = 750, 620
-function View:GlobalSize()
-	if not (self.isMain and ns.ui.global and ns.db and ns.db.globalResize and ns.Inventory) then return nil end
-	local G, db = ns.Inventory:Settings(), ns.db
-	local bagsW = db.sizeMode == "fixed" and db.fixW or db.maxW
-	return G.w or math.max(View.GLOBAL_W, bagsW or 0), G.h or View.GLOBAL_H
-end
--- The main window's width and height (its largest, in Fit to Items) as they stand: Global Inventory's, or the bags'.
-function View:SizeLimits()
-	local gw, gh = self:GlobalSize()
-	if gw then return gw, gh end
-	local db = ns.db
-	if db.sizeMode == "fixed" then return db.fixW, db.fixH end
-	return db.maxW, db.maxH
-end
 function View:ApplySize()
 	-- Native dragging owns size and position until the gesture is saved.
 	if self.sizing or self.dragMoving then return end
@@ -1475,6 +1456,26 @@ function View:ApplySize()
 	end
 	self.grip:SetShown(self.big and not ns:WindowsLocked())   -- (1.7.0-beta2) no grip while Lock Windows is on
 	self:ApplyMinWidth()   -- (1.6.0-beta7, R3) never narrower than the kept columns need
+end
+
+-- (1.9.0-beta13, Shweep: "when you click Global can we pre-expand the window size ... and then leaving it bring it
+-- back", "approx as tall as settings is, maybe a tad more", "you can go 750 for width") Global Inventory's own size
+-- while it shows, when Resize for Global Inventory is on: the size you last gave it there (saved for the account),
+-- else 750 wide (or the window's width, if wider) and 620 tall. In Fit to Items it's the largest size, as maxW/maxH.
+View.GLOBAL_W, View.GLOBAL_H = 750, 620
+function View:GlobalSize()
+	if not (self.isMain and ns.ui and ns.ui.global and ns.db and ns.db.globalResize and ns.Inventory) then return nil end
+	local G, db = ns.Inventory:Settings(), ns.db
+	local bagsW = db.sizeMode == "fixed" and db.fixW or db.maxW
+	return G.w or math.max(View.GLOBAL_W, bagsW or 0), G.h or View.GLOBAL_H
+end
+-- The main window's width and height (its largest, in Fit to Items) as they stand: Global Inventory's, or the bags'.
+function View:SizeLimits()
+	local gw, gh = self:GlobalSize()
+	if gw then return gw, gh end
+	local db = ns.db
+	if db.sizeMode == "fixed" then return db.fixW, db.fixH end
+	return db.maxW, db.maxH
 end
 
 function View:SavePosition()
