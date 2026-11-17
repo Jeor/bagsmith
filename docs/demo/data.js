@@ -90,6 +90,8 @@ export const defaults = {
   vendor: true,
   auction: false,
   drawer: true,
+  currencyOpen: false,
+  currencyPins: ["honor", "justice"],
   tab: "All",
   scenario: "everyday",
   character: "hex",
@@ -100,4 +102,6 @@ export const defaults = {
   width: 1080,
   height: 700,
   skin: "modern",
+  font: "marcellus",
+  headingFont: "roboto",
 };

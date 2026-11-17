@@ -1,3 +1,5 @@
+import { fonts } from "./fonts.js";
+import { currencyRows, defaultPins, panelState } from "./currencies.js";
 import { characters, qualities, sampleInventory } from "./fixtures.js";
 import { defaults } from "./data.js";
 import { validate, inventory, groups } from "./model.js";
@@ -30,7 +32,7 @@ function save() {
   } catch {}
 }
 function set(key, value) {
-  state[key] = value;
+  state = panelState(state, key, value);
   save();
   render();
 }
@@ -234,8 +236,41 @@ function renderInventory() {
     ` ${sampleInventory(state).length} / ${Math.max(character.capacity, sampleInventory(state).length)}`;
   requestAnimationFrame(alignHeaders);
 }
+function renderCurrencies() {
+  $("currencies").hidden = !state.currencyOpen;
+  const character = characters.find((c) => c.id === state.character);
+  $("currency-owner").textContent = character.name;
+  $("currency-gold").innerHTML = money(character.gold);
+  const rows = currencyRows(state.character),
+    filter = $("currency-search").value.toLowerCase();
+  const matching = rows.filter((c) => c.name.toLowerCase().includes(filter));
+  const row = (c) =>
+    `<div class="wallet-row"><button data-pin="${c.id}" aria-label="${state.currencyPins.includes(c.id) ? "Unpin" : "Pin"} ${c.name}" aria-pressed="${state.currencyPins.includes(c.id)}">${icon("pin")}</button>${icon(c.icon)}<span>${c.name}</span><strong>${c.amount.toLocaleString()}</strong></div>`;
+  $("currency-list").innerHTML =
+    ["Pinned", "Wallet"]
+      .map((group) => {
+        const list =
+          group === "Pinned"
+            ? state.currencyPins
+                .map((id) => matching.find((c) => c.id === id))
+                .filter(Boolean)
+            : matching.filter((c) => !state.currencyPins.includes(c.id));
+        return list.length
+          ? `<section class="wallet-group"><h3>${group}</h3>${list.map(row).join("")}</section>`
+          : "";
+      })
+      .join("") || '<p class="muted">No matching currencies.</p>';
+  $("pinned-currencies").innerHTML = state.currencyPins
+    .map((id) => {
+      const c = rows.find((c) => c.id === id);
+      return `<button data-action="currencies" title="${c.name}: ${c.amount.toLocaleString()}" aria-label="Open currencies: ${c.name}">${icon(c.icon)} ${c.amount.toLocaleString()}</button>`;
+    })
+    .join("");
+  $("money").setAttribute("aria-expanded", state.currencyOpen);
+}
 function render() {
   options();
+  renderCurrencies();
   $("drawer").hidden = !state.drawer;
   $("toggle-drawer").setAttribute("aria-expanded", state.drawer);
   $("toggle-drawer").innerHTML = icon("pouch");
@@ -253,6 +288,15 @@ function render() {
     qualities.map((q, i) => `<option value="${i}">${q.name}</option>`).join("");
   $("rarity").value = state.rarity;
   document.body.dataset.skin = state.skin;
+  document.documentElement.style.setProperty(
+    "--bag-font",
+    fonts.find((f) => f.id === state.font).family,
+  );
+  document.documentElement.style.setProperty(
+    "--heading-font",
+    fonts.find((f) => f.id === state.headingFont).family,
+  );
+  document.fonts.ready.then(() => requestAnimationFrame(alignHeaders));
   $("bag").style.width = state.width + "px";
   $("workspace").style.setProperty("--height", state.height + "px");
   document.documentElement.style.setProperty("--item-size", state.size + "px");
@@ -284,7 +328,15 @@ function settings() {
         ["modern", "Modern"],
         ["classic", "Classic"],
       ],
-    )}${[
+    )}${select(
+      "font",
+      "Interface Font",
+      fonts.map((f) => [f.id, f.label]),
+    )}${select(
+      "headingFont",
+      "Category Header Font",
+      fonts.map((f) => [f.id, f.label]),
+    )}<div class="font-preview"><strong>Consumables (17)</strong><span>BagSmith · Vendor Value · 1,234</span></div>${[
       ["size", "Item Size", 32, 64],
       ["gap", "Item Spacing", 4, 20],
       ["opacity", "Background Opacity", 65, 100],
@@ -302,6 +354,17 @@ function settings() {
 document.addEventListener("click", (event) => {
   const target = event.target.closest("button");
   if (!target) return;
+  if (target.dataset.pin) {
+    const id = target.dataset.pin;
+    state.currencyPins = state.currencyPins.includes(id)
+      ? state.currencyPins.filter((p) => p !== id)
+      : [...state.currencyPins, id];
+    save();
+    renderCurrencies();
+    const button = document.querySelector(`[data-pin="${id}"]`);
+    if (button) button.focus();
+    return;
+  }
   if (target.dataset.setting) set(target.dataset.setting, target.dataset.value);
   if (target.dataset.tab) set("tab", target.dataset.tab);
   switch (target.dataset.action) {
@@ -325,10 +388,8 @@ document.addEventListener("click", (event) => {
       set("tab", state.tab === "Bank" ? "All" : "Bank");
       break;
     case "currencies":
-      modal(
-        "Currencies",
-        `<div class="currency-row">Gold <span>${money(characters.find((c) => c.id === state.character).gold)}</span></div><div class="currency-row">Honor <span>1,250</span></div><div class="currency-row">Justice Points <span>340</span></div><p class="muted">Sample balances for this demo.</p>`,
-      );
+      set("currencyOpen", !state.currencyOpen);
+      if (state.currencyOpen) $("close-currencies").focus();
       break;
     case "global":
       modal(
@@ -365,6 +426,17 @@ new ResizeObserver((entries) => {
   requestAnimationFrame(alignHeaders);
 }).observe($("bag"));
 $("toggle-drawer").onclick = () => set("drawer", !state.drawer);
+$("money").onclick = () => set("currencyOpen", !state.currencyOpen);
+$("close-currencies").onclick = () => {
+  set("currencyOpen", false);
+  $("money").focus();
+};
+$("currency-search").oninput = renderCurrencies;
+$("restore-pins").onclick = () => {
+  state.currencyPins = [...defaultPins];
+  save();
+  renderCurrencies();
+};
 $("close-drawer").onclick = () => set("drawer", false);
 $("search").oninput = (e) => {
   query = e.target.value;
@@ -398,6 +470,10 @@ $("dialog").onclick = (e) => {
   if (e.target === $("dialog")) $("dialog").close();
 };
 $("close-bag").onclick = () => {
+  state.drawer = false;
+  state.currencyOpen = false;
+  save();
+  render();
   $("workspace").hidden = true;
   $("reopen").hidden = false;
   hideTooltip();

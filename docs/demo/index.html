@@ -39,6 +39,31 @@
           <div class="drawer-scroll" id="options"></div>
           <button class="settings" id="settings"></button>
         </aside>
+        <aside id="currencies" class="frame" aria-label="Currencies" hidden>
+          <div class="drawer-title">
+            Currencies<button
+              id="close-currencies"
+              aria-label="Close currencies"
+            >
+              ‹
+            </button>
+          </div>
+          <div class="currency-summary">
+            <span id="currency-owner"></span
+            ><strong id="currency-gold"></strong>
+          </div>
+          <input
+            id="currency-search"
+            type="search"
+            aria-label="Search currencies"
+            placeholder="Search currencies"
+          />
+          <div id="currency-list" class="drawer-scroll"></div>
+          <div class="currency-bottom">
+            <p>Pin currencies to the bag footer.</p>
+            <button id="restore-pins">Restore Default Pins</button>
+          </div>
+        </aside>
         <section id="bag" class="frame" aria-label="Bag inventory">
           <header class="bag-title">
             <button
@@ -65,8 +90,13 @@
           <div id="inventory" tabindex="-1"></div>
           <nav id="tabs" aria-label="Inventory categories"></nav>
           <footer class="bag-footer">
-            <span id="money"></span
-            ><span class="capacity"
+            <button
+              id="money"
+              aria-label="Toggle currency drawer"
+              title="Open or close currencies"
+            ></button>
+            <div id="pinned-currencies" aria-label="Pinned currencies"></div>
+            <span class="capacity"
               ><span id="bagbar"></span><span id="space"></span
             ></span>
           </footer>

@@ -25,3 +25,8 @@ Fixed during QA: hidden ResizeObserver notifications incorrectly saved zero dime
 ## Character and rarity expansion
 
 Ten model checks pass, including distinct 60+ item inventories, exact full-bag capacities, all nine quality codes, rarity filtering, stack-quantity preservation, and share-state validation. Browser checks covered all four character selections, every rarity filter, all downloaded image assets, share-link restoration in a new tab, large-stack merging, and 1518 × 900 / 390 × 844 layouts, without page exceptions. Screenshots of the expanded character and rarity views were inspected with the image viewer. Intentional additions: inventory and rarity selectors outside the bag, more fixture characters in the existing picker, and all rarity border/text colors. Existing frame, category-header, drawer, typography, tabs, and footer styling are preserved.
+
+
+## Currency and font checks
+
+Model tests cover both drawer-opening orders, sanitizing shared pin IDs, and distinct character balances. Chromium verified currency search, pin/unpin footer controls, the gold shortcut, both dismissal directions, all nine font loads, independent header/body font changes, and restoration of open currencies plus font choices in a shared URL. Desktop and mobile screenshots were inspected. The currency panel follows the existing frame and divider styling, and mobile uses the same overlay treatment as Bag Options. Added font selectors and the live sample are intentional extensions of Appearance settings.

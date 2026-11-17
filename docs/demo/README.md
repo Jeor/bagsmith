@@ -10,7 +10,7 @@ GitHub Pages serves `/docs` on `feat/bagsmith-2.0`; pushes update the public dem
 
 Use the bag button (or B) to toggle the drawer. Test Standard, Compact, Split, Icons/List, grouping, sorting, merged stacks, category count/vendor/AH values, search, quality filtering, collapse, tabs, tooltip focus, and resizing. Appearance settings adjust icon size, spacing, opacity, height, and skin. The top controls switch fixture scenarios, reset state, and copy a URL containing appearance state. Character, inventory preset, and rarity filter are included in shared URLs. Search, transient selection and collapsed categories are intentionally not included.
 
-Small screens use an overlay drawer and a single column. Desktop is the fidelity target. Gear/Bank tools switch sample views; currency/global dialogs are illustrative, and Travel Mode tucks the drawer away. These do not simulate secure WoW actions, live auctions, combat restrictions, or actual inventory operations.
+Small screens use an overlay drawer and a single column. Desktop is the fidelity target. Gear/Bank tools switch sample views; the global inventory dialog is illustrative, and Travel Mode tucks the drawer away. These do not simulate secure WoW actions, live auctions, combat restrictions, or actual inventory operations.
 
 ## Assets
 
@@ -26,3 +26,10 @@ The character picker now selects four independent inventories: Hex Loothur (warl
 The Inventory dropdown also offers Original Sample, All Rarities, Stack Stress Test, Long Categories, and Empty Bags. The independent Rarity dropdown filters Poor, Common, Uncommon, Rare, Epic, Legendary, Artifact, Heirloom, or Token. Artifact/heirloom/token entries are explicit visual test fixtures, including types that may not exist in the target game version. Stack Stress Test includes counts of 1, 20, 200, 999 and 1,000; merging exposes four-digit totals. Switch characters to return to their Character Bags preset. Character/scenario changes clear search and category selection, while preserving appearance and the selected rarity filter.
 
 Edit `fixtures.js` to extend these collections. Item names and artwork evoke game items; quantities, quality assignments and prices are synthetic and are not authoritative game data.
+
+
+## Currencies and fonts
+
+Currencies is a real side drawer with per-character sample balances, search, pin/unpin controls, and footer shortcuts. Open it from Tools, the gold total, or a pinned currency. Opening Currencies dismisses Bag Options; opening Bag Options dismisses Currencies. Close buttons dismiss only their panel. Pin choices and the active drawer are saved and shared. Currency data is illustrative rather than a game-service connection.
+
+All Settings offers Interface Font and Category Header Font selectors with a live sample. All nine font files come from BagSmith’s bundled fonts: Marcellus, Inter, Noto Sans, Roboto Condensed, Roboto Condensed Bold, Fira Sans Extra Condensed, Cabin Condensed, Barlow Condensed, and Asap Condensed. Their existing OFL/Apache license files are copied alongside them. Font choices affect the bag and drawers, persist locally, and are included in Copy View Link.

@@ -1,3 +1,5 @@
+import { fonts } from "./fonts.js";
+import { currencyTypes } from "./currencies.js";
 import { sampleInventory, characters, qualities } from "./fixtures.js";
 import { categories, defaults } from "./data.js";
 export function validate(input = {}) {
@@ -20,11 +22,20 @@ export function validate(input = {}) {
     character: characters.map((c) => c.id),
     rarity: ["all", ...qualities.map((_, i) => String(i))],
     skin: ["modern", "classic"],
+    font: fonts.map((f) => f.id),
+    headingFont: fonts.map((f) => f.id),
     tab: ["All", "Gear", "Consumables", "Trade Goods", "Quest", "Junk", "Bank"],
   };
   for (const [key, allowed] of Object.entries(choices))
     if (allowed.includes(input[key])) state[key] = input[key];
-  for (const key of ["merge", "count", "vendor", "auction", "drawer"])
+  for (const key of [
+    "merge",
+    "count",
+    "vendor",
+    "auction",
+    "drawer",
+    "currencyOpen",
+  ])
     if (typeof input[key] === "boolean") state[key] = input[key];
   for (const [key, min, max] of [
     ["size", 32, 64],
@@ -35,6 +46,15 @@ export function validate(input = {}) {
   ])
     if (Number.isFinite(input[key]))
       state[key] = Math.min(max, Math.max(min, input[key]));
+  if (Array.isArray(input.currencyPins))
+    state.currencyPins = [
+      ...new Set(
+        input.currencyPins.filter((id) =>
+          currencyTypes.some((c) => c.id === id),
+        ),
+      ),
+    ];
+  if (state.currencyOpen) state.drawer = false;
   return state;
 }
 export function inventory(state, query = "", rare = false) {

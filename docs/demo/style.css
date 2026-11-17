@@ -898,3 +898,216 @@ body[data-skin="classic"] .item-art {
 .workshop label {
   white-space: nowrap;
 }
+
+#currencies {
+  width: 280px;
+  min-width: 280px;
+  height: var(--height);
+  display: flex;
+  flex-direction: column;
+}
+.currency-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 17px 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.currency-summary strong {
+  font-weight: 400;
+  color: var(--text);
+  font-size: 17px;
+}
+#currency-search {
+  background: #1a1a1799;
+  border: 1px solid var(--line);
+  margin: 0 17px 12px;
+  padding: 7px 8px;
+  min-width: 0;
+  width: calc(100% - 34px);
+  font-size: 12px;
+}
+.wallet-group {
+  margin-bottom: 20px;
+}
+.wallet-group h3 {
+  font:
+    13px Marcellus,
+    serif;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 9px;
+  margin: 5px 0;
+}
+.wallet-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 37px;
+  font-size: 12px;
+}
+.wallet-row > span {
+  flex: 1;
+  min-width: 0;
+}
+.wallet-row strong {
+  font:
+    12px Inter,
+    sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.wallet-row button {
+  padding: 3px;
+  border: 0;
+}
+.wallet-row button[aria-pressed="true"] {
+  background: transparent;
+}
+.wallet-row button[aria-pressed="true"] .ui-icon {
+  filter: sepia(1) saturate(2);
+}
+.wallet-row button[aria-pressed="false"] .ui-icon {
+  opacity: 0.28;
+}
+.wallet-row > .ui-icon {
+  width: 15px;
+  height: 15px;
+}
+.currency-bottom {
+  padding: 8px 17px 12px;
+  border-top: 1px solid var(--line);
+}
+.currency-bottom p {
+  font:
+    11px/1.5 Inter,
+    sans-serif;
+  color: var(--muted);
+}
+.currency-bottom button {
+  width: 100%;
+  border: 1px solid var(--line);
+  font-size: 12px;
+}
+#money {
+  padding: 0;
+  border: 0;
+  white-space: nowrap;
+  font-size: 13px;
+  text-align: left;
+}
+#pinned-currencies {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  min-width: 0;
+  flex: 1;
+  margin: 0 18px;
+  scrollbar-width: thin;
+}
+#pinned-currencies button {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+#pinned-currencies .ui-icon {
+  width: 13px;
+  height: 13px;
+}
+.bag-footer .capacity {
+  flex: none;
+}
+#workspace:has(#currencies:not([hidden])) #bag {
+  max-width: calc(100vw - 330px);
+}
+@media (max-width: 900px) {
+  #workspace:has(#currencies:not([hidden])) #bag {
+    max-width: calc(100vw - 310px);
+  }
+}
+@media (max-width: 620px) {
+  #currencies {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 10;
+    max-width: calc(100% - 35px);
+    min-width: 0;
+    background: #292823;
+    box-shadow: 10px 0 30px #0009;
+  }
+  #workspace:has(#currencies:not([hidden])) #bag {
+    max-width: 100%;
+  }
+  #pinned-currencies {
+    margin: 0 9px;
+    max-width: 95px;
+  }
+  .capacity #bagbar {
+    display: none;
+  }
+}
+
+@font-face {
+  font-family: NotoSans;
+  src: url("assets/NotoSans-Regular.ttf");
+}
+@font-face {
+  font-family: RobotoCondensedBold;
+  src: url("assets/RobotoCondensed-Bold.ttf");
+}
+@font-face {
+  font-family: FiraCondensed;
+  src: url("assets/FiraSansExtraCondensed-Regular.ttf");
+}
+@font-face {
+  font-family: CabinCondensed;
+  src: url("assets/CabinCondensed-Regular.ttf");
+}
+@font-face {
+  font-family: BarlowCondensed;
+  src: url("assets/BarlowCondensed-Regular.ttf");
+}
+@font-face {
+  font-family: AsapCondensed;
+  src: url("assets/AsapCondensed-Regular.ttf");
+}
+:root {
+  --bag-font: Marcellus;
+  --heading-font: Condensed;
+}
+#workspace,
+.font-preview {
+  font-family: var(--bag-font), sans-serif;
+}
+.category-toggle strong,
+body[data-skin="classic"] .category-toggle strong,
+.font-preview strong {
+  font-family: var(--heading-font), sans-serif;
+}
+.wallet-group h3 {
+  font-family: var(--bag-font), sans-serif;
+}
+.font-preview {
+  padding: 12px;
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.font-preview strong {
+  font-size: 18px;
+  font-weight: 400;
+}
+.font-preview span {
+  font-size: 14px;
+}
+dialog {
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}

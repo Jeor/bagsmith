@@ -1,5 +1,26 @@
 import { test } from "node:test";
+import { panelState, currencyRows } from "./currencies.js";
 import assert from "node:assert/strict";
+test("drawers are mutually exclusive for either opening order", () => {
+  let state = validate();
+  state = panelState(state, "currencyOpen", true);
+  assert.equal(state.drawer, false);
+  assert.equal(state.currencyOpen, true);
+  state = panelState(state, "drawer", true);
+  assert.equal(state.currencyOpen, false);
+  assert.equal(state.drawer, true);
+  assert.equal(validate({ drawer: true, currencyOpen: true }).drawer, false);
+});
+test("currency balances differ by character and shared pins are validated", () => {
+  assert.notEqual(
+    currencyRows("hex")[0].amount,
+    currencyRows("mira")[0].amount,
+  );
+  assert.deepEqual(
+    validate({ currencyPins: ["honor", "honor", "invalid"] }).currencyPins,
+    ["honor"],
+  );
+});
 import { validate, inventory, groups } from "./model.js";
 test("untrusted share settings are bounded and enums validated", () => {
   const s = validate({
