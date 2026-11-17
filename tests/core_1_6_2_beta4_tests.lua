@@ -43,7 +43,9 @@
 			local place = V.PlaceScroll
 			V.PlaceScroll = function(self, ...)
 				local from = debug.getinfo(2, "S")
-				if from and tostring(from.short_src):find("Scroll%.lua") then places = places + 1; if fixes and drawn then placed = true end end
+				-- (by design since 1.9.0-beta15: an attempt places the list 1 px off, then back the next frame; an attempt is
+				-- counted once, on the 1 px placement)
+				if from and tostring(from.short_src):find("Scroll%.lua") and self.placeNudge then places = places + 1; if fixes and drawn then placed = true end end
 				return place(self, ...)
 			end
 			local refresh = V.Refresh
