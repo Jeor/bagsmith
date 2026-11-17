@@ -1,8 +1,8 @@
 ## Interface: 16001
 ## Title: BagSmith
 ## Notes: Spreadsheet-style bags for WoW Forever.
-## Version: 1.9.0-beta4
-## X-Date: 2026-11-16
+## Version: 1.9.0-beta5
+## X-Date: 2026-11-17
 ## Author: BagSmith
 ## IconTexture: Interface\AddOns\BagSmith\Media\icon.tga
 ## Category: Bags & Inventory

@@ -3,9 +3,10 @@
 New:
 - Global Inventory: the globe beside Travel Mode shows every item on your characters on this realm in one list, with
   who has it and where (bags, bank, worn), one row per item with everyone's count together. Click an item more than
-  one character has to see each character's row (class icon and name first). All Rows (the Merge button there) lists
-  each character and place instead. The Bank tab or icon shows only what's in banks, the Filter panel can include
-  your characters on other rulesets, and a value column and the title say what it's all worth. Its footer shows your
+  one character has to see each character's row (class icon and name first). The Bank tab or icon shows only what's
+  in banks, the Filter panel can include your characters on other rulesets, and a value column and the title say what
+  it's all worth (vendor, and AH with a price source). Buttons that don't apply there are greyed out, and hovering one
+  says why. Its footer shows your
   characters' gold, free slots and its own pinned currencies together. It keeps its own sort, sections, column widths
   and pins for your whole account, apart from your profiles. Read only; closing BagSmith or the globe again brings
   your bags back as they were.
@@ -24,6 +25,9 @@ New:
   free slot (All Free Slots).
 - Icon Border Weight (Settings > Item Icons): Normal or Bold item borders, in both looks and both views. Thanks to
   Jeor!
+- Icon Layout (Settings > Style): Full Width, Split View, or the new Compact View, where sections share rows, each as
+  wide as its items need (Icons view, By Section; hover a section's title for its value). Full-Width Recent works with
+  Split View and Compact View. Thanks to Jeor!
 Changed:
 - Settings > General > Tooltips (was Tips): Show Inventory in Item Tooltips, Show AH Price in Item Tooltips (its own
   setting now, no longer tied to the AH Price column) and Show Help Tooltips (was Show Help Tips).

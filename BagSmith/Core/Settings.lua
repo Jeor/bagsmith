@@ -844,7 +844,7 @@ local function loadDB(saved)
 	-- (1.9.0-beta4) Global Inventory's own settings (outside every profile), checked as a profile's are
 	if type(saved) == "table" and type(saved.globalInv) == "table" then
 		local g = saved.globalInv
-		local out = { rows = g.rows == true, allRealms = g.allRealms == true, colWidths = {}, collapsed = {}, pins = {} }
+		local out = { allRealms = g.allRealms == true, colWidths = {}, collapsed = {}, pins = {} }
 		if type(g.sort) == "string" and #g.sort <= 20 then out.sort = g.sort end
 		if g.grp == "type" or g.grp == "none" then out.grp = g.grp end
 		for k, w in pairs(type(g.colWidths) == "table" and g.colWidths or {}) do

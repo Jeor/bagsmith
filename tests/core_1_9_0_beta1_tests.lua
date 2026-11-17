@@ -193,6 +193,7 @@ end)()
 	local tags = {}
 	for _, b in ipairs(P.navButtons) do if b.newTag and b.newTag:IsShown() then tags[#tags + 1] = b.page end end
 	table.sort(tags)
-	check(table.concat(tags, ",") == "general,icons,window", "NEW beside General, Item Icons and Windows: " .. table.concat(tags, ","))
+	-- (by design since 1.9.0-beta5) and Style, for Icon Layout
+	check(table.concat(tags, ",") == "general,icons,look,window", "NEW beside General, Item Icons, Style and Windows: " .. table.concat(tags, ","))
 	check((n.errors or 0) == 0, "no errors")
 end)()

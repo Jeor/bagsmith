@@ -33,10 +33,10 @@ end
 
 function View:Records()
 	-- (1.9.0-beta2) Global Inventory: every item on your characters (display rows)
-	-- (1.9.0-beta4) its own settings: All Rows, Other Rulesets; the Bank tab (or icon) shows only what's in banks
+	-- (1.9.0-beta4) its own settings: Other Rulesets; the Bank tab (or icon) shows only what's in banks
 	if self.isMain and ns.ui.global and ns.Inventory then
 		local G = ns.Inventory:Settings()
-		return ns.Inventory:GlobalRecords(G.rows, G.allRealms, self.st.sheet == "Bank" and { bank = true } or nil), nil, false
+		return ns.Inventory:GlobalRecords(G.allRealms, self.st.sheet == "Bank" and { bank = true } or nil), nil, false
 	end
 	-- Your own Gear Sets sheet: every set's slots, worn and banked included.
 	if self.kind == "main" and self.st.sheet == "GearSets" and not ns.ui.owner and ns.GearSets and ns.GearSets:Available() then

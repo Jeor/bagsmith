@@ -83,7 +83,7 @@ local FRESH_KEYS = { sort = true, view = true, grp = true }
 function View:FreshLayout() self.freedSlots, self.lastOmitted, self.freedSeq = nil, nil, nil end
 function View:SetPref(key, value)
 	if FRESH_KEYS[key] then self:FreshLayout() end
-	-- (1.9.0-beta4) In Global Inventory: its own sort and sections; List and Merge are fixed there (Merge is All Rows)
+	-- (1.9.0-beta4) In Global Inventory: its own sort and sections; List and Merge are fixed there (beta5: Merge greyed)
 	if self.isMain and ns.ui.global and ns.Inventory then
 		local G = ns.Inventory:Settings()
 		if key == "sort" then G.sort = value; return true end
@@ -165,6 +165,39 @@ local function grayArt(art, on)
 	if art.GetRegions then for _, r in ipairs({ art:GetRegions() }) do d(r) end end
 	for _, get in ipairs(SECONDARY_ART) do if art[get] then local ok, t = pcall(art[get], art); if ok then d(t) end end end
 end
+-- (1.9.0-beta5, Shweep: "disabled buttons, tabs etc, need tooltips explaining not available in global inventory") a
+-- control Global Inventory can't use: greyed and disabled, its tooltip naming it, saying so and why. Information, not
+-- help, so shown with Show Help Tooltips off. The game runs no hover scripts on a disabled button unless asked to
+-- (beta4's greyed buttons had their reasons, unseen), hence SetMotionScriptsWhileDisabled.
+View.GLOBAL_OFF = "Not available in Global Inventory"
+local function offTip(b)
+	if not (b.offReason and ns.TooltipsOK()) then return false end
+	GameTooltip:SetOwner(b, "ANCHOR_TOP")
+	ns.TipText(GameTooltip, b.offName or "")
+	ns.TipLine(GameTooltip, View.GLOBAL_OFF, 1, 0.82, 0)
+	ns.TipLine(GameTooltip, b.offReason, 0.8, 0.8, 0.8, true)
+	GameTooltip:Show()
+	return true
+end
+View.OffTip = offTip
+-- each greyed control's reason, one line
+View.GLOBAL_WHY = {
+	merge = "Global Inventory already shows each item once, with every character's count together.",
+	icons = "Global Inventory is a list, so it can show who has each item and where.",
+	gearSets = "Gear sets belong to the character you're playing.",
+	bagWindows = "Bag windows show the bags of the character you're playing.",
+	bagBar = "The bag bar shows the bags of the character you're playing.",
+}
+function View.GlobalOff(b, off, name, reason)
+	if not b then return end
+	if b.SetMotionScriptsWhileDisabled then b:SetMotionScriptsWhileDisabled(true) end
+	if off then
+		b:Disable(); b:SetAlpha(0.45); b.offName, b.offReason = name, reason
+	else
+		if b.offReason then b:Enable(); b:SetAlpha(1) end
+		b.offName, b.offReason = nil, nil
+	end
+end
 local function textButton(parent, text, width, onClick, template, name)
 	-- 1.2.0: a template lets a secure action button wear the same look (its click is the game's, not ours)
 	local b = CreateFrame("Button", name, parent, template and (template .. ", BackdropTemplate") or "BackdropTemplate")
@@ -175,6 +208,7 @@ local function textButton(parent, text, width, onClick, template, name)
 	b.label:SetText(text)
 	if onClick then b:SetScript("OnClick", onClick) end
 	b:SetScript("OnEnter", function(self)
+		if offTip(self) then return end   -- (1.9.0-beta5)
 		local help = self.tip and ns.HelpTipsOK()
 		-- (1.8.0-beta5) information, not help: shown even with Show Help Tips off (the free-slot breakdown)
 		local info = self.tipInfo and ns.TooltipsOK() and self.tipInfo(self)
@@ -332,6 +366,7 @@ local function iconButton(parent, texture, tip, onClick)
 	b:SetScript("OnClick", onClick)
 	b:SetScript("OnEnter", function(self)
 		self.tex:SetVertexColor(0.93, 0.91, 0.88)
+		if offTip(self) then return end   -- (1.9.0-beta5)
 		if ns.HelpTipsOK() then
 			GameTooltip:SetOwner(self, "ANCHOR_TOP"); ns.TipText(GameTooltip, self.tip)
 			-- An optional second line (a function, so it can describe the moment).
@@ -648,6 +683,7 @@ function View:Build()
 					end
 				end
 				hover(b, function(x) if modernSkin() and not x.classicOn then x:SetActive(x.active) end end)
+				b:HookScript("OnEnter", offTip); b:HookScript("OnLeave", function(x) if x.offReason then GameTooltip:Hide() end end)   -- (1.9.0-beta5)
 				btns[#btns + 1] = b
 				self.segButtons = self.segButtons or {}
 				self.segButtons[#self.segButtons + 1] = b
@@ -702,11 +738,8 @@ function View:Build()
 		end)
 		self.toolItems[#self.toolItems + 1] = { frame = self.btnSort, width = 96, gap = 8, w4 = 72 }
 		local function toggleMerge()
-			-- (1.9.0-beta4) In Global Inventory, Merge is All Rows: a row per character and place instead of one per item
-			if ns.ui.global and ns.Inventory then
-				local G = ns.Inventory:Settings(); G.rows = not G.rows; ns.ui.globalOpen = nil
-				self:FreshLayout(); self:SyncTools(); ns:RefreshViews(true); return
-			end
+			-- (1.9.0-beta5, Shweep) greyed in Global Inventory, which already shows each item once (beta4's All Rows is gone)
+			if self.isMain and ns.ui.global then return end
 			self:SetPref("mergeStacks", not self:Pref("mergeStacks")); self:SyncTools(); ns:RefreshViews(true)
 		end
 		self.btnMerge = textButton(tools, "Merge Stacks", 92, toggleMerge)
@@ -716,6 +749,7 @@ function View:Build()
 		self.btnMergeIcon.tipSub = function() return self:Pref("mergeStacks") and "On: each item shows once, with its total count" or "Off: click to show each item once, with its total count" end
 		self.toolItems[#self.toolItems + 1] = { frame = self.btnMergeIcon, width = 24, gap = 4, onlyAt = 4, live = true }
 		self.syncView = seg("View", { { "list", "List", 46 }, { "icons", "Icons", 50 } }, function() return self:Pref("view") end, function(v) self:SetPref("view", v) end)
+		self.viewSegBtns = self.segBoxes[#self.segBoxes].btns   -- (1.9.0-beta5) Icons, greyed in Global Inventory
 		self.toolItems[#self.toolItems].hideAt = 4
 		self.btnViewIcon = iconButton(tools, MEDIA .. "ui-list.tga", "List View", function()
 			self:SetPref("view", self:Pref("view") == "list" and "icons" or "list"); self.syncView(); self:SyncTools(); ns:RefreshViews(true)
@@ -1534,14 +1568,34 @@ function View:LayoutTitleRow()
 		self.titleText:SetText(form)
 		return textWidth(self.titleText) + 8
 	end
-	local chosen, tw = #forms, 0
+	-- (1.9.0-beta5) Global Inventory's V and AH: on one line, else stacked, before the title takes its shorter form
+	local sf = self.subForms
+	local notes = { { w = subW } }
+	if sf then
+		local one = table.concat(sf.lines, "   ")
+		local stackW = 0
+		for _, l in ipairs(sf.lines) do self.subText:SetText(l); stackW = math.max(stackW, textWidth(self.subText)) end
+		self.subText:SetText(one)
+		notes = { { text = one, w = textWidth(self.subText) }, { text = table.concat(sf.lines, "\n"), w = stackW, stacked = true } }
+	end
+	local chosen, tw, note = #forms, 0, nil
 	for i, form in ipairs(forms) do
 		tw = titleW(form)
-		if lead + tw + subW + tail <= room then chosen = i; break end
+		for _, n in ipairs(notes) do if lead + tw + n.w + tail <= room then note = n; break end end
+		if note then chosen = i; break end
 	end
 	if chosen == #forms then tw = titleW(forms[#forms]) end
+	note = note or notes[#notes]
+	self.subStacked = nil
+	if sf then
+		self.subText:SetText(note.text); subW = note.w
+		self.subText:SetWordWrap(note.stacked and true or false)
+		self.subStacked = note.stacked or nil
+	end
 	local subRoom = room - lead - tw - tail
-	if subW <= subRoom then
+	if self.subStacked and subW > subRoom then
+		self.subText:Hide(); subW = 0   -- two lines can't be cut short tidily: too narrow even stacked, the note goes
+	elseif subW <= subRoom then
 		self.subText:SetWidth(0); self.subText:Show()
 	elseif subRoom >= 24 then
 		self.subText:SetWidth(subRoom); self.subText:SetWordWrap(false); self.subText:Show()
@@ -1577,17 +1631,28 @@ function View:UpdateChrome(shown, total, bagInfo, cached)
 	elseif self.isBank then
 		sub = ns.atBank and "" or "saved view"
 	end
-	-- (1.9.0-beta4, Shweep) Global Inventory: what it's all worth (AH with a price source, else vendor)
+	-- (1.9.0-beta4, Shweep) Global Inventory: what it's all worth. (beta5, Shweep: "should show V and AH stack (if you
+	-- can) if window narrows") vendor, and AH with a price source, as the section headers write them: on one line, or
+	-- stacked in two small lines when the title row is short of room (LayoutTitleRow picks).
+	self.subForms = nil
+	local shownNote = #shown ~= total and ("%d of %d shown"):format(#shown, total) or nil
 	if self.isMain and ns.ui.global then
-		local v, ah = 0, ns.AH and ns.AH:Available()
+		local v, a, ah = 0, 0, ns.AH and ns.AH:Available()
 		for _, r in ipairs(shown) do
-			local x = ah and ns.AH:StackValue(r)
-			if not x and not r.hasNoValue and r.sellPrice then x = r.sellPrice * (r.count or 1) end
-			v = v + (x or 0)
+			if not r.hasNoValue and r.sellPrice then v = v + r.sellPrice * (r.count or 1) end
+			if ah then a = a + (ns.AH:StackValue(r) or 0) end
 		end
-		sub = v > 0 and ("worth about " .. ns.Money(v)) or ""
+		local lines = {}
+		if v > 0 then lines[#lines + 1] = "V: " .. ns.Money(v) end
+		if ah and a > 0 then lines[#lines + 1] = "AH: " .. ns.Money(a) end
+		if shownNote then
+			if #lines > 0 then lines[#lines] = lines[#lines] .. ", " .. shownNote else lines[1] = shownNote end
+		end
+		sub = table.concat(lines, "   ")
+		if #lines == 2 then self.subForms = { lines = lines } end
+	elseif shownNote then
+		sub = (sub ~= "" and sub .. ", " or "") .. shownNote
 	end
-	if #shown ~= total then sub = (sub ~= "" and sub .. ", " or "") .. ("%d of %d shown"):format(#shown, total) end
 	self.subText:SetText(sub)
 	if self.charBtn then
 		local data = ns.ui.owner and BagSmithDB.cache[ns.ui.owner] or BagSmithDB.cache[ns:CharKey()]
@@ -1612,8 +1677,7 @@ function View:UpdateChrome(shown, total, bagInfo, cached)
 			-- (1.9.0-beta4, Shweep) greyed out in Global Inventory: your character's sets
 			local gbl = self.isMain and ns.ui.global
 			self.btnGearSets.baseTip = self.btnGearSets.baseTip or self.btnGearSets.tip
-			if gbl then self.btnGearSets:Disable(); self.btnGearSets:SetAlpha(0.45); self.btnGearSets.tip = "Gear Sets shows your character's sets. Leave Global Inventory to use them."
-			else self.btnGearSets:Enable(); self.btnGearSets:SetAlpha(1); self.btnGearSets.tip = self.btnGearSets.baseTip end
+			View.GlobalOff(self.btnGearSets, gbl, "Gear Sets", View.GLOBAL_WHY.gearSets)
 			self:RefreshToolbar()
 		end
 		self.btnFilter:SetActive(ns.FilterCount(self.st.filters) > 0)
@@ -1643,10 +1707,14 @@ function View:SyncTools()
 	-- bags and reagent buttons are greyed out and explain why.
 	-- (1.9.0-beta3, Shweep) and in Global Inventory
 	local browsing = (ns.ui.owner or (self.isMain and ns.ui.global)) and not self.isBank
+	local gbl = self.isMain and ns.ui.global and true or false
 	for _, b in ipairs({ self.btnBags, self.btnReagent }) do
 		if b and b.isCount then
 			b.baseTip = b.baseTip or b.tip
-			if browsing then
+			View.GlobalOff(b, gbl, b == self.btnReagent and "Reagent Bag Window" or "Bag Windows", View.GLOBAL_WHY.bagWindows)
+			if gbl then
+				b.tip = b.baseTip   -- (beta5) its reason is GlobalOff's
+			elseif browsing then
 				b:Disable(); b:SetAlpha(0.45)
 				b.tip = "Bag windows show your own bags. Switch back to your character to open them."
 			else
@@ -1658,25 +1726,18 @@ function View:SyncTools()
 	-- (1.9.0-beta4, Shweep) the bag bar's button in Global Inventory: there, greyed out, saying why (its strip stays hidden)
 	local bb = self.btnBagBar
 	if bb then
-		bb.baseTip = bb.baseTip or bb.tip
-		if self.isMain and ns.ui.global then
-			bb:Disable(); bb:SetAlpha(0.45)
-			bb.tip = "The bag bar shows your own bags. Leave Global Inventory to use it."
-		else
-			bb:Enable(); bb:SetAlpha(1)
-			bb.tip = bb.baseTip
-		end
+		View.GlobalOff(bb, gbl, "Bag Bar", View.GLOBAL_WHY.bagBar)
 	end
+	-- (1.9.0-beta5, Shweep) Merge Stacks and Icons greyed in Global Inventory, saying why
 	if self.btnMerge then
-		if self.isMain and ns.ui.global and ns.Inventory then
-			self.btnMerge:SetActive(ns.Inventory:Settings().rows == true); self.btnMerge.label:SetText("All Rows")
-			self.btnMerge.baseTip = self.btnMerge.baseTip or self.btnMerge.tip
-			self.btnMerge.tip = "A row for each character and place, instead of one row per item"
-		else
-			self.btnMerge:SetActive(self:Pref("mergeStacks")); self.btnMerge.label:SetText((self.toolsLevel or 0) >= 2 and "Merge" or "Merge Stacks")
-			if self.btnMerge.baseTip then self.btnMerge.tip = self.btnMerge.baseTip end
-		end
+		self.btnMerge:SetActive(not gbl and self:Pref("mergeStacks")); self.btnMerge.label:SetText((self.toolsLevel or 0) >= 2 and "Merge" or "Merge Stacks")
+		View.GlobalOff(self.btnMerge, gbl, "Merge Stacks", View.GLOBAL_WHY.merge)
 	end
+	View.GlobalOff(self.btnMergeIcon, gbl, "Merge Stacks", View.GLOBAL_WHY.merge)
+	for _, b in ipairs(self.viewSegBtns or {}) do
+		View.GlobalOff(b, gbl and b.value == "icons", "Icons View", View.GLOBAL_WHY.icons)
+	end
+	View.GlobalOff(self.btnViewIcon, gbl, "Icons View", View.GLOBAL_WHY.icons)
 	if self.btnReagent then self.btnReagent:SetActive(sr and true or false) end
 	self:SyncSortLabel()
 	if self.btnGrpMenu then self:SyncGrpMenu() end
@@ -1755,7 +1816,8 @@ function View:UpdateTabs()
 	for _, t in ipairs(self.isBank and db.bankHiddenTabs or db.hiddenTabs) do hidden[t] = true end
 	-- No equipment sets on this client: no Gear Sets tab.
 	if not (ns.GearSets and ns.GearSets:Available()) then hidden.GearSets = true end
-	if self.isMain and ns.ui.global then hidden.GearSets = true end   -- (1.9.0-beta4, Shweep) not in Global Inventory
+	-- (1.9.0-beta5, Shweep: "Can we show Gear Sets tab just disabled?") in Global Inventory: shown, greyed (beta4 hid it)
+	local gbl = self.isMain and ns.ui.global and true or false
 	local order = self.isBank and db.bankTabOrder or db.tabOrder
 	-- Each tab's width: its label plus padding (Classic's art needs less than it had: 12 px, not 16).
 	self.tabMeasure = self.tabMeasure or self.tabs:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -1868,6 +1930,7 @@ function View:UpdateTabs()
 		if b.classicOn and ns.Classic and ns.Classic.FitTabEnds then ns.Classic.FitTabEnds(b) end   -- (1.8.0-beta15)
 		b:ClearAllPoints(); b:SetPoint("TOPLEFT", self.tabs, "TOPLEFT", x - half, -row * rowH)
 		b:SetActive(self.st.sheet == id)
+		View.GlobalOff(b, gbl and id == "GearSets", "Gear Sets", View.GLOBAL_WHY.gearSets)
 		-- (1.8.0-beta13) overlapping: the selected tab draws above its neighbors, as the game's does
 		if extra > 0 and b.SetFrameLevel then b:SetFrameLevel(self.st.sheet == id and base + 2 or base) end
 		b:Show()

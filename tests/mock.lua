@@ -71,6 +71,9 @@ local function frameMethods(f)
 	f.Enable = function(self) self.enabled = true end
 	f.Disable = function(self) self.enabled = false end
 	f.IsEnabled = function(self) return self.enabled ~= false end
+	-- (1.9.0-beta5) the client runs no OnEnter or OnLeave on a disabled button unless this is set: see M.enter
+	f.SetMotionScriptsWhileDisabled = function(self, on) self.motionWhileDisabled = on and true or false end
+	f.GetMotionScriptsWhileDisabled = function(self) return self.motionWhileDisabled == true end
 	f.SetScale = function(self, s) self.scale = s end
 	f.SetNormalTexture, f.SetPushedTexture, f.SetHighlightTexture = noop, noop, noop
 	f.GetHighlightTexture = function() return M.tex() end
@@ -540,5 +543,15 @@ M.fire_ = M.fire
 
 
 _G.PixelUtil = { GetPixelToUIUnitFactor = function() return 768 / 1080 end }
+
+-- (1.9.0-beta5) the pointer moving onto a frame, as the client does it: a disabled button's OnEnter runs only with
+-- SetMotionScriptsWhileDisabled(true). Returns whether it ran.
+function M.enter(f)
+	if f.enabled == false and not f.motionWhileDisabled then return false end
+	local fn = f:GetScript("OnEnter")
+	if not fn then return false end
+	fn(f)
+	return true
+end
 
 return M

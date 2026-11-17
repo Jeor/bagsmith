@@ -218,7 +218,7 @@ function Inv:Characters(all)
 	return out
 end
 -- (1.9.0-beta4, Shweep: "a hidden shared profile") Global Inventory's own settings, saved for the account
--- (BagSmithDB.globalInv), outside every profile: sort, Sections or All, Totals or All Rows, other rulesets, its column
+-- (BagSmithDB.globalInv), outside every profile: sort, Sections or All, other rulesets, its column
 -- widths, collapsed sections and its own pinned currencies (none at first). The first time, sort and sections start
 -- from the profile in use; after that nothing here touches a profile, and a profile never touches this.
 function Inv:Settings()
@@ -226,7 +226,7 @@ function Inv:Settings()
 	local g = BagSmithDB.globalInv
 	if type(g) ~= "table" then
 		local d = ns.db or {}
-		g = { sort = d.sort, grp = (d.grp == "bag") and "type" or d.grp, rows = false, allRealms = false, colWidths = {}, collapsed = {}, pins = {} }
+		g = { sort = d.sort, grp = (d.grp == "bag") and "type" or d.grp, allRealms = false, colWidths = {}, collapsed = {}, pins = {} }
 		BagSmithDB.globalInv = g
 	end
 	g.colWidths, g.collapsed, g.pins = g.colWidths or {}, g.collapsed or {}, g.pins or {}
@@ -272,17 +272,18 @@ function Inv:FreeSlots(all)
 	end
 	return free, total, list
 end
--- The rows: Totals (one per item, every character and place together: rows = false) or All Rows (one per item,
--- character and place). Each is a display row: read only, with who (a name, or "N characters") and where. only: the
--- places to take (beta4: the Bank tab's bank-only filter), every place when nil.
-function Inv:GlobalRecords(rows, all, only)
+-- The rows: one per item, every character and place together, opening into a row per character (beta5, Shweep: "only
+-- have the accordion view and simplify this": beta4's All Rows is gone). Each is a display row: read only, with who (a
+-- name, or "N characters") and where. only: the places to take (beta4: the Bank tab's bank-only filter), every place
+-- when nil.
+function Inv:GlobalRecords(all, only)
 	local out, byKey, order = {}, {}, {}
 	for _, c in ipairs(self:Characters(all)) do
 		for _, place in ipairs(self.PLACES) do
 			if not only or only[place] then
 			for _, r in ipairs(c[place] or {}) do
 				if type(r) == "table" and r.itemID then
-					local k = rows and (r.itemID .. "|" .. c.key .. "|" .. place) or tostring(r.itemID)
+					local k = tostring(r.itemID)
 					local g = byKey[k]
 					if not g then
 						g = { rep = r, count = 0, chars = {}, charList = {}, places = {}, placeList = {} }
@@ -317,7 +318,7 @@ function Inv:GlobalRecords(rows, all, only)
 		rec.displayWhy = "In Global Inventory: every item on your characters, read only."
 		-- (1.9.0-beta3, Shweep) the accordion: an item more than one character has opens into a row per character (their
 		-- class icon and name first, indented; their count and places)
-		if not rows and #g.charList > 1 then
+		if #g.charList > 1 then
 			rec.displayWhy = "Click to see each character's."
 			local kids = {}
 			for _, c in ipairs(g.charList) do

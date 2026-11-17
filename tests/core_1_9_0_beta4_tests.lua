@@ -22,7 +22,7 @@
 	local V = n.Window.main
 	V.btnGlobal:GetScript("OnClick")(V.btnGlobal); M.runTimers(); M.runTimers()
 	local G = BagSmithDB.globalInv
-	check(G and G.sort == "name" and G.grp == "type" and G.rows == false and G.allRealms == false and #G.pins == 0, "its own settings, started from the profile's (sections by bag becomes by section), no pins")
+	check(G and G.sort == "name" and G.grp == "type" and G.allRealms == false and #G.pins == 0, "its own settings, started from the profile's (sections by bag becomes by section), no pins")
 
 	-- its settings are its own
 	V:SetPref("sort", "quality"); V:SetPref("grp", "none")
@@ -32,17 +32,13 @@
 	check(n.IndexOf(G.collapsed, "Gear") and not n.IndexOf(n.db.collapsed or {}, "Gear"), "its own collapsed sections")
 	V:SetPref("grp", "type")
 
-	-- All Rows (the Merge button there)
+	-- (by design since 1.9.0-beta5, Shweep: "only have the accordion view") All Rows is gone: Merge is greyed there
 	V:SyncTools()
-	check(V.btnMerge.label.text == "All Rows" and not V.btnMerge.active, "Merge reads All Rows in Global Inventory")
-	V.btnMerge:GetScript("OnClick")(V.btnMerge); M.runTimers()
-	check(G.rows == true and V.btnMerge.active, "clicked: All Rows on")
+	check(V.btnMerge.label.text == "Merge Stacks" and not V.btnMerge:IsEnabled() and not V.btnMerge.active, "Merge Stacks greyed in Global Inventory")
 	local shown = V:Filtered()
 	local linen = 0
 	for _, r in ipairs(shown) do if r.itemID == 2589 then linen = linen + 1 end end
-	check(linen == 3, "All Rows: Linen Cloth in your bags, Brannoc's bags and Brannoc's bank, three rows (" .. linen .. ")")
-	V.btnMerge:GetScript("OnClick")(V.btnMerge); M.runTimers()
-	check(G.rows == false, "and back to Totals")
+	check(linen == 1, "Linen Cloth: one row (" .. linen .. ")")
 
 	-- the Bank tab or icon: only what's in banks
 	V.btnBank:GetScript("OnClick")(V.btnBank); M.runTimers()
@@ -65,7 +61,8 @@
 	local at = n.IndexOf(keys, "n")
 	check(keys[at + 3] == "v", "Who, Where, then a value (Vendor, with no price source): " .. table.concat(keys, ","))
 	n:RefreshViews(true); M.runTimers()
-	check((V.subText.text or ""):find("worth about", 1, true), "the title's note says what it's worth: " .. tostring(V.subText.text))
+	-- (by design since 1.9.0-beta5: V and AH, as the section headers write them)
+	check((V.subText.text or ""):find("^V: "), "the title's note says what it's worth: " .. tostring(V.subText.text))
 
 	-- the footer: gold, free slots, pins
 	local _, realmGold = n.Inventory:Gold(false)
