@@ -331,6 +331,10 @@ function View:ColumnPlan()
 end
 
 function View:LayoutHeader(plan)
+	-- (1.9.0-beta8, Shweep) the column headings follow Text Size: their strip grows with the text, never below 20 px
+	local headerH = ns.Fonts and ns.Fonts:Grow(HEADER_H) or HEADER_H
+	if self.header:GetHeight() ~= headerH then self.header:SetHeight(headerH) end
+	for _, b in pairs(self.headerLabels or {}) do if b:GetHeight() ~= headerH then b:SetHeight(headerH) end end
 	local visible = {}
 	self.headerSeps = self.headerSeps or {}
 	self.headerGrips = self.headerGrips or {}
@@ -435,6 +439,7 @@ local function onGripDown(g)
 end
 
 function View:LayoutColumnGrips(plan, narrowHeader)
+	local headerH = self.header:GetHeight() or HEADER_H   -- (1.9.0-beta8) as tall as the headings' strip
 	self.columnPlan = plan
 	-- Nothing in the header ever draws past the row's edge.
 	if self.header.SetClipsChildren and not self.headerClips then self.header:SetClipsChildren(true); self.headerClips = true end
@@ -447,7 +452,7 @@ function View:LayoutColumnGrips(plan, narrowHeader)
 			local g = grips[i]
 			if not g then
 				g = CreateFrame("Button", nil, self.header)
-				g:SetSize(10, HEADER_H)
+				g:SetSize(10, headerH)
 				g:SetFrameLevel(self.header:GetFrameLevel() + 5)
 				g.tex = g:CreateTexture(nil, "OVERLAY"); g.tex:SetTexture("Interface\\Buttons\\WHITE8X8"); g.tex:SetWidth(2)
 				g.tex:SetPoint("TOP", 0, -3); g.tex:SetPoint("BOTTOM", 0, 3)
@@ -476,7 +481,7 @@ function View:LayoutColumnGrips(plan, narrowHeader)
 			g.right = { key = right.key, w = right.colW }
 			g.colKey = right.key   -- the column to the right of the line
 			g:ClearAllPoints(); g:SetPoint("LEFT", self.header, "LEFT", right.colX - 5, 0)
-			g:SetHeight(HEADER_H)
+			g:SetHeight(headerH)
 			g:Show()
 		end
 	end

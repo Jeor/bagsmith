@@ -65,6 +65,7 @@ local DEFAULTS = {
 	reagent = "lane",          -- inline (Mixed In) | lane (Own Section)
 	keys = true, emptySlots = true,
 	splitView = false,         -- icon view with sections: sections side by side in two columns (Sections page)
+	footerTextScale = 1,       -- (1.9.0-beta8) Footer Text Size: the footer's text, 80% to 150% (Style page)
 	compactCategories = false, -- Icons + By Section: variable-width category rows
 	splitViewRecentWide = false,   -- (1.7.0-beta2) Split View: Recent spans both columns instead of pairing
 	recentSection = true,      -- a Recent section pinned at the top of the bags window (Sections page)
@@ -351,7 +352,7 @@ local validators = {
 	end,
 	sort = oneOf("quality", "name", "newest", "oldest", "ilvl", "off"), sizeMode = oneOf("auto", "fixed"),
 	bankGrp = oneOf("none", "type", "bag"), bankSort = oneOf("quality", "name", "newest", "oldest", "ilvl", "off"), bankView = oneOf("list", "icons"),
-	combatAlpha = num(0.05, 1), bgOpacity = num(0, 1), pinnedHighlightAlpha = num(0.05, 0.5), movingAlpha = num(0.05, 1), scale = num(0.5, 1.5), textScale = num(0.8, 1.5), fontName = function(v) if type(v) == "string" and #v <= 100 then return v end end, bagCols = num(4, 12, true), bagScale = num(0.5, 1.5), bagMaxH = num(200, 800, true), shardKeep = num(0, 40, true), maxW = num(440, 1400, true), maxH = num(300, 1200, true),
+	combatAlpha = num(0.05, 1), bgOpacity = num(0, 1), pinnedHighlightAlpha = num(0.05, 0.5), movingAlpha = num(0.05, 1), scale = num(0.5, 1.5), textScale = num(0.8, 1.5), footerTextScale = num(0.8, 1.5), fontName = function(v) if type(v) == "string" and #v <= 100 then return v end end, bagCols = num(4, 12, true), bagScale = num(0.5, 1.5), bagMaxH = num(200, 800, true), shardKeep = num(0, 40, true), maxW = num(440, 1400, true), maxH = num(300, 1200, true),
 	fixW = num(440, 1400, true), bankW = num(500, 1400, true), bankH = num(300, 1200, true), fixH = num(300, 1200, true), iconSize = num(24, 48, true), rowHeight = num(20, 32, true),
 	minimapAngle = num(0, 360), point = pointV, bankPoint = pointV, settingsPoint = pointV,
 	makeRoomPos = function(v) if v == false then return false end return pointV(v) end,

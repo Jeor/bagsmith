@@ -69,7 +69,7 @@ Panel.NEW = {
 	pages = { general = true, window = true, icons = true, look = true, sections = true, columns = true, sheets = true,
 		globalsections = true, globalcols = true, globalsheets = true },
 	heads = {},
-	keys = { tipInventory = "general", tipAHPrice = "general", bagSlotCount = "window", borderWeight = "icons", iconLayout = "look" },
+	keys = { tipInventory = "general", tipAHPrice = "general", bagSlotCount = "window", borderWeight = "icons", iconLayout = "look", footerTextScale = "look" },
 }
 Panel.NEW_COLOR = { 0.55, 0.78, 1 }   -- the soft blue of What's New's links
 local function release() return tostring(ns.version or ""):match("^(%d+%.%d+)") end
@@ -1546,7 +1546,9 @@ pages.look = function(self, db)
 	self:Step("rowHeight", "Row Height (List View)", 2, "%d")
 	self:Check("dense", "Compact Rows", "Shorter rows in List view")
 	-- (1.8.0, Shweep's plan of 10 Nov) the item windows' text: bags, bank, bag windows, the Loot and Disenchant Helpers
-	self:Step("textScale", "Text Size", 0.1, "%d%%", "How big the item text is in your bags, bank and individual bag windows and the Loot and Disenchant Helpers.")
+	self:Step("textScale", "Text Size", 0.1, "%d%%", "How big the item text is in your bags, bank and individual bag windows and the Loot and Disenchant Helpers, column headings included.")
+	-- (1.9.0-beta8, Shweep) the footer on its own: gold, pinned currencies and the bag counts
+	self:Step("footerTextScale", "Footer Text Size", 0.1, "%d%%", "How big the text is along the bottom of your bags and bank: your gold, pinned currencies and free slots.")
 	do
 		local choices = ns.Fonts and ns.Fonts:Choices() or { { key = "", label = "Default Font" } }
 		for _, c in ipairs(choices) do c.path = ns.Fonts and ns.Fonts:PathOf(c.key) end

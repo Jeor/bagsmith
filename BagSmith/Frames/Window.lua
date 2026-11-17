@@ -633,7 +633,7 @@ ns:OnSignal("SETTINGS_CHANGED", function(key)
 end)
 -- (1.6.0-beta7, the beta6 audit's R3) which columns are shown or may be set aside, or whether AH Price can show: the
 -- bags and bank windows' narrowest width follows (View.MinWidthFor)
-local MINW_KEYS = { cols = true, colAside = true, bankCols = true, bankColAside = true }
+local MINW_KEYS = { cols = true, colAside = true, bankCols = true, bankColAside = true, footerTextScale = true, fontName = true }   -- (beta8) the footer's text too
 local function minWidths() for _, v in pairs(ns.views) do if v.big then v:ApplyMinWidth() end end end
 ns:OnSignal("SETTINGS_CHANGED", function(key) if MINW_KEYS[key] then minWidths() end end)
 ns:OnSignal("PRICE_SOURCE_CHANGED", minWidths)

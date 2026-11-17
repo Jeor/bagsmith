@@ -190,13 +190,47 @@ function Fonts:RowNeed()
 	return math.floor((b and b[2] or 10) * self:Scale() + 0.5) + 10
 end
 
+-- (1.9.0-beta8, Shweep: Footer Text Size) the footer's own copies (BagSmithFooterFont_<template>): the same face as
+-- the item text, sized by Footer Text Size (ns.db.footerTextScale, 80% to 150%) instead of Text Size
+local footerMade = {}
+function Fonts:FooterScale()
+	local v = tonumber(ns.db and ns.db.footerTextScale) or 1
+	if v < self.MIN then v = self.MIN elseif v > self.MAX then v = self.MAX end
+	return v
+end
+local function applyFooter(template)
+	local b = base[template]
+	local f = _G["BagSmithFooterFont_" .. template]
+	if not (b and f and f.SetFont) then return end
+	local size = math.max(6, math.floor(b[2] * Fonts:FooterScale() + 0.5))
+	local ok = pcall(f.SetFont, f, Fonts:Path() or b[1], size, b[3] or "")
+	if not ok then pcall(f.SetFont, f, b[1], size, b[3] or "") end
+end
+function Fonts:FooterName(template)
+	if self:Name(template) == template then return template end   -- (no copy can be made: the game's)
+	local name = "BagSmithFooterFont_" .. template
+	if not footerMade[template] then
+		local game = _G[template]
+		local f = _G[name] or CreateFont(name)
+		if game and game.GetTextColor and f.SetTextColor then f:SetTextColor(game:GetTextColor()) end
+		if game and game.GetShadowColor and f.SetShadowColor then f:SetShadowColor(game:GetShadowColor()) end
+		if game and game.GetShadowOffset and f.SetShadowOffset then f:SetShadowOffset(game:GetShadowOffset()) end
+		footerMade[template] = true
+		applyFooter(template)
+	end
+	return name
+end
+-- A footer height that holds its text: grows with Footer Text Size above 100%.
+function Fonts:FooterGrow(px) return math.floor((px or 0) * math.max(1, self:FooterScale()) + 0.5) end
+
 function Fonts:Apply()
 	for template in pairs(base) do apply(template) end
+	for template in pairs(footerMade) do applyFooter(template) end
 	ns:Fire("FONTS_CHANGED")
 end
 
 ns:OnSignal("SETTINGS_CHANGED", function(key)
-	if key == nil or key == "textScale" or key == "fontName" then Fonts:Apply() end
+	if key == nil or key == "textScale" or key == "fontName" or key == "footerTextScale" then Fonts:Apply() end
 end)
 -- the saved settings are read (or another profile is in force): copies made before then take the settings now
 ns:OnSignal("PROFILE_ACTIVATED", function() Fonts:Apply() end)

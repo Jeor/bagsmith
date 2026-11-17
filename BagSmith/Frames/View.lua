@@ -103,6 +103,10 @@ end
 
 local PAD, TITLE_H, TOOL_H, HEADER_H, TAB_H, FOOTER_H, LANE_H, GAP = 12, 26, 26, 20, 22, 26, 26, 6
 local MONEY_X = 10   -- the gold's distance from the footer's left edge
+-- (1.9.0-beta8, Shweep: "in modern style the footer almost rides high") Modern: the footer's contents sit this much
+-- lower, centered between its line and the window's bottom edge (the line and the tabs stay where they were)
+local FOOTER_DROP = 6
+local function footerFont() return ns.Fonts and ns.Fonts:FooterName("GameFontHighlightSmall") or "GameFontHighlightSmall" end
 local COLW = { who = 0.14, c = 0.07, il = 0.07, rq = 0.06, t = 0.16, sl = 0.11, bd = 0.07, v = 0.12, w = 0.14, age = 0.08, ah = 0.12, jk = 0.05, fv = 0.05, cc = 0.05 }
 local COLPAD = 10   -- gap kept clear at the right edge of every column
 local BAR_ROOM = 22 -- the scrollbar's lane at the right of a list; given back to the list when nothing scrolls
@@ -411,11 +415,27 @@ function View.MinWidthFor(bank)
 end
 -- Applies that narrowest width to the bags or bank window: the resize grip stops there, and a window narrower than it
 -- widens to it (the saved size isn't changed). Out of combat only (the window holds protected item buttons).
+-- (1.9.0-beta8) The width the footer needs at its text size: a large amount of gold on the left, the count buttons on
+-- the right (and the resize grip's room), so bigger footer text can't run the two together.
+function View:FooterNeed()
+	if not (self.footer and self.moneyText) then return 0 end
+	local m = self.footerMeasure
+	if not m then m = self.footer:CreateFontString(nil, "OVERLAY", footerFont()); m:Hide(); self.footerMeasure = m end
+	m:SetFontObject(footerFont())
+	m:SetText(GetMoneyString and GetMoneyString(99999999, true) or "9999g 99s 99c")
+	if self.btnBags and self.btnBags.Fit then self.btnBags:Fit() end
+	if self.btnReagent and self.btnReagent.Fit then self.btnReagent:Fit() end
+	local right = 18 + (self.btnBags and self.btnBags:GetWidth() or 0)
+		+ ((self.btnReagent and self.btnReagent:IsShown()) and (self.btnReagent:GetWidth() + 6) or 0)
+		+ ((self.btnBagBar and self.btnBagBar:IsShown()) and (self.btnBagBar:GetWidth() + 6) or 0)
+	local mw = (m.GetUnboundedStringWidth and m:GetUnboundedStringWidth()) or m:GetStringWidth() or 0   -- (textWidth is below)
+	return math.ceil(PAD * 2 + MONEY_X + mw + 20 + right + 12)
+end
 function View:ApplyMinWidth()
 	if not self.big then return end
 	ns:Safely("minwidth:" .. self.name, function()
 		local f = self.frame
-		local minW = View.MinWidthFor(self.isBank)
+		local minW = math.max(View.MinWidthFor(self.isBank), self:FooterNeed())   -- (beta8) and the footer's text
 		self.minWidth = minW
 		if f.SetResizeBounds then f:SetResizeBounds(minW, 300, 1400, 1200) end
 		if (f:GetWidth() or 0) < minW then f:SetWidth(minW) end
@@ -806,7 +826,7 @@ function View:Build()
 	local function headerLabel(key, text)
 		local b = CreateFrame("Button", nil, header)
 		b:SetHeight(HEADER_H)
-		b.text = fontString(b, "GameFontHighlightSmall")
+		b.text = fontString(b, ns.Fonts and ns.Fonts:Name("GameFontHighlightSmall") or "GameFontHighlightSmall")   -- (1.9.0-beta8) Text Size
 		b.text:SetAllPoints()
 		b.text:SetText(text)
 		b.key = key
@@ -857,7 +877,8 @@ function View:Build()
 	footer.line = footer:CreateTexture(nil, "ARTWORK")
 	footer.line:SetPoint("TOPLEFT"); footer.line:SetPoint("TOPRIGHT"); footer.line:SetHeight(1)
 	self.footer = footer
-	self.moneyText = fontString(footer, "GameFontHighlightSmall")
+	self.footerKey = FOOTER_H .. ":0"   -- (beta8) as built; LayoutFooter places it for the skin and Footer Text Size
+	self.moneyText = fontString(footer, footerFont())
 	-- The gold sits 10 px in from the left, closer to the room the count
 	-- buttons keep on the right.
 	self.moneyText:SetPoint("LEFT", MONEY_X, 0)
@@ -924,10 +945,12 @@ function View:Build()
 		-- (1.8.0-beta12, Shweep) the footer's other count button shows the same breakdown
 		if self.btnReagent then self.btnReagent.tipInfo = function() return self:FreeTip() end end
 	else
-		self.freeText = fontString(footer, "GameFontHighlightSmall", "RIGHT")
+		self.freeText = fontString(footer, footerFont(), "RIGHT")
 		self.freeText:SetPoint("RIGHT", rightEdge, 0)
 	end
-	self.statusText = fontString(footer, "GameFontHighlightSmall", "CENTER")
+	self.statusText = fontString(footer, footerFont(), "CENTER")
+	-- (beta8) the count buttons' text in the footer's font too
+	for _, b in ipairs({ self.btnBags or false, self.btnReagent or false }) do if b and b.label then b.label:SetFontObject(footerFont()) end end
 	self.statusText:SetPoint("CENTER")
 	self.favChips = {}
 
@@ -2051,7 +2074,34 @@ function View:FreeTip()
 	end
 end
 
+-- (1.9.0-beta8) The footer's frame for the skin and Footer Text Size: taller as its text grows (the tabs above move up
+-- with it), and in Modern its contents 6 px lower, the line and tabs where they were. Classic keeps it as built (its
+-- gold bar hangs from the footer; its tabs from the window).
+function View:LayoutFooter()
+	local footer = self.footer
+	if not footer then return end
+	local h = ns.Fonts and ns.Fonts:FooterGrow(FOOTER_H) or FOOTER_H
+	local drop = self.classicApplied and 0 or FOOTER_DROP
+	local key = h .. ":" .. drop
+	if self.footerKey ~= key then
+		self.footerKey = key
+		footer:ClearAllPoints()
+		footer:SetPoint("BOTTOMLEFT", PAD, PAD - drop); footer:SetPoint("BOTTOMRIGHT", -PAD, PAD - drop)
+		footer:SetHeight(h)
+		footer.line:ClearAllPoints(); footer.line:SetPoint("TOPLEFT", 0, drop); footer.line:SetPoint("TOPRIGHT", 0, drop)
+		if self.tabs and not self.classicApplied then
+			self.tabs:ClearAllPoints()
+			self.tabs:SetPoint("BOTTOMLEFT", PAD, PAD + h + 2); self.tabs:SetPoint("BOTTOMRIGHT", -PAD, PAD + h + 2)
+		end
+	end
+	local bh = ns.Fonts and ns.Fonts:FooterGrow(20) or 20
+	for _, b in ipairs({ self.btnBags or false, self.btnReagent or false, self.btnBagBar or false }) do
+		if b and b:GetHeight() ~= bh then b:SetHeight(bh) end
+	end
+end
+
 function View:UpdateFooter(bagInfo)
+	self:LayoutFooter()
 	-- Footer-only updates (money, currency) pass no bag details: reuse the last
 	-- full refresh's, so saved free-slot counts don't drop to 0/0.
 	if bagInfo then self.footerBagInfo = bagInfo else bagInfo = self.footerBagInfo end
@@ -2159,7 +2209,7 @@ function View:UpdateFooter(bagInfo)
 			chip:SetHeight(18)
 			chip.icon = chip:CreateTexture(nil, "ARTWORK"); chip.icon:SetSize(14, 14); chip.icon:SetPoint("LEFT")
 			chip.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-			chip.text = fontString(chip, "GameFontHighlightSmall"); chip.text:SetPoint("LEFT", chip.icon, "RIGHT", 4, 0)
+			chip.text = fontString(chip, footerFont()); chip.text:SetPoint("LEFT", chip.icon, "RIGHT", 4, 0)
 			chip:SetScript("OnClick", function() ns.Drawer:Toggle() end)
 			chip:SetScript("OnEnter", function(c) if ns.TooltipsOK() then GameTooltip:SetOwner(c, "ANCHOR_TOP"); ns.TipText(GameTooltip, c.name); GameTooltip:Show() end end)
 			chip:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -2167,6 +2217,7 @@ function View:UpdateFooter(bagInfo)
 			self.favChips[i] = chip
 		end
 		chip.icon:SetTexture(e.icon)
+		chip:SetHeight(ns.Fonts and ns.Fonts:FooterGrow(18) or 18)   -- (beta8) Footer Text Size
 		chip.text:SetText(BreakUpLargeNumbers and BreakUpLargeNumbers(e.count) or e.count)
 		chip.name, chip.key = e.name, e.key
 		local w = 18 + chip.text:GetStringWidth()
@@ -2180,7 +2231,7 @@ function View:UpdateFooter(bagInfo)
 		-- The "+N" chip needs room too; drop the last visible currency if it does not fit.
 		if not self.favMore then
 			self.favMore = textButton(self.footer, "", 34, function() ns.Drawer:Toggle() end)
-			self.favMore:SetHeight(18)
+			self.favMore.label:SetFontObject(footerFont())   -- (beta8)
 			self.favMore.tip = "More pinned currencies: open the currency drawer"
 		end
 		while shownCount > 0 and x + 34 > avail do
@@ -2189,6 +2240,7 @@ function View:UpdateFooter(bagInfo)
 			last:Hide()
 			shownCount = shownCount - 1
 		end
+		self.favMore:SetHeight(ns.Fonts and ns.Fonts:FooterGrow(18) or 18)
 		self.favMore.label:SetText("+" .. (#favs - shownCount))
 		-- (1.6.0) only where it fits: in a narrow window it never covers the buttons on the right (the wallet in the
 		-- title row still opens every currency)
