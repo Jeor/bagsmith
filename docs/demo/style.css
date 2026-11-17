@@ -1111,3 +1111,160 @@ dialog {
   overflow-y: auto;
   scrollbar-width: thin;
 }
+
+#release-label {
+  display: block;
+  font:
+    10px Inter,
+    sans-serif;
+  color: #858b80;
+  margin-top: 5px;
+}
+.update-ready {
+  border-color: var(--gold) !important;
+  color: var(--gold);
+}
+#appearance-shortcut {
+  color: #e4cd97;
+}
+.workshop > div {
+  flex-shrink: 0;
+}
+.workshop nav {
+  justify-content: flex-end;
+}
+.workshop {
+  flex-wrap: wrap;
+}
+#tooltip,
+.stack,
+.wallet-row strong,
+.item-value,
+#workspace select,
+#workspace button {
+  font-family: var(--bag-font), sans-serif;
+}
+#currencies {
+  width: 310px;
+  min-width: 310px;
+}
+#workspace:has(#currencies:not([hidden])) #bag {
+  max-width: calc(100vw - 360px);
+}
+.currency-actions {
+  display: flex;
+  gap: 0;
+  flex: 0 !important;
+}
+.currency-actions button {
+  font:
+    12px Inter,
+    sans-serif;
+  padding: 2px !important;
+}
+.currency-actions button:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+.wallet-row > span:not(.currency-actions) {
+  overflow-wrap: anywhere;
+}
+.currency-bottom .select-label {
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.currency-bottom #add-tracked {
+  margin-bottom: 8px;
+}
+.currency-bottom {
+  padding-top: 10px;
+}
+.currency-bottom p {
+  margin: 6px 0;
+}
+.currency-bottom select {
+  font-size: 11px;
+}
+#inventory-status {
+  font-size: 12px;
+  color: var(--muted);
+}
+#inventory-status:empty {
+  display: none;
+}
+#inventory-status .select-label {
+  flex-direction: row;
+  align-items: center;
+  margin: 8px 0 0;
+  gap: 12px;
+}
+#inventory-status select {
+  max-width: 230px;
+}
+#inventory-status > span {
+  display: block;
+  margin-top: 10px;
+}
+#bag-heading {
+  white-space: nowrap;
+}
+.bag-title:has(#exit-travel:not([hidden])) select {
+  max-width: 150px;
+}
+#exit-travel {
+  font-size: 11px;
+  border: 1px solid var(--line);
+  padding: 5px;
+}
+.travel-mode #tabs,
+.travel-mode .recent {
+  display: none;
+}
+.travel-mode #inventory {
+  padding-top: 9px;
+}
+.travel-mode .categories {
+  gap: 18px;
+}
+.item-owners {
+  line-height: 1.5;
+  color: #c5c4b7;
+}
+@media (max-width: 900px) {
+  #workspace:has(#currencies:not([hidden])) #bag {
+    max-width: calc(100vw - 340px);
+  }
+  #bag-heading {
+    font-size: 16px;
+  }
+  .bag-title select {
+    max-width: 165px;
+  }
+}
+@media (max-width: 620px) {
+  #currencies {
+    max-width: calc(100% - 24px);
+    min-width: 0;
+  }
+  #workspace:has(#currencies:not([hidden])) #bag {
+    max-width: 100%;
+  }
+  .workshop nav {
+    justify-content: flex-start;
+  }
+  #bag-heading {
+    font-size: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bag-title select {
+    width: 140px;
+  }
+  .travel-mode .bag-title {
+    flex-wrap: wrap;
+    height: auto;
+  }
+  .travel-mode .bag-title #exit-travel {
+    order: 5;
+  }
+}

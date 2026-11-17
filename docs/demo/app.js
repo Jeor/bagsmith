@@ -1,8 +1,14 @@
+import { RELEASE } from "./release.js";
 import { fonts } from "./fonts.js";
-import { currencyRows, defaultPins, panelState } from "./currencies.js";
+import {
+  currencyRows,
+  defaultPins,
+  panelState,
+  trackableItems,
+} from "./currencies.js";
 import { characters, qualities, sampleInventory } from "./fixtures.js";
 import { defaults } from "./data.js";
-import { validate, inventory, groups } from "./model.js";
+import { validate, inventory, groups, sourceInventory } from "./model.js";
 const $ = (id) => document.getElementById(id);
 let state = validate(),
   query = "",
@@ -18,6 +24,13 @@ try {
     ),
   );
 } catch {}
+// Shared URLs initialize once; later edits and refreshes use the saved view.
+if (location.hash) {
+  try {
+    localStorage.setItem("bagsmith-demo-v1", JSON.stringify(state));
+  } catch {}
+  history.replaceState(null, "", location.pathname + location.search);
+}
 const icon = (name) =>
   `<img class="ui-icon" src="assets/ui-${name}.png" alt="">`;
 const money = (value) => {
@@ -65,7 +78,9 @@ function options() {
     select("sort", "Sorting", [
       ["quality", "Quality"],
       ["name", "Name"],
+      ["ilvl", "Item Level"],
       ["newest", "Newest"],
+      ["oldest", "Oldest"],
       ["off", "Off"],
     ]) +
     check("merge", "Merge Stacks") +
@@ -74,14 +89,22 @@ function options() {
       ["sword-shield", "Gear Sets", "gear"],
       ["bank", "Bank", "bank"],
       ["wallet", "Currencies", "currencies"],
-      ["globe", "Global Inventory", "global"],
-      ["signpost", "Travel Mode", "travel"],
+      [
+        "globe",
+        state.global ? "Back to Character" : "Global Inventory",
+        "global",
+      ],
+      ["signpost", state.travel ? "Exit Travel Mode" : "Travel Mode", "travel"],
     ]
       .map(
         ([i, t, a]) =>
           `<button class="tool" data-action="${a}">${icon(i)}<span>${t}</span></button>`,
       )
       .join("")}</fieldset>`;
+  const bagGrouping = document.querySelector(
+    '[data-setting="group"] option[value="bag"]',
+  );
+  if (bagGrouping) bagGrouping.disabled = state.global;
   $("settings").innerHTML = icon("cog") + "All Settings";
 }
 function itemNode(item) {
@@ -102,7 +125,7 @@ function itemNode(item) {
 }
 function tooltip(item, target) {
   const t = $("tooltip");
-  t.innerHTML = `<strong style="color:${qualities[item.quality].color}">${item.name}</strong><span>${qualities[item.quality].name} · ${item.category} · Stack of ${item.count}</span>${item.category === "Quest" ? '<span class="quest-note">Quest Item</span>' : ""}<span>Vendor value: ${money(item.vendor * item.count)}</span><span>Auction estimate: ${money(item.auction * item.count)}</span><small>Sample item · Click to select</small>`;
+  t.innerHTML = `<strong style="color:${qualities[item.quality].color}">${item.name}</strong><span>${qualities[item.quality].name} · ${item.category} · Stack of ${item.count}</span>${item.category === "Quest" ? '<span class="quest-note">Quest Item</span>' : ""}<span>Vendor value: ${money(item.vendor * item.count)}</span><span>Auction estimate: ${money(item.auction * item.count)}</span>${state.global ? `<span class="item-owners">${item.owners.map((o) => `${o.name}: ${o.count}`).join("<br>")}</span>` : ""}<span>Item Level ${item.level}</span><small>Sample item · Click to select</small>`;
   t.hidden = false;
   const r = target.getBoundingClientRect();
   t.style.left =
@@ -211,7 +234,7 @@ function renderInventory() {
   if (!list.length) {
     const empty = document.createElement("div");
     empty.className = "empty";
-    empty.innerHTML = `${icon("pouch")}<strong>${query || rare ? "No matching items" : "Your bags are empty"}</strong><span>${query || rare ? "Try another search or turn off the quality filter." : "Choose another sample inventory to keep exploring."}</span>`;
+    empty.innerHTML = `${icon("pouch")}<strong>${query || rare || state.rarity !== "all" || state.filterCategory !== "all" ? "No matching items" : "Your bags are empty"}</strong><span>${query || rare || state.rarity !== "all" || state.filterCategory !== "all" ? "Try another search or turn off the quality filter." : "Choose another sample inventory to keep exploring."}</span>`;
     host.append(empty);
   }
   $("tabs").innerHTML = [
@@ -221,6 +244,7 @@ function renderInventory() {
     "Trade Goods",
     "Quest",
     "Junk",
+    "Gear Sets",
     "Bank",
   ]
     .map(
@@ -229,23 +253,38 @@ function renderInventory() {
     )
     .join("");
   const character = characters.find((c) => c.id === state.character);
-  $("money").innerHTML = money(character.gold);
+  $("money").innerHTML = money(
+    state.global ? characters.reduce((n, c) => n + c.gold, 0) : character.gold,
+  );
   $("bagbar").innerHTML = icon("bagbar");
   $("space").innerHTML =
     icon("pouch") +
-    ` ${sampleInventory(state).length} / ${Math.max(character.capacity, sampleInventory(state).length)}`;
+    ` ${sourceInventory(state).length} / ${state.global ? characters.reduce((n, c) => n + c.capacity, 0) : Math.max(character.capacity, sourceInventory(state).length)}`;
   requestAnimationFrame(alignHeaders);
 }
 function renderCurrencies() {
   $("currencies").hidden = !state.currencyOpen;
   const character = characters.find((c) => c.id === state.character);
-  $("currency-owner").textContent = character.name;
-  $("currency-gold").innerHTML = money(character.gold);
-  const rows = currencyRows(state.character),
+  $("currency-owner").textContent = state.global
+    ? "All Characters"
+    : character.name;
+  $("currency-gold").innerHTML = money(
+    state.global ? characters.reduce((n, c) => n + c.gold, 0) : character.gold,
+  );
+  const rows = currencyRows(state.character, state),
     filter = $("currency-search").value.toLowerCase();
   const matching = rows.filter((c) => c.name.toLowerCase().includes(filter));
+  $("track-item").innerHTML = trackableItems(state.character)
+    .filter((i) => !state.trackedCurrencies.includes(i.key))
+    .map((i) => `<option value="${i.key}">${i.name}</option>`)
+    .join("");
+  $("add-tracked").disabled = !$("track-item").options.length;
+  const currencyArt = (c) =>
+    c.itemIcon
+      ? `<img class="ui-icon" src="assets/items/${c.itemIcon}.jpg" alt="">`
+      : icon(c.icon);
   const row = (c) =>
-    `<div class="wallet-row"><button data-pin="${c.id}" aria-label="${state.currencyPins.includes(c.id) ? "Unpin" : "Pin"} ${c.name}" aria-pressed="${state.currencyPins.includes(c.id)}">${icon("pin")}</button>${icon(c.icon)}<span>${c.name}</span><strong>${c.amount.toLocaleString()}</strong></div>`;
+    `<div class="wallet-row"><button data-pin="${c.id}" aria-label="${state.currencyPins.includes(c.id) ? "Unpin" : "Pin"} ${c.name}" aria-pressed="${state.currencyPins.includes(c.id)}">${icon("pin")}</button>${currencyArt(c)}<span title="${state.global && c.per ? c.per : c.name}">${c.name}</span><strong>${c.amount.toLocaleString()}</strong><span class="currency-actions">${state.currencyPins.includes(c.id) ? `<button data-move-pin="${c.id}" data-direction="-1" aria-label="Move ${c.name} up" ${state.currencyPins.indexOf(c.id) === 0 ? "disabled" : ""}>↑</button><button data-move-pin="${c.id}" data-direction="1" aria-label="Move ${c.name} down" ${state.currencyPins.indexOf(c.id) === state.currencyPins.length - 1 ? "disabled" : ""}>↓</button>` : ""}${c.tracked ? `<button data-untrack="${c.id}" aria-label="Stop tracking ${c.name}">×</button>` : ""}</span></div>`;
   $("currency-list").innerHTML =
     ["Pinned", "Wallet"]
       .map((group) => {
@@ -263,7 +302,7 @@ function renderCurrencies() {
   $("pinned-currencies").innerHTML = state.currencyPins
     .map((id) => {
       const c = rows.find((c) => c.id === id);
-      return `<button data-action="currencies" title="${c.name}: ${c.amount.toLocaleString()}" aria-label="Open currencies: ${c.name}">${icon(c.icon)} ${c.amount.toLocaleString()}</button>`;
+      return `<button data-action="currencies" title="${c.name}: ${c.amount.toLocaleString()}" aria-label="Open currencies: ${c.name}">${currencyArt(c)} ${c.amount.toLocaleString()}</button>`;
     })
     .join("");
   $("money").setAttribute("aria-expanded", state.currencyOpen);
@@ -276,7 +315,10 @@ function render() {
   $("toggle-drawer").innerHTML = icon("pouch");
   $("search-icon").innerHTML = icon("search");
   $("filter").innerHTML = icon("set-filter");
-  $("filter").setAttribute("aria-pressed", rare);
+  $("filter").setAttribute(
+    "aria-pressed",
+    state.rarity !== "all" || state.filterCategory !== "all",
+  );
   $("scenario").value = state.scenario;
   $("character").innerHTML = characters
     .map((c) => `<option value="${c.id}">${c.name} · ${c.level}</option>`)
@@ -297,8 +339,32 @@ function render() {
     fonts.find((f) => f.id === state.headingFont).family,
   );
   document.fonts.ready.then(() => requestAnimationFrame(alignHeaders));
-  $("bag").style.width = state.width + "px";
-  $("workspace").style.setProperty("--height", state.height + "px");
+  $("bag-heading").textContent = state.global
+    ? state.tab === "Bank"
+      ? "Global Bank"
+      : "Global Inventory"
+    : state.tab === "Bank"
+      ? "Bank"
+      : state.travel
+        ? "Travel Bags"
+        : "Bags";
+  $("exit-travel").hidden = !state.travel;
+  $("workspace").classList.toggle("travel-mode", state.travel);
+  $("inventory-status").innerHTML =
+    state.tab === "Gear Sets"
+      ? select("gearSet", "Gear Set", [
+          ["all", "All Gear Sets"],
+          ["dungeon", "Dungeon Set"],
+          ["raid", "Raid Set"],
+        ])
+      : state.global
+        ? "<span>All characters · Hover an item for its owners</span>"
+        : "";
+  $("bag").style.width = (state.travel ? 640 : state.width) + "px";
+  $("workspace").style.setProperty(
+    "--height",
+    (state.travel ? 480 : state.height) + "px",
+  );
   document.documentElement.style.setProperty("--item-size", state.size + "px");
   document.documentElement.style.setProperty("--gap", state.gap + "px");
   document.documentElement.style.setProperty(
@@ -367,7 +433,41 @@ document.addEventListener("click", (event) => {
   }
   if (target.dataset.setting) set(target.dataset.setting, target.dataset.value);
   if (target.dataset.tab) set("tab", target.dataset.tab);
+  if (target.dataset.movePin) {
+    const i = state.currencyPins.indexOf(target.dataset.movePin),
+      j = i + Number(target.dataset.direction);
+    if (i >= 0 && j >= 0 && j < state.currencyPins.length) {
+      [state.currencyPins[i], state.currencyPins[j]] = [
+        state.currencyPins[j],
+        state.currencyPins[i],
+      ];
+      save();
+      renderCurrencies();
+    }
+    return;
+  }
+  if (target.dataset.untrack) {
+    state.trackedCurrencies = state.trackedCurrencies.filter(
+      (k) => k !== target.dataset.untrack,
+    );
+    state.currencyPins = state.currencyPins.filter(
+      (k) => k !== target.dataset.untrack,
+    );
+    save();
+    renderCurrencies();
+    return;
+  }
   switch (target.dataset.action) {
+    case "clear-filters":
+      state.rarity = "all";
+      state.filterCategory = "all";
+      rare = false;
+      query = "";
+      $("search").value = "";
+      save();
+      render();
+      $("dialog").close();
+      break;
     case "collapse":
       collapsed = collapsed.size
         ? new Set()
@@ -382,7 +482,7 @@ document.addEventListener("click", (event) => {
       notify("Bags sorted by quality");
       break;
     case "gear":
-      set("tab", "Gear");
+      set("tab", "Gear Sets");
       break;
     case "bank":
       set("tab", state.tab === "Bank" ? "All" : "Bank");
@@ -392,14 +492,20 @@ document.addEventListener("click", (event) => {
       if (state.currencyOpen) $("close-currencies").focus();
       break;
     case "global":
-      modal(
-        "Global Inventory",
-        `<p>Sample characters</p>${characters.map((c) => `<div class="currency-row">${c.name}<span>${c.role}<br>${sampleInventory({ ...defaults, character: c.id }).length} slots</span></div>`).join("")}<p class="muted">Switch characters with the picker in the bag title. These are sample inventories.</p>`,
-      );
+      state.global = !state.global;
+      state.travel = false;
+      state.tab = "All";
+      state.group = "section";
+      save();
+      render();
       break;
     case "travel":
-      set("drawer", false);
-      notify("Travel Mode: options tucked away");
+      state.travel = !state.travel;
+      state.global = false;
+      state.drawer = false;
+      state.currencyOpen = false;
+      save();
+      render();
       break;
   }
 });
@@ -418,10 +524,13 @@ document.addEventListener("input", (event) => {
 new ResizeObserver((entries) => {
   const b = entries[0].target;
   const r = b.getBoundingClientRect();
-  if (!r.width || !r.height) return;
-  state.width = Math.round(r.width);
+  if (!r.width || !r.height || state.travel) return;
+  if (!state.travel) state.width = Math.round(r.width);
   state.height = Math.round(r.height);
-  $("workspace").style.setProperty("--height", state.height + "px");
+  $("workspace").style.setProperty(
+    "--height",
+    (state.travel ? 480 : state.height) + "px",
+  );
   save();
   requestAnimationFrame(alignHeaders);
 }).observe($("bag"));
@@ -442,10 +551,11 @@ $("search").oninput = (e) => {
   query = e.target.value;
   renderInventory();
 };
-$("filter").onclick = () => {
-  rare = !rare;
-  render();
-};
+$("filter").onclick = () =>
+  modal(
+    "Inventory Filters",
+    `${select("rarity", "Quality", [["all", "All Rarities"], ...qualities.map((q, i) => [String(i), q.name])])}${select("filterCategory", "Category", [["all", "All Categories"], ...["Gear", "Consumables", "Reagents", "Trade Goods", "Recipes", "Quest", "Camp", "Other"].map((c) => [c, c])])}<button data-action="clear-filters">Clear Filters</button>`,
+  );
 function switchFixture(key, value) {
   collapsed.clear();
   recent = true;
@@ -457,6 +567,7 @@ function switchFixture(key, value) {
 }
 $("scenario").onchange = (e) => switchFixture("scenario", e.target.value);
 $("character").onchange = (e) => {
+  state.global = false;
   state.scenario = "everyday";
   switchFixture("character", e.target.value);
 };
@@ -483,7 +594,7 @@ $("reopen").onclick = () => {
   $("reopen").hidden = true;
 };
 $("reset").onclick = () => {
-  state = { ...defaults };
+  state = validate();
   query = "";
   rare = false;
   recent = true;
@@ -492,6 +603,10 @@ $("reset").onclick = () => {
   history.replaceState(null, "", location.pathname);
   save();
   render();
+  for (const id of ["options", "currency-list", "inventory"])
+    $(id).scrollTop = 0;
+  clearTimeout(notify.timer);
+  $("toast").classList.remove("visible");
 };
 $("share").onclick = async () => {
   const url =
@@ -501,7 +616,7 @@ $("share").onclick = async () => {
     encodeURIComponent(JSON.stringify(state));
   try {
     await navigator.clipboard.writeText(url);
-    history.replaceState(null, "", url);
+
     notify("View link copied");
   } catch {
     modal(
@@ -524,3 +639,37 @@ document.addEventListener("keydown", (e) => {
   }
 });
 render();
+
+$("appearance-shortcut").onclick = settings;
+$("exit-travel").onclick = () => set("travel", false);
+$("add-tracked").onclick = () => {
+  const key = $("track-item").value;
+  if (!key) return;
+  state.trackedCurrencies = [...state.trackedCurrencies, key];
+  state.currencyPins = [...state.currencyPins, key];
+  save();
+  renderCurrencies();
+};
+$("release-label").textContent = `Build ${RELEASE}`;
+$("reload-demo").onclick = () => {
+  save();
+  const url = new URL(location.href);
+  url.searchParams.set("v", Date.now());
+  url.hash = "";
+  location.replace(url);
+};
+async function checkRelease() {
+  if (RELEASE === "development") return;
+  try {
+    const response = await fetch("release.json", { cache: "no-store" });
+    if (!response.ok) return;
+    const latest = await response.json();
+    if (latest.release !== RELEASE) {
+      $("reload-demo").textContent = "Update Available · Refresh";
+      $("reload-demo").classList.add("update-ready");
+    }
+  } catch {}
+}
+window.addEventListener("focus", checkRelease);
+setInterval(checkRelease, 45000);
+checkRelease();

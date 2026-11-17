@@ -1,0 +1,11 @@
+{
+  "name": "bagsmith-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "python ../../tools/build_demo.py",
+    "test": "node --test model.test.mjs",
+    "test:browser": "node browser.test.cjs"
+  },
+  "devDependencies": { "playwright": "1.65.1" }
+}

@@ -1,3 +1,5 @@
+import { sampleInventory, characters } from "./fixtures.js";
+import { defaults } from "./data.js";
 export const currencyTypes = [
   {
     id: "honor",
@@ -49,12 +51,52 @@ export const currencyTypes = [
   },
 ];
 export const defaultPins = ["honor", "justice"];
-export function currencyRows(character) {
+export function trackableItems(character) {
+  return sampleInventory({ ...defaults, character })
+    .filter((i) => i.category !== "Gear")
+    .map((i) => ({ ...i, key: `item:${character}:${i.id}` }));
+}
+export function validTracked(key) {
+  if (typeof key !== "string") return false;
+  return characters.some((c) =>
+    trackableItems(c.id).some((i) => i.key === key),
+  );
+}
+export function currencyRows(character, state = {}) {
   const index = Math.max(
     0,
-    ["hex", "elowen", "brom", "mira"].indexOf(character),
+    characters.findIndex((c) => c.id === character),
   );
-  return currencyTypes.map((c) => ({ ...c, amount: c.amounts[index] }));
+  const wallet = currencyTypes.map((c) => ({
+    ...c,
+    amount: state.global
+      ? c.amounts.reduce((a, b) => a + b, 0)
+      : c.amounts[index],
+    per: characters
+      .map((owner, n) => `${owner.name}: ${c.amounts[n].toLocaleString()}`)
+      .join(" � "),
+  }));
+  const tracked = (state.trackedCurrencies || [])
+    .map((key) =>
+      characters
+        .flatMap((c) => trackableItems(c.id))
+        .find((i) => i.key === key),
+    )
+    .filter(Boolean)
+    .map((item) => ({
+      id: item.key,
+      name: item.name,
+      itemIcon: item.icon,
+      tracked: true,
+      amount: (state.global
+        ? characters
+        : characters.filter((c) => c.id === character)
+      )
+        .flatMap((c) => sampleInventory({ ...defaults, character: c.id }))
+        .filter((i) => i.name === item.name)
+        .reduce((n, i) => n + i.count, 0),
+    }));
+  return [...wallet, ...tracked];
 }
 export function panelState(state, key, open) {
   const next = { ...state, [key]: open };

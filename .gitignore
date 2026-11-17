@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 # macOS folder metadata
 .DS_Store
+docs/demo/node_modules/
+docs/demo/parity-*.png

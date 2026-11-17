@@ -124,3 +124,51 @@ test("shared state round trips selected character, inventory and rarity", () => 
   assert.deepEqual(validate(JSON.parse(JSON.stringify(state))), state);
   assert.equal(validate(null).character, "hex");
 });
+
+import { sourceInventory } from "./model.js";
+import { validTracked, trackableItems } from "./currencies.js";
+test("global inventory contains each character and preserves quantities when merged", () => {
+  const s = validate({ global: true, merge: false });
+  const list = inventory(s);
+  assert.equal(
+    list.length,
+    characters.reduce(
+      (n, c) => n + sampleInventory({ ...s, character: c.id }).length,
+      0,
+    ),
+  );
+  assert.equal(
+    new Set(list.flatMap((i) => i.owners.map((o) => o.name))).size,
+    4,
+  );
+  const merged = inventory({ ...s, merge: true });
+  assert.equal(
+    merged.reduce((n, i) => n + i.count, 0),
+    list.reduce((n, i) => n + i.count, 0),
+  );
+});
+test("gear sets and filters compose, and all six sort modes are supported", () => {
+  const s = validate({ tab: "Gear Sets", gearSet: "raid" });
+  assert.ok(inventory(s).every((i) => i.category === "Gear" && i.quality >= 4));
+  const sorted = inventory({ ...s, sort: "ilvl" });
+  assert.ok(sorted.every((v, i) => !i || v.level <= sorted[i - 1].level));
+  assert.equal(validate({ sort: "oldest" }).sort, "oldest");
+  assert.ok(
+    inventory(validate({ filterCategory: "Reagents" })).every(
+      (i) => i.category === "Reagents",
+    ),
+  );
+});
+test("tracked currencies and reordered defaults stay isolated", () => {
+  const item = trackableItems("hex")[0];
+  assert.ok(validTracked(item.key));
+  const s = validate({
+    trackedCurrencies: [item.key, "invalid"],
+    currencyPins: [item.key],
+  });
+  assert.equal(s.trackedCurrencies.length, 1);
+  assert.ok(currencyRows("hex", s).some((c) => c.id === item.key));
+  const a = validate();
+  a.currencyPins.reverse();
+  assert.deepEqual(validate().currencyPins, ["honor", "justice"]);
+});

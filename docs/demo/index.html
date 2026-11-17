@@ -4,11 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>BagSmith · 2.0 Workshop</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="dist/style-da7fc5bd78e5.css" />
   </head>
   <body>
     <header class="workshop">
-      <div><strong>BagSmith</strong><span>2.0 Workshop</span></div>
+      <div>
+        <strong>BagSmith</strong><span>2.0 Workshop</span
+        ><small id="release-label"></small>
+      </div>
       <nav aria-label="Demo controls">
         <label
           >Inventory
@@ -24,6 +27,8 @@
         ><label
           >Rarity
           <select id="rarity" aria-label="Rarity"></select></label
+        ><button id="appearance-shortcut">Fonts &amp; Appearance</button
+        ><button id="reload-demo">Refresh Demo</button
         ><button id="share">Copy View Link</button
         ><button id="reset">Reset</button>
       </nav>
@@ -60,6 +65,12 @@
           />
           <div id="currency-list" class="drawer-scroll"></div>
           <div class="currency-bottom">
+            <label class="select-label"
+              >Track an Item<select
+                id="track-item"
+                aria-label="Track an item as currency"
+              ></select></label
+            ><button id="add-tracked">Track Item</button>
             <p>Pin currencies to the bag footer.</p>
             <button id="restore-pins">Restore Default Pins</button>
           </div>
@@ -71,7 +82,8 @@
               aria-label="Toggle bag options"
               aria-expanded="true"
             ></button>
-            <h1>Bags</h1>
+            <h1 id="bag-heading">Bags</h1>
+            <button id="exit-travel" hidden>Exit Travel Mode</button>
             <select aria-label="Character" id="character"></select
             ><button id="close-bag" aria-label="Close bags">×</button>
           </header>
@@ -83,10 +95,11 @@
               placeholder="Search"
             /><button
               id="filter"
-              aria-label="Show only uncommon or better items"
+              aria-label="Inventory filters"
               aria-pressed="false"
             ></button>
           </div>
+          <div id="inventory-status" aria-live="polite"></div>
           <div id="inventory" tabindex="-1"></div>
           <nav id="tabs" aria-label="Inventory categories"></nav>
           <footer class="bag-footer">
@@ -117,6 +130,6 @@
       </header>
       <div id="dialog-content"></div>
     </dialog>
-    <script type="module" src="app.js"></script>
+    <script type="module" src="dist/app-da7fc5bd78e5.js"></script>
   </body>
 </html>

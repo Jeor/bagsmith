@@ -1,0 +1,24 @@
+name: Demo checks
+on:
+  push:
+    branches: [feat/bagsmith-2.0]
+    paths: ['docs/demo/**', 'tools/build_demo.py', '.github/workflows/demo.yml']
+  pull_request:
+    paths: ['docs/demo/**', 'tools/build_demo.py', '.github/workflows/demo.yml']
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: node --test docs/demo/model.test.mjs
+      - name: Verify published files match source
+        run: |
+          python tools/build_demo.py
+          git diff --exit-code -- docs/demo/index.html docs/demo/dist docs/demo/release.json
+          test -z "$(git ls-files --others --exclude-standard docs/demo/dist)"

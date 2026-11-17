@@ -30,3 +30,10 @@ Ten model checks pass, including distinct 60+ item inventories, exact full-bag c
 ## Currency and font checks
 
 Model tests cover both drawer-opening orders, sanitizing shared pin IDs, and distinct character balances. Chromium verified currency search, pin/unpin footer controls, the gold shortcut, both dismissal directions, all nine font loads, independent header/body font changes, and restoration of open currencies plus font choices in a shared URL. Desktop and mobile screenshots were inspected. The currency panel follows the existing frame and divider styling, and mobile uses the same overlay treatment as Bag Options. Added font selectors and the live sample are intentional extensions of Appearance settings.
+
+
+## Visible-control parity repair
+
+Reproduced a shared-link persistence bug: a new font applied but reverted on reload because the original hash was reapplied. Shared links now initialize once, save their normalized state, and leave subsequent changes under local persistence. The same regression covers drawer state. A direct live-page currency click succeeded; its originally reported failure was not reproduced. Content-versioned modules/CSS, a build badge, Refresh Demo and update detection now prevent mixed-release loading and make stale versions visible.
+
+Fifteen model checks pass. The committed browser suite passes across the expanded visible-control contract in PARITY.md, including currency tracking/reordering, nine fonts, search/filter composition, all sort modes, gear sets, Global Inventory with owner metadata, bank view, Travel Mode, and mobile width. Visual inspection retained the charcoal/gold frame, typography, category headers, item sizing and footer; new workshop access to Fonts & Appearance and the version/refresh controls are deliberate. Reset now returns the sidebar scroll to the top instead of leaving clipped controls after a prior scroll.
