@@ -20,3 +20,8 @@ Five model tests passed. Browser checks covered asset loading, Compact/Split, li
 | Copy | Core bag controls follow alpha2 | Intentional outside-frame workshop controls and simulation disclosure; sample tool dialogs explicitly labeled |
 
 Fixed during QA: hidden ResizeObserver notifications incorrectly saved zero dimensions and shortened the reopened bag. Zero-size observations are now ignored. This is a faithful browser interpretation of the approved visual direction, not pixel-identical WoW rendering or a secure-inventory emulator. Classic skin is an approximation. Native browser select/checkbox controls are intentional for keyboard accessibility.
+
+
+## Character and rarity expansion
+
+Ten model checks pass, including distinct 60+ item inventories, exact full-bag capacities, all nine quality codes, rarity filtering, stack-quantity preservation, and share-state validation. Browser checks covered all four character selections, every rarity filter, all downloaded image assets, share-link restoration in a new tab, large-stack merging, and 1518 × 900 / 390 × 844 layouts, without page exceptions. Screenshots of the expanded character and rarity views were inspected with the image viewer. Intentional additions: inventory and rarity selectors outside the bag, more fixture characters in the existing picker, and all rarity border/text colors. Existing frame, category-header, drawer, typography, tabs, and footer styling are preserved.
