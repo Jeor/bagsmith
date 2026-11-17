@@ -154,7 +154,8 @@ end)()
 	local vcol
 	for _, c in ipairs(plan) do if c.key == "v" then vcol = c end end
 	local cp = { T.cells.v:GetPoint(1) }
-	check(vcol and cp[4] == vcol.x and T.cells.v.width == vcol.width, "under the Vendor column")
+	-- (by design since 1.9.0-beta9: it ends at the Vendor column's right edge and may use the empty cells to its left)
+	check(vcol and cp[4] + T.cells.v.width == vcol.x + vcol.width and cp[4] <= vcol.x, "under the Vendor column, right-aligned with it")
 	local tp = { T:GetPoint(1) }
 	check(tp[2] == V.tabs and tp[3] == "TOPLEFT", "pinned above the tabs")
 	sp = { V.scroll:GetPoint(2) }

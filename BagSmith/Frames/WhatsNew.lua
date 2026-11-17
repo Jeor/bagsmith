@@ -24,6 +24,17 @@ ns.WhatsNew = WN
 -- Newest first. Only notable releases get an entry; keep a handful of short
 -- bullets that say what it is and where to turn it on.
 WN.ENTRIES = {
+	-- (1.9.0-beta9) the 1.9 card: Shweep approved the draft (16 Nov: "make sure the wording of it is easy to understand
+	-- and does not sound like AI")
+	{ v = "1.9.0", heading = "BagSmith 1.9", items = {
+		"|cfffac775Global Inventory:|r click the globe at the top of your bags to see everything your characters on this realm are carrying, in one list. It shows who has each item and where it is: bags, bank or worn. Click an item more than one character has to see how many each of them has. The Total row at the bottom adds up what it's all worth.",
+		"|cfffac775Your Characters in Every Tooltip:|r hover an item anywhere (your bags, the auction house, a vendor, a chat link) and the tooltip shows how many your characters have and where. Hover your gold to see each character's gold too. Don't want the item counts? Turn them off in Settings > General > Tooltips.",
+		"|cfffac775Compact View:|r in Icons view, sections can now share rows, each only as wide as it needs, so more fits on screen. Pick Full Width, Split View or Compact View in Settings > Style > Layout. Thanks to Jeor!",
+		"|cfffac775Shared Disenchanting:|r what one of your characters learns from disenchanting now helps all of them.",
+		"|cfffac775Footer Text Size:|r make your gold, pinned currencies and free slots bigger or smaller on their own, in Settings > Style > Size.",
+		"|cfffac775Bolder Borders:|r give your item icons thicker borders in Settings > Item Icons > Appearance. Thanks to Jeor!",
+		"|cfffac775Count Every Free Slot:|r your free-slot count leaves out quivers, herb bags and other special bags. Prefer the full count? Change Bag Slot Count in Settings > Windows > Main Window.",
+	} },
 	-- (1.8.0-beta2) the 1.8 card: Shweep approved the draft (15 Nov) with BagSmith's own fonts added
 	{ v = "1.8.0", heading = "BagSmith 1.8", items = {
 		-- (1.8.0-beta8, Shweep: friendlier wording for all four; beta18: titles renamed, Quick Tip removed, and each

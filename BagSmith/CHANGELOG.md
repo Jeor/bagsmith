@@ -39,7 +39,7 @@ Changed:
   full name doesn't fit, to make room in the title row.
 - Settings: text and buttons sit clear of the line above them; the window is a little taller, with room for the new
   Global Inv pages; and the pages listed under another (Bag Columns, Loot Helper...) show an icon beside their name.
-- Text Size now covers the column headings above the list too.
+- Text Size is now Item Text Size, and covers the column headings above the list too.
 - In the Modern look, the footer's gold and buttons sit centered between its line and the bottom of the window.
 - The Disenchant Helper's estimate for green items up to level 15 follows what they give on WoW Forever: more often an
   essence, and no shard.

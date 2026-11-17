@@ -2368,6 +2368,9 @@ function View:UpdateTotalRow(shown, plan)
 		r = CreateFrame("Frame", nil, self.frame)
 		r.line = r:CreateTexture(nil, "ARTWORK"); r.line:SetPoint("TOPLEFT"); r.line:SetPoint("TOPRIGHT"); r.line:SetHeight(1)
 		r.bg = r:CreateTexture(nil, "BACKGROUND"); r.bg:SetAllPoints(); r.bg:SetTexture("Interface\\Buttons\\WHITE8X8")
+		-- (beta9, Shweep: "too transparent in classic theme") a solid backing in the window's own color, the light tint
+		-- over it
+		r.tint = r:CreateTexture(nil, "BACKGROUND", nil, 1); r.tint:SetAllPoints(); r.tint:SetTexture("Interface\\Buttons\\WHITE8X8")
 		local font = ns.Fonts and ns.Fonts:Name("GameFontHighlightSmall") or "GameFontHighlightSmall"
 		r.label = fontString(r, ns.Fonts and ns.Fonts:Name("GameFontNormal") or "GameFontNormal")
 		r.count = fontString(r, font)
@@ -2379,9 +2382,12 @@ function View:UpdateTotalRow(shown, plan)
 			GameTooltip:SetOwner(row, "ANCHOR_TOP")
 			ns.TipText(GameTooltip, "Total")
 			ns.TipLine(GameTooltip, "Everything shown above, on all your characters: it follows your search, tab and filters.", 0.8, 0.8, 0.8, true)
+			-- (beta9) the exact sums, whatever the row had room for
 			ns.TipLine(GameTooltip, "Vendor: what a vendor would pay for all of it.", 1, 1, 1, true)
+			if row.sums and row.sums.v and row.sums.v > 0 then ns.TipLine(GameTooltip, "   " .. ns.Money(row.sums.v), 1, 1, 1) end
 			if row.cells.ah:IsShown() then
 				ns.TipLine(GameTooltip, "AH Price: at your price source's prices. Items it hasn't priced count as nothing.", 1, 1, 1, true)
+				if row.sums and row.sums.ah and row.sums.ah > 0 then ns.TipLine(GameTooltip, "   " .. ns.Money(row.sums.ah), 1, 1, 1) end
 			end
 			GameTooltip:Show()
 		end)
@@ -2394,7 +2400,8 @@ function View:UpdateTotalRow(shown, plan)
 	if on then
 		local sk = Skins:Current()
 		r.line:SetColorTexture(unpack(sk.line))
-		r.bg:SetVertexColor(1, 1, 1, 0.04)
+		r.bg:SetVertexColor(sk.bg[1], sk.bg[2], sk.bg[3], 1)
+		r.tint:SetVertexColor(1, 1, 1, 0.05)
 		r.label:SetTextColor(unpack(sk.heading))
 		r.count:SetTextColor(unpack(sk.muted))
 		r:SetHeight(ns.Fonts and ns.Fonts:RowNeed() or 20)
@@ -2404,21 +2411,55 @@ function View:UpdateTotalRow(shown, plan)
 			if priced then a = a + (ns.AH:StackValue(rec) or 0) end
 		end
 		local n = #(shown or {})
+		r.sums = { v = v, ah = a }
 		r.label:SetText("Total")
-		r.count:SetText(n == 1 and "(1 item shown)" or ("(%d items shown)"):format(n))
 		local at = {}
 		for _, col in ipairs(plan) do at[col.key] = col end
 		local item = at.n
 		r.label:ClearAllPoints(); r.label:SetPoint("LEFT", r, "LEFT", (item and item.colX or 0) + 4, 0)
 		r.count:ClearAllPoints(); r.count:SetPoint("LEFT", r.label, "RIGHT", 6, 0)
+		-- (beta9, Shweep: "can the new pinned total fit somehow at smaller widths?") each sum ends at its column's right
+		-- edge but may take the empty cells to its left (Who, Where, Type), as a spreadsheet lets text run on; still too
+		-- tight, the count shortens to "(N)", then the sums drop their copper, then their silver. Never cut short.
+		local function money(c, drop)
+			if c <= 0 then return "-" end
+			if drop == 1 and c >= 100 then c = c - c % 100 elseif drop == 2 and c >= 10000 then c = c - c % 10000 end
+			return ns.Money(c)
+		end
+		local function width(fs, text) fs:SetText(text); return (fs.GetUnboundedStringWidth and fs:GetUnboundedStringWidth()) or fs:GetStringWidth() or 0 end
+		local labelEnd = (item and item.colX or 0) + 4 + width(r.label, "Total") + 6
+		local sums = {}
+		for _, col in ipairs(plan) do if (col.key == "v" or col.key == "ah") and r.cells[col.key] then sums[#sums + 1] = col end end
+		local tries = { { 0, "full" }, { 0, "short" }, { 1, "short" }, { 2, "short" }, { 2, "none" } }
+		local pick
+		for _, t in ipairs(tries) do
+			local countText = t[2] == "full" and (n == 1 and "(1 item shown)" or ("(%d items shown)"):format(n)) or (t[2] == "short" and ("(%d)"):format(n) or "")
+			local left = labelEnd + (countText ~= "" and (width(r.count, countText) + 8) or 0)
+			local fits, place = true, {}
+			for _, col in ipairs(sums) do
+				local right = col.x + col.width
+				local text = money(col.key == "v" and v or a, t[1])
+				local w = width(r.cells[col.key], text)
+				if right - w < left then fits = false; break end
+				place[col.key] = { left = left, right = right, text = text }
+				left = right + 8
+			end
+			pick = { count = countText, place = place }
+			if fits then break end
+		end
+		r.count:SetText(pick.count)
 		for key, cell in pairs(r.cells) do
-			local col = at[key]
-			if col then
-				cell:ClearAllPoints(); cell:SetPoint("LEFT", r, "LEFT", col.x, 0); cell:SetWidth(col.width)
-				local sum = key == "v" and v or a
-				cell:SetText(sum > 0 and ns.Money(sum) or "-")
+			local p = pick.place[key]
+			if p then
+				cell:ClearAllPoints(); cell:SetPoint("LEFT", r, "LEFT", p.left, 0); cell:SetWidth(p.right - p.left)
+				cell:SetText(p.text)
 				cell:SetTextColor(unpack(sk.text))
 				cell:Show()
+			elseif at[key] then
+				-- (no room even rounded: the last try's text, cut at its own column, rather than nothing)
+				local col = at[key]
+				cell:ClearAllPoints(); cell:SetPoint("LEFT", r, "LEFT", col.x, 0); cell:SetWidth(col.width)
+				cell:SetText(money(key == "v" and v or a, 2)); cell:SetTextColor(unpack(sk.text)); cell:Show()
 			else
 				cell:Hide()
 			end

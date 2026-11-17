@@ -44,6 +44,8 @@ Panel.PAGE_ICON = {
 	bagsheets = MEDIA_PATH .. "mark.tga", banksheets = MEDIA_PATH .. "ui-bank.tga", globalsheets = MEDIA_PATH .. "ui-globe.tga",
 	loothelper = MEDIA_PATH .. "ui-pouch.tga", dehelper = MEDIA_PATH .. "ui-disenchant.tga",
 }
+-- (beta9, Shweep: "BagSmith icon is not centered vertically well") the mark's art sits a touch high in its square
+Panel.ICON_NUDGE = { [MEDIA_PATH .. "mark.tga"] = -1 }
 -- a page's first heading, with its icon
 function Panel:PageHead(text, page)
 	local icon = Panel.PAGE_ICON[page]
@@ -225,8 +227,9 @@ function Panel:Create()
 		local icon = Panel.PAGE_ICON[page[1]]
 		if icon then
 			b.icon = b:CreateTexture(nil, "ARTWORK"); b.icon:SetSize(14, 14); b.icon:SetTexture(icon)
-			b.icon:SetPoint("LEFT", page[3] and 22 or 8, 0)
-			b.text:SetPoint("LEFT", b.icon, "RIGHT", 5, 0)
+			-- (beta9) a little less indent, so the longer names leave room for a NEW tag
+			b.icon:SetPoint("LEFT", page[3] and 18 or 8, Panel.ICON_NUDGE[icon] or 0)
+			b.text:SetPoint("LEFT", b.icon, "RIGHT", 4, -(Panel.ICON_NUDGE[icon] or 0))
 		else
 			b.text:SetPoint("LEFT", page[3] and 24 or 10, 0)
 		end
@@ -356,9 +359,10 @@ function Panel:SyncNav()
 		-- (beta18) at the right of the page's row, as FlareUI has it
 		newTag(b, self:NewPage(b.page), b, 0)
 		if b.newTag and b.newTag:IsShown() then
-			local x = (NAV_W - 10) - 12 - tagWidth(b.newTag)
+			-- (beta9, Shweep: "pull them left a hair") a sub-page has no arrow, so its tag may use the arrow's room
+			local x = (NAV_W - 10) - (b.arrow and 12 or 0) - tagWidth(b.newTag)
 			-- (1.9.0-beta8) a sub-page whose name reaches the tag shows none here: its page above and its heading say NEW
-			local textEnd = (b.icon and ((b.parent and 22 or 8) + 14 + 5) or (b.parent and 24 or 10)) + (b.text:GetStringWidth() or 0)
+			local textEnd = (b.icon and ((b.parent and 18 or 8) + 14 + 4) or (b.parent and 24 or 10)) + (b.text:GetStringWidth() or 0)
 			if b.parent and textEnd + 6 > x then newTag(b, false) else newTag(b, true, b, x) end
 		end
 		if on then b.bar:SetVertexColor(Skins:Accent()); b.bar:Show() else b.bar:Hide() end
@@ -531,8 +535,9 @@ function Panel:Head(text, info)
 	if info and info.headIcon then
 		if not h.icon then h.icon = h:CreateTexture(nil, "ARTWORK"); h.icon:SetSize(16, 16) end
 		h.icon:SetTexture(info.headIcon); h.icon:SetVertexColor(Skins:Color("heading"))
-		h.icon:ClearAllPoints(); h.icon:SetPoint("BOTTOMLEFT", 2, 6); h.icon:Show()
 		h.text:SetPoint("BOTTOMLEFT", 2 + 16 + 6, 6)
+		-- (beta9) centered on the heading's line, not sat on its baseline
+		h.icon:ClearAllPoints(); h.icon:SetPoint("RIGHT", h.text, "LEFT", -6, Panel.ICON_NUDGE[info.headIcon] or 0); h.icon:Show()
 	else
 		if h.icon then h.icon:Hide() end
 		h.text:SetPoint("BOTTOMLEFT", 2, 6)
@@ -1546,7 +1551,8 @@ pages.look = function(self, db)
 	self:Step("rowHeight", "Row Height (List View)", 2, "%d")
 	self:Check("dense", "Compact Rows", "Shorter rows in List view")
 	-- (1.8.0, Shweep's plan of 10 Nov) the item windows' text: bags, bank, bag windows, the Loot and Disenchant Helpers
-	self:Step("textScale", "Text Size", 0.1, "%d%%", "How big the item text is in your bags, bank and individual bag windows and the Loot and Disenchant Helpers, column headings included.")
+	-- (1.9.0-beta9, Shweep: "just want it to be clear what each is for") Item Text Size (was Text Size)
+	self:Step("textScale", "Item Text Size", 0.1, "%d%%", "How big the item text is in your bags, bank and individual bag windows, with their section and column headings, and in the Loot and Disenchant Helpers.")
 	-- (1.9.0-beta8, Shweep) the footer on its own: gold, pinned currencies and the bag counts
 	self:Step("footerTextScale", "Footer Text Size", 0.1, "%d%%", "How big the text is along the bottom of your bags and bank: your gold, pinned currencies and free slots.")
 	do
