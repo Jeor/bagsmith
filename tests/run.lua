@@ -4492,7 +4492,8 @@ end)()
 	})
 	local order = {}
 	for _, b in ipairs(P.navButtons) do order[#order + 1] = b.text.text end
-	check(table.concat(order, "|") == "General|Style|Item Icons|Windows|Sections|Dynamic Sections|Custom Sections|Columns|Bag Columns|Bank Columns|Sheets|Bag Sheets|Bank Sheets|Sorting & Filters|Automations & Actions|Loot Helper|Disenchant Helper|Keybindings|Plugins|Profile|Advanced",
+	-- (1.9.0-beta6, by design) each of Sections, Columns and Sheets gains its Global page, last
+	check(table.concat(order, "|") == "General|Style|Item Icons|Windows|Sections|Dynamic Sections|Custom Sections|Global Sections|Columns|Bag Columns|Bank Columns|Global Columns|Sheets|Bag Sheets|Bank Sheets|Global Sheets|Sorting & Filters|Automations & Actions|Loot Helper|Disenchant Helper|Keybindings|Plugins|Profile|Advanced",
 		"Settings pages: General first, Item Icons right after Style (1.5.0), Profile just before Advanced (Automations & Actions has its two helper sub-pages since 1.2.0)")
 	local stray = false
 	for _, it in ipairs(items) do if it.kind == "text" and it.label:find("^Taller bags") then stray = true end end
@@ -9882,7 +9883,7 @@ end)()
 	P:Show()
 	local nav = {}
 	for _, b in ipairs(P.navButtons) do nav[#nav + 1] = b.text.text end
-	check(table.concat(nav, "|"):find("Windows|Sections|Dynamic Sections|Custom Sections|Columns", 1, true), "the list shows Standard, Dynamic and Custom Sections: " .. table.concat(nav, "|"))
+	check(table.concat(nav, "|"):find("Windows|Sections|Dynamic Sections|Custom Sections|Global Sections|Columns", 1, true), "(1.9.0-beta6, by design: and Global Sections) the list shows Standard, Dynamic and Custom Sections: " .. table.concat(nav, "|"))
 	local lastNav = P.navButtons[#P.navButtons]
 	local navBottom = -(lastNav.points[1][5] or lastNav.points[1][3] or 0) + 26
 	check(navBottom + 66 < 560 - 2 * 24 - 6 - 14, "the longer list still clears About & Support and What's New (bottom at " .. navBottom .. ")")
@@ -10111,11 +10112,11 @@ end)()
 	check(nav("Sections").arrow:IsShown() and nav("Sections").arrow.texture:find("chev%-right") and not nav("General").arrow, "pages with sub-pages show a folded arrow")
 	P:ShowPage("columns")
 	list = visible()
-	check(list:find("Columns|Bag Columns|Bank Columns|Sheets", 1, true) and not list:find("Dynamic Sections", 1, true) and nav("Columns").arrow.texture:find("chev%-down"),
-		"opening Columns unfolds its two pages: " .. list)
+	check(list:find("Columns|Bag Columns|Bank Columns|Global Columns|Sheets", 1, true) and not list:find("Dynamic Sections", 1, true) and nav("Columns").arrow.texture:find("chev%-down"),
+		"opening Columns unfolds its pages (1.9.0-beta6, by design: three, with Global Columns): " .. list)
 	P:ShowPage("bankcols")
 	list = visible()
-	check(list:find("Columns|Bag Columns|Bank Columns|Sheets", 1, true) and nav("Bank Columns").bar:IsShown(), "on a sub-page, its siblings stay listed")
+	check(list:find("Columns|Bag Columns|Bank Columns|Global Columns|Sheets", 1, true) and nav("Bank Columns").bar:IsShown(), "on a sub-page, its siblings stay listed")
 	-- Columns: the parent has the Item Menu Button only; each window has its own page
 	local function onPage(page)
 		P:ShowPage(page)

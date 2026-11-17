@@ -89,7 +89,7 @@
 		local P = n.SettingsPanel
 		P:Show(); M.runTimers()
 		local f = P.frame
-		local aboutTop = 560 - (14 + 22 + 6 + 22)
+		local aboutTop = f:GetHeight() - (14 + 22 + 6 + 22)   -- (by design since 1.9.0-beta6: the window's height, 588 now)
 		local function lastBottom()
 			local _, rel, _, _, y = P.nav:GetPoint(1)
 			local top = (rel == f) and -y or (10 + 28 - y)
