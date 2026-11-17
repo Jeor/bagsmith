@@ -107,18 +107,22 @@ function options() {
   if (bagGrouping) bagGrouping.disabled = state.global;
   $("settings").innerHTML = icon("cog") + "All Settings";
 }
+let listRowIndex = 0;
 function itemNode(item) {
   const b = document.createElement("button");
   b.className = `item quality-${item.quality}`;
+  if (state.view === "list") b.classList.toggle("striped", listRowIndex++ % 2 === 1);
+  b.setAttribute("aria-pressed", "false");
   b.setAttribute("aria-label", `${item.name}, ${item.count}`);
   b.style.setProperty("--rarity-color", qualities[item.quality].color);
-  b.innerHTML = `<span class="item-art"><img src="assets/items/${item.icon}.jpg" alt="" loading="eager">${item.count > 1 ? `<span class="stack">${item.count}</span>` : ""}</span>${state.view === "list" ? `<span class="item-name">${item.name}</span><span class="item-value">${money(item.vendor * item.count)}</span>` : ""}`;
+  b.innerHTML = `<span class="item-art"><img src="assets/items/${item.icon}.jpg" alt="" loading="eager">${state.view !== "list" && item.count > 1 ? `<span class="stack">${item.count}</span>` : ""}</span>${state.view === "list" ? `<span class="item-name">${item.name}</span><span class="item-quantity">${item.count}</span><span class="item-type">${item.category}</span><span class="item-value">${money(item.vendor * item.count)}</span>` : ""}`;
   b.addEventListener("mouseenter", () => tooltip(item, b));
   b.addEventListener("focus", () => tooltip(item, b));
   b.addEventListener("mouseleave", hideTooltip);
   b.addEventListener("blur", hideTooltip);
   b.addEventListener("click", () => {
     b.classList.toggle("selected");
+    b.setAttribute("aria-pressed", String(b.classList.contains("selected")));
     tooltip(item, b);
   });
   return b;
@@ -181,6 +185,12 @@ function category(group, isRecent = false) {
   if (!off) {
     const grid = document.createElement("div");
     grid.className = "items";
+    if (state.view === "list") {
+      const columns = document.createElement("div");
+      columns.className = "list-columns";
+      columns.innerHTML = '<span>Item</span><span class="item-quantity">Qty</span><span class="item-type">Type</span><span class="item-value">Vendor</span>';
+      section.append(columns);
+    }
     group.items.forEach((i) => grid.append(itemNode(i)));
     section.append(grid);
   }
@@ -205,6 +215,7 @@ function alignHeaders() {
   }
 }
 function renderInventory() {
+  listRowIndex = 0;
   hideTooltip();
   const list = inventory(state, query, rare),
     host = $("inventory");

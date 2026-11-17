@@ -28,3 +28,7 @@ Intentional visual differences: native web select/checkbox behavior, mobile over
 `node --test docs/demo/model.test.mjs` covers data and state transitions. `browser.test.cjs` covers visible controls, both drawer orders, old shared-link initialization followed by font/drawer changes and refresh, font loading, tracking/reordering currencies, filters, six sort modes, global/gear/bank/travel views and mobile overflow. Set DEMO_URL to run it against a served local build or the public Pages URL.
 
 The reported font change was reproduced as Inter before refresh reverting to Marcellus after refresh when an older shared hash remained in the URL. It stays Inter after the fix. Currency opened correctly on the inspected live page; the original reported click failure was not reproduced. Versioned modules and the update notice prevent mixed-release assets and make stale-page diagnosis explicit.
+
+### List styling fidelity
+
+List rows now follow the addon defaults: 26px row height, 20px icons, 2.5% white alternating fills and 8% white full-row hover from `Buttons.lua`. Quantity uses a separate aligned column instead of an icon overlay. Item/Qty/Type/Vendor headers and numeric alignment remain consistent across standard and split views; narrow categories drop Type then Vendor to protect item names and quantities. Category rules span the available width as in the in-game screenshots. Other optional addon columns and exact Blizzard frame textures remain outside this visual pass.
