@@ -282,11 +282,10 @@ function View:ColumnPlan()
 		for i = #order, 1, -1 do if order[i] ~= "n" and not ns.IndexOf(ns.GLOBAL_COLS, order[i]) then table.remove(order, i) end end
 		local at = ns.IndexOf(order, "n") or 0
 		table.insert(order, at + 1, "who"); table.insert(order, at + 2, "w")
-		-- (1.9.0-beta4, Shweep) and a value: the AH Price with a price source, else the Vendor value
-		local val = (ns.AH and ns.AH:Available()) and "ah" or "v"
-		local vat = ns.IndexOf(order, val)
+		-- (1.9.0-beta4, Shweep) and a value. (beta7, Shweep: "Vendor always") Vendor, fixed; AH Price is Global Columns'
+		local vat = ns.IndexOf(order, "v")
 		if vat then table.remove(order, vat) end
-		table.insert(order, at + 3, val)
+		table.insert(order, at + 3, "v")
 	end
 	local widths, fixed = {}, 0
 	for _, key in ipairs(order) do
@@ -303,7 +302,7 @@ function View:ColumnPlan()
 		-- brings them back (nothing saved changes). Only then does what's left shrink to fit.
 		for _, key in ipairs(self:AsideOrder()) do
 			if fixed <= width - ITEM_MIN then break end
-			local at = not (global and (key == "w" or key == "who" or key == "ah" or key == "v")) and ns.IndexOf(order, key)
+			local at = not (global and (key == "w" or key == "who" or key == "v")) and ns.IndexOf(order, key)
 			if at then
 				fixed = fixed - widths[key]; widths[key] = nil
 				table.remove(order, at); dropped[#dropped + 1] = key

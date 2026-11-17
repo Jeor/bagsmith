@@ -112,7 +112,23 @@ function Compact.Justify(rows, boxes, width, cell, gap, gutter, groupGap)
 				if total > width then break end
 				for j, p in ipairs(row) do p.across, p.width = trial[j].across, trial[j].width end
 			end
-			-- 2. the rest shared out, so the row ends at the right edge
+			-- 2. (1.9.0-beta7, Shweep: "Gear: BOE, why stacked?") the spare width first to a section that then needs a line
+			-- fewer of its own, the cheapest first (the deepest on a tie), as long as there's room
+			while true do
+				local spare, best, bestCost = width - used(row), nil, nil
+				for _, p in ipairs(row) do
+					local l = lines(p)
+					if l > 1 then
+						local across = math.ceil(math.max(1, boxes[p.index].count) / (l - 1))
+						local cost = widthOf(p, across) - p.width
+						if cost <= spare and (not best or cost < bestCost or (cost == bestCost and l > lines(best))) then best, bestCost = p, cost end
+					end
+				end
+				if not best then break end
+				best.across = math.ceil(math.max(1, boxes[best.index].count) / (lines(best) - 1))
+				best.width = widthOf(best, best.across)
+			end
+			-- 3. the rest shared out, so the row ends at the right edge
 			local spare = width - used(row)
 			if spare > 0 then
 				local base, given = used(row) - (#row - 1) * groupGap, 0
@@ -120,6 +136,16 @@ function Compact.Justify(rows, boxes, width, cell, gap, gutter, groupGap)
 					local add = (j == #row) and (spare - given) or math.floor(spare * p.width / base)
 					p.width = p.width + add
 					given = given + add
+				end
+			end
+			-- 4. (beta7) and each section's icons fill its width: as many across as fit, in even lines (seven in a width
+			-- for six: four and three, not six and one)
+			for _, p in ipairs(row) do
+				local count = math.max(1, boxes[p.index].count)
+				local fit = math.max(1, math.floor((p.width - 2 * gutter + gap) / step))
+				if fit > p.across then
+					local l = math.ceil(count / fit)
+					p.across = math.max(p.across, math.ceil(count / l))
 				end
 			end
 		end

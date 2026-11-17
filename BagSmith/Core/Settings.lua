@@ -36,9 +36,10 @@ ns.COLS = { { "c", "Qty" }, { "il", "iLvl" }, { "rq", "Req lvl" }, { "t", "Type"
 ns.COL_LABEL = {}
 for _, c in ipairs(ns.COLS) do ns.COL_LABEL[c[1]] = c[2] end
 ns.COL_LABEL.who = "Who"   -- (1.9.0-beta2) Global Inventory's own column (not offered in Bag Columns)
--- (1.9.0-beta6) the columns Global Inventory can show besides its fixed ones (Item, Who, Where and the value): not Age,
--- Favorite, Currency or Junk, which are about one character's items
-ns.GLOBAL_COLS = { "c", "il", "rq", "t", "sl", "bd", "v" }
+-- (1.9.0-beta6) the columns Global Inventory can show besides its fixed ones: not Age, Favorite, Currency or Junk,
+-- which are about one character's items. (beta7, Shweep: "allow AH to be turned off ... Vendor always") Item, Who,
+-- Where and Vendor are fixed; AH Price is one of these, greyed without a price source as in Bag Columns.
+ns.GLOBAL_COLS = { "c", "il", "rq", "t", "sl", "bd", "ah" }
 ns.BASE_TABS = { "All", "Gear", "Consumables", "TradeGoods", "Quest", "Junk", "GearSets", "Bank" }
 ns.TAB_LABEL = { All = "All", Gear = "Gear", GearSets = "Gear Sets", Consumables = "Consumables", TradeGoods = "Trade Goods", Quest = "Quest", Junk = "Junk", Bank = "Bank" }
 -- Tabs the bank window doesn't have (its own Bank tab is the window itself; gear sets are equipped from your bags).
@@ -847,7 +848,7 @@ local function loadDB(saved)
 	-- (1.9.0-beta4) Global Inventory's own settings (outside every profile), checked as a profile's are
 	if type(saved) == "table" and type(saved.globalInv) == "table" then
 		local g = saved.globalInv
-		local out = { allRealms = g.allRealms == true, colWidths = {}, collapsed = {}, pins = {} }
+		local out = { allRealms = g.allRealms == true, colWidths = {}, collapsed = {}, pins = {}, ahOn = g.ahOn == true }
 		if type(g.sort) == "string" and #g.sort <= 20 then out.sort = g.sort end
 		if g.grp == "type" or g.grp == "none" then out.grp = g.grp end
 		for k, w in pairs(type(g.colWidths) == "table" and g.colWidths or {}) do

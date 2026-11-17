@@ -242,6 +242,12 @@ function Inv:Settings()
 		for _, id in ipairs(ns.BASE_TABS or {}) do if not ns.IndexOf(g.tabOrder, id) then g.tabOrder[#g.tabOrder + 1] = id end end
 	end
 	g.hiddenTabs = g.hiddenTabs or {}
+	-- (1.9.0-beta7) AH Price starts on there (it was the fixed value column with a price source), once
+	if not g.ahOn then
+		if not ns.IndexOf(g.cols, "ah") then g.cols[#g.cols + 1] = "ah" end
+		if not ns.IndexOf(g.colOrder, "ah") then g.colOrder[#g.colOrder + 1] = "ah" end
+		g.ahOn = true
+	end
 	return g
 end
 -- Your characters: { key, name, class, isMe, data }, this realm's (every realm's with all), you first.

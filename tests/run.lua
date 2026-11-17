@@ -4492,7 +4492,7 @@ end)()
 	})
 	local order = {}
 	for _, b in ipairs(P.navButtons) do order[#order + 1] = b.text.text end
-	-- (1.9.0-beta6, by design) each of Sections, Columns and Sheets gains its Global page, last
+	-- (1.9.0-beta7, by design) each of Sections, Columns and Sheets gains its Global page, last
 	check(table.concat(order, "|") == "General|Style|Item Icons|Windows|Sections|Dynamic Sections|Custom Sections|Global Sections|Columns|Bag Columns|Bank Columns|Global Columns|Sheets|Bag Sheets|Bank Sheets|Global Sheets|Sorting & Filters|Automations & Actions|Loot Helper|Disenchant Helper|Keybindings|Plugins|Profile|Advanced",
 		"Settings pages: General first, Item Icons right after Style (1.5.0), Profile just before Advanced (Automations & Actions has its two helper sub-pages since 1.2.0)")
 	local stray = false
@@ -6435,7 +6435,7 @@ end)()
 	local tf = io.open("BagSmith/BagSmith.toc", "r"); local toc = tf and tf:read("*a") or ""; if tf then tf:close() end
 	-- (1.5.7) the date's format only: which day it must be is the packaging check's job (it knows the build day). Pinning the
 -- day here carried 7 November into 1.5.6, built on the 8th.
-check(toc:find("## Version: 1%.9%.0%-beta6\n") and toc:find("## X%-Date: %d%d%d%d%-%d%d%-%d%d\n"), "the TOC version is 1.9.0-beta6, with a release date in YYYY-MM-DD form")
+check(toc:find("## Version: 1%.9%.0%-beta7\n") and toc:find("## X%-Date: %d%d%d%d%-%d%d%-%d%d\n"), "the TOC version is 1.9.0-beta7, with a release date in YYYY-MM-DD form")
 	n.version = "0.14.0"
 	local e
 	for _, x in ipairs(WN.ENTRIES) do if x.v == "0.13.0" then e = x end end
@@ -9883,7 +9883,7 @@ end)()
 	P:Show()
 	local nav = {}
 	for _, b in ipairs(P.navButtons) do nav[#nav + 1] = b.text.text end
-	check(table.concat(nav, "|"):find("Windows|Sections|Dynamic Sections|Custom Sections|Global Sections|Columns", 1, true), "(1.9.0-beta6, by design: and Global Sections) the list shows Standard, Dynamic and Custom Sections: " .. table.concat(nav, "|"))
+	check(table.concat(nav, "|"):find("Windows|Sections|Dynamic Sections|Custom Sections|Global Sections|Columns", 1, true), "(1.9.0-beta7, by design: and Global Sections) the list shows Standard, Dynamic and Custom Sections: " .. table.concat(nav, "|"))
 	local lastNav = P.navButtons[#P.navButtons]
 	local navBottom = -(lastNav.points[1][5] or lastNav.points[1][3] or 0) + 26
 	check(navBottom + 66 < 560 - 2 * 24 - 6 - 14, "the longer list still clears About & Support and What's New (bottom at " .. navBottom .. ")")
@@ -10113,7 +10113,7 @@ end)()
 	P:ShowPage("columns")
 	list = visible()
 	check(list:find("Columns|Bag Columns|Bank Columns|Global Columns|Sheets", 1, true) and not list:find("Dynamic Sections", 1, true) and nav("Columns").arrow.texture:find("chev%-down"),
-		"opening Columns unfolds its pages (1.9.0-beta6, by design: three, with Global Columns): " .. list)
+		"opening Columns unfolds its pages (1.9.0-beta7, by design: three, with Global Columns): " .. list)
 	P:ShowPage("bankcols")
 	list = visible()
 	check(list:find("Columns|Bag Columns|Bank Columns|Global Columns|Sheets", 1, true) and nav("Bank Columns").bar:IsShown(), "on a sub-page, its siblings stay listed")
@@ -10881,7 +10881,7 @@ end)()
 ;(function()
 	-- 0.15.0 (prod): one clean 0.15.0 changelog section; the sword-and-shield replaces the helmet everywhere.
 	local log = io.open("BagSmith/CHANGELOG.md"):read("*a")
-	check(log:find("^## 1%.9%.0\n") and log:find("\n## 1%.8%.0\n") and log:find("\n## 1%.7%.5\n") and log:find("\n## 1%.7%.4\n") and log:find("\n## 1%.7%.3\n") and log:find("\n## 1%.7%.2\n") and log:find("\n## 1%.7%.1\n") and log:find("\n## 1%.7%.0\n") and log:find("\n## 1%.6%.3\n") and log:find("\n## 1%.6%.2\n") and log:find("\n## 1%.6%.1\n") and log:find("\n## 1%.6%.0\n") and log:find("\n## 1%.5%.8\n") and log:find("\n## 1%.5%.7\n") and log:find("\n## 1%.5%.6\n") and log:find("\n## 1%.5%.5\n") and log:find("\n## 1%.5%.4\n") and log:find("\n## 1%.5%.3\n") and log:find("\n## 1%.5%.2\n") and log:find("\n## 1%.5%.1\n") and log:find("\n## 1%.5%.0\n") and log:find("\n## 1%.4%.2\n") and log:find("\n## 1%.4%.1\n") and log:find("\n## 1%.4%.0\n") and log:find("\n## 1%.3%.1\n") and log:find("\n## 1%.3%.0\n") and log:find("\n## 1%.2%.0\n") and log:find("\n## 1%.1%.0\n") and log:find("\n## 1%.0%.1\n") and log:find("\n## 1%.0%.0\n") and log:find("\n## 0%.15%.0\n") and not log:find("## 0%.15%.0%-beta") and not log:find("## 0%.15%.0%-rc"), "the changelog leads with 1.9.0 (the release in progress; 1.9.0-beta6, by design), then 1.8.0, 1.7.5, 1.7.4, 1.7.3, 1.7.2, 1.7.1, 1.7.0, 1.6.3, 1.6.2, 1.6.1, 1.6.0, 1.5.8, 1.5.7, 1.5.6, 1.5.5, 1.5.4, 1.5.3, 1.5.2, 1.5.1, 1.5.0, 1.4.2, 1.4.1, 1.4.0, 1.3.1, 1.3.0, 1.2.0, 1.1.0, 1.0.1 and 1.0.0, then one 0.15.0 section (the beta and rc entries folded in)")
+	check(log:find("^## 1%.9%.0\n") and log:find("\n## 1%.8%.0\n") and log:find("\n## 1%.7%.5\n") and log:find("\n## 1%.7%.4\n") and log:find("\n## 1%.7%.3\n") and log:find("\n## 1%.7%.2\n") and log:find("\n## 1%.7%.1\n") and log:find("\n## 1%.7%.0\n") and log:find("\n## 1%.6%.3\n") and log:find("\n## 1%.6%.2\n") and log:find("\n## 1%.6%.1\n") and log:find("\n## 1%.6%.0\n") and log:find("\n## 1%.5%.8\n") and log:find("\n## 1%.5%.7\n") and log:find("\n## 1%.5%.6\n") and log:find("\n## 1%.5%.5\n") and log:find("\n## 1%.5%.4\n") and log:find("\n## 1%.5%.3\n") and log:find("\n## 1%.5%.2\n") and log:find("\n## 1%.5%.1\n") and log:find("\n## 1%.5%.0\n") and log:find("\n## 1%.4%.2\n") and log:find("\n## 1%.4%.1\n") and log:find("\n## 1%.4%.0\n") and log:find("\n## 1%.3%.1\n") and log:find("\n## 1%.3%.0\n") and log:find("\n## 1%.2%.0\n") and log:find("\n## 1%.1%.0\n") and log:find("\n## 1%.0%.1\n") and log:find("\n## 1%.0%.0\n") and log:find("\n## 0%.15%.0\n") and not log:find("## 0%.15%.0%-beta") and not log:find("## 0%.15%.0%-rc"), "the changelog leads with 1.9.0 (the release in progress; 1.9.0-beta7, by design), then 1.8.0, 1.7.5, 1.7.4, 1.7.3, 1.7.2, 1.7.1, 1.7.0, 1.6.3, 1.6.2, 1.6.1, 1.6.0, 1.5.8, 1.5.7, 1.5.6, 1.5.5, 1.5.4, 1.5.3, 1.5.2, 1.5.1, 1.5.0, 1.4.2, 1.4.1, 1.4.0, 1.3.1, 1.3.0, 1.2.0, 1.1.0, 1.0.1 and 1.0.0, then one 0.15.0 section (the beta and rc entries folded in)")
 	local section = log:match("(## 0%.15%.0\n.-)\n## ") or ""
 	local bad = false
 	for _, w in ipairs({ "colour", "favourite", "behaviour", "cancelled", "helmet", "\226\128\148" }) do if section:find(w) then bad = true end end

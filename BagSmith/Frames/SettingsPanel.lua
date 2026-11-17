@@ -2050,14 +2050,22 @@ end
 pages.globalcols = function(self, db)
 	self:GlobalHead("Global Columns")
 	local G = ns.Inventory:Settings()
-	local val = ns.AH:Available() and "ah" or "v"
-	self:Text(("Item, Who, Where and %s always show, in that order. Tick other columns to show them after; the arrows reorder them."):format(val == "ah" and "AH Price" or "Vendor"))
+	self:Text("Item, Who, Where and Vendor always show, in that order. Tick other columns to show them after; the arrows reorder them.")
+	-- (1.9.0-beta7, Shweep) AH Price as in Bag Columns: tick it on or off; greyed, saying why, without a price addon
+	local function item(id, checked)
+		if id == "ah" then
+			local ok = ns.AH:Available()
+			return { id = id, label = ns.COL_LABEL[id], checked = checked, disabled = not ok,
+				tip = ok and (ns.AH:ColumnText() .. " Shows the stack's value, or \"-\" when an item hasn't been scanned. Price Source is in General.") or ns.AH.INSTALL_HINT }
+		end
+		return { id = id, label = ns.COL_LABEL[id], checked = checked }
+	end
 	local items = {}
 	for _, id in ipairs(G.colOrder) do
-		if ns.IndexOf(ns.GLOBAL_COLS, id) and id ~= val then items[#items + 1] = { id = id, label = ns.COL_LABEL[id], checked = ns.IndexOf(G.cols, id) ~= nil } end
+		if ns.IndexOf(ns.GLOBAL_COLS, id) then items[#items + 1] = item(id, ns.IndexOf(G.cols, id) ~= nil) end
 	end
 	for _, id in ipairs(ns.GLOBAL_COLS) do
-		if id ~= val and not ns.IndexOf(G.colOrder, id) then table.insert(G.colOrder, id); items[#items + 1] = { id = id, label = ns.COL_LABEL[id], checked = false } end
+		if not ns.IndexOf(G.colOrder, id) then table.insert(G.colOrder, id); items[#items + 1] = item(id, false) end
 	end
 	self:List(items,
 		function(id, on)

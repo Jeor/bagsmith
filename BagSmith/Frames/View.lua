@@ -1667,7 +1667,8 @@ function View:UpdateChrome(shown, total, bagInfo, cached)
 	self.subForms = nil
 	local shownNote = #shown ~= total and ("%d of %d shown"):format(#shown, total) or nil
 	if self.isMain and ns.ui.global then
-		local v, a, ah = 0, 0, ns.AH and ns.AH:Available()
+		-- (beta7) AH only while Global Columns shows AH Price, as section headers do
+		local v, a, ah = 0, 0, ns.AH and ns.AH:Available() and ns.IndexOf(self:Pref("cols"), "ah") ~= nil
 		for _, r in ipairs(shown) do
 			if not r.hasNoValue and r.sellPrice then v = v + r.sellPrice * (r.count or 1) end
 			if ah then a = a + (ns.AH:StackValue(r) or 0) end
