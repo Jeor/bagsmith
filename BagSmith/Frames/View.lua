@@ -2190,7 +2190,22 @@ function View:UpdateFooter(bagInfo)
 			chip.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 			chip.text = fontString(chip, footerFont()); chip.text:SetPoint("LEFT", chip.icon, "RIGHT", 4, 0)
 			chip:SetScript("OnClick", function() ns.Drawer:Toggle() end)
-			chip:SetScript("OnEnter", function(c) if ns.TooltipsOK() then GameTooltip:SetOwner(c, "ANCHOR_TOP"); ns.TipText(GameTooltip, c.name); GameTooltip:Show() end end)
+			-- (1.9.0-beta18, Shweep: "when pinned the tool tip doesn't give any info on per player counts") in Global
+			-- Inventory each character's count and the total, as the drawer's tooltip; in your bags, your count
+			chip:SetScript("OnEnter", function(c)
+				if not ns.TooltipsOK() then return end
+				GameTooltip:SetOwner(c, "ANCHOR_TOP")
+				if c.per and #c.per > 0 then
+					GameTooltip:AddDoubleLine(c.name or "", "Total: " .. tostring(c.total or 0), 1, 0.82, 0, 0.55, 0.78, 1)
+					for _, p in ipairs(c.per) do
+						local cr, cg, cb = ns.ClassColor(p.class)
+						GameTooltip:AddDoubleLine((ns.Inventory and ns.Inventory.ClassIcon(p.class) or "") .. (p.name or "?"), tostring(p.count), cr, cg, cb, 1, 1, 1)
+					end
+				else
+					GameTooltip:AddDoubleLine(c.name or "", tostring(c.total or 0), 1, 0.82, 0, 1, 1, 1)
+				end
+				GameTooltip:Show()
+			end)
 			chip:SetScript("OnLeave", function() GameTooltip:Hide() end)
 			hoverWash(chip, 0)
 			self.favChips[i] = chip
@@ -2199,6 +2214,7 @@ function View:UpdateFooter(bagInfo)
 		chip:SetHeight(ns.Fonts and ns.Fonts:FooterGrow(18) or 18)   -- (beta8) Footer Text Size
 		chip.text:SetText(BreakUpLargeNumbers and BreakUpLargeNumbers(e.count) or e.count)
 		chip.name, chip.key = e.name, e.key
+		chip.per, chip.total = e.per, e.count   -- (beta18) for its tooltip
 		local w = 18 + chip.text:GetStringWidth()
 		if full or x + w > avail then chip:Hide(); full = true else
 			chip:SetWidth(w); chip:ClearAllPoints(); chip:SetPoint("LEFT", self.footer, "LEFT", x, 0); chip:Show()

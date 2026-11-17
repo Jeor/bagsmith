@@ -12,8 +12,9 @@ New:
   Global Inv Columns and Global Inv Sheets in Settings. It opens in its own window size, 750 by 620 to start (set it
   in Settings > Windows > Global Inventory: Custom Window Size, or drag the corner while it's open). Read only;
   closing BagSmith or the globe again brings your bags back as they were, size included.
-- The currency drawer says whose currencies it shows. In Global Inventory it lists every character's, with totals (hover
-  one for who has how many), and pins there are Global Inventory's own.
+- The currency drawer says whose currencies it shows. In Global Inventory it lists every character's, with totals, and
+  pins there are Global Inventory's own. Click a currency more than one character has to see who has how many; hover a
+  pinned one in the footer for the same.
 - Travel Mode: when the window is too narrow for the search box in the title row, it folds into a search icon; click it
   for a full-width search row.
 - Item tooltips show your inventory: any item's tooltip (your bags, the auction house, a vendor, a chat link, loot)
