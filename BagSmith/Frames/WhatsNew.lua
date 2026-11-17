@@ -27,12 +27,14 @@ WN.ENTRIES = {
 	-- (1.9.0-beta9) the 1.9 card: Shweep approved the draft (16 Nov: "make sure the wording of it is easy to understand
 	-- and does not sound like AI")
 	{ v = "1.9.0", heading = "BagSmith 1.9", items = {
-		-- (beta10, Shweep: "realm" to "ruleset", a more human last sentence; the second bullet about tooltips and alts)
-		"|cfffac775Global Inventory:|r click the globe at the top of your bags to see everything your characters on this ruleset are carrying, in one list. It shows who has each item and where it is: bags, bank or worn. Click an item more than one character has to see how many each of them has. Down at the bottom, the Total tells you what it's all worth.",
+		-- (beta10, Shweep: "realm" to "ruleset", a more human last sentence; the second bullet about tooltips and alts;
+		-- beta20, Shweep approved: currencies in the drawer, the same as items)
+		"|cfffac775Global Inventory:|r click the globe at the top of your bags to see everything your characters on this ruleset are carrying, in one list. It shows who has each item and where it is: bags, bank or worn. Click an item more than one character has to see how many each of them has, and the same goes for currencies in the currency drawer. Down at the bottom, the Total tells you what it's all worth.",
 		"|cfffac775Alts in Your Tooltips:|r item tooltips now show how many you and your alts have, and where: bags, bank or worn. That's any item tooltip, whether the item is in your bags, at the auction house, at a vendor or in a chat link. Hover your gold to see each alt's gold too. Don't want the counts? Turn them off in Settings > General > Tooltips.",
 		"|cfffac775Compact View:|r in Icons view, sections can now share rows, each only as wide as it needs, so more fits on screen. Pick Full Width, Split View or Compact View in Settings > Style > Layout. Thanks to Jeor!",
 		"|cfffac775Shared Disenchanting:|r what one of your characters learns from disenchanting now helps all of them.",
-		"|cfffac775Footer Text Size:|r make your gold, pinned currencies and free slots bigger or smaller on their own, in Settings > Style > Size.",
+		-- (beta20, Shweep approved: "yeah these are good") the fonts with it: the header's buttons, and every font listed
+		"|cfffac775Text and Fonts:|r make your gold, pinned currencies and free slots bigger or smaller on their own, in Settings > Style > Size. The font you pick there now shows on the buttons along the top of your bags too, and every font you have now shows up in the list.",
 		"|cfffac775Bolder Borders:|r give your item icons thicker borders in Settings > Item Icons > Appearance. Thanks to Jeor!",
 		"|cfffac775Count Every Free Slot:|r your free-slot count leaves out quivers, herb bags and other special bags. Prefer the full count? Change Bag Slot Count in Settings > Windows > Main Window.",
 	} },

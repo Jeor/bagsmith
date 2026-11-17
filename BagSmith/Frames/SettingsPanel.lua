@@ -196,7 +196,7 @@ function Panel:Create()
 	end)
 	title.band = f:CreateTexture(nil, "BACKGROUND")
 	title.band:SetPoint("TOPLEFT", f, "TOPLEFT", 4, -4); title.band:SetPoint("TOPRIGHT", f, "TOPRIGHT", -4, -4)
-	title.band:SetPoint("BOTTOM", title, "BOTTOM", 0, -8)
+	title.band:SetPoint("BOTTOM", title, "BOTTOM", 0, -11)   -- (1.9.0-beta20) down to the header's line (was -8: a gap)
 	title.band:SetTexture("Interface\\Buttons\\WHITE8X8"); title.band:SetVertexColor(1, 1, 1, 0.045)
 	local mark = title:CreateTexture(nil, "ARTWORK"); mark:SetSize(16, 16); mark:SetPoint("LEFT", 2, 0)
 	mark:SetTexture("Interface\\AddOns\\BagSmith\\Media\\mark.tga"); self.mark = mark
@@ -290,11 +290,31 @@ function Panel:Create()
 		local new = math.max(0, math.min(range, (s:GetVerticalScroll() or 0) - delta * WHEEL_STEP))
 		if s.ScrollBar and s.ScrollBar.SetValue then s.ScrollBar:SetValue(new) end
 		s:SetVerticalScroll(new)
+		Panel:SyncHeadShade()
 	end)
 	local child = CreateFrame("Frame", nil, scroll)
 	child:SetSize(1, 1)
 	scroll:SetScrollChild(child)
 	f.child, self.scroll = child, scroll
+	-- (1.9.0-beta20, Shweep: "when you scroll in settings things scroll under the header... a soft shadow or line there
+	-- would help give the header some indication of existing") A line in the skin's line color under the header, across
+	-- the window, where the page is cut off (Modern's title band reaches down to it); and under it, over the page, a soft
+	-- shadow that shows once the page is scrolled, fading in over its first pixels. Above the page's own rows.
+	local shade = CreateFrame("Frame", nil, f)
+	shade:SetPoint("TOPLEFT", nav, "TOPLEFT", 0, 1)
+	shade:SetPoint("TOPRIGHT", scroll, "TOPRIGHT", 22, 1)
+	shade:SetHeight(Panel.HEAD_SHADE_H + 1)
+	shade:SetFrameLevel(scroll:GetFrameLevel() + 50)
+	shade.line = shade:CreateTexture(nil, "ARTWORK")
+	shade.line:SetPoint("TOPLEFT", 0, 0); shade.line:SetPoint("TOPRIGHT", 0, 0); shade.line:SetHeight(1)
+	shade.fade = shade:CreateTexture(nil, "ARTWORK")
+	shade.fade:SetTexture("Interface\\AddOns\\BagSmith\\Media\\ui-shade.tga")
+	shade.fade:SetPoint("TOPLEFT", nav, "TOPRIGHT", 1, 0); shade.fade:SetPoint("TOPRIGHT", scroll, "TOPRIGHT", 0, 0)
+	shade.fade:SetHeight(Panel.HEAD_SHADE_H)
+	shade.fade:SetVertexColor(0, 0, 0, 0.55)
+	shade.fade:SetAlpha(0)
+	f.headShade = shade
+	scroll:HookScript("OnVerticalScroll", function() Panel:SyncHeadShade() end)
 	self.pools = { cornerCards = {}, head = {}, check = {}, seg = {}, step = {}, dropdown = {}, list = {}, text = {}, edit = {}, btn = {}, color = {}, profiles = {}, cmd = {}, bind = {}, about = {}, csec = {}, csechead = {}, moved = {}, gset = {}, ptitle = {}, pagetitle = {}, listhead = {}, card = {}, sep = {}, plug = {}, pnotice = {}, feat = {}, sub = {} }   -- (1.6.0) sub: sub-headings inside a card
 	self.page = self.page or "general"
 	table.insert(UISpecialFrames, "BagSmithSettings")
@@ -333,12 +353,22 @@ function Panel:Create()
 	self:ApplyPosition()
 end
 
+-- (1.9.0-beta20) the header's shadow: clear at the top of a page, full once scrolled HEAD_SHADE_RAMP px
+Panel.HEAD_SHADE_H, Panel.HEAD_SHADE_RAMP = 10, 12
+function Panel:SyncHeadShade()
+	local shade = self.frame and self.frame.headShade
+	if not (shade and self.scroll) then return end
+	local y = tonumber(self.scroll:GetVerticalScroll()) or 0
+	shade.fade:SetAlpha(math.max(0, math.min(1, y / Panel.HEAD_SHADE_RAMP)))
+end
+
 function Panel:ApplySkin()
 	local s = Skins:Current()
 	self.mark:SetVertexColor(unpack(s.heading))
 	self.frame.title:SetTextColor(unpack(s.heading))
 	self.frame.sub:SetTextColor(unpack(s.muted))
 	self.nav.line:SetColorTexture(unpack(s.line))
+	if self.frame.headShade then self.frame.headShade.line:SetColorTexture(unpack(s.line)) end   -- (1.9.0-beta20)
 	self:SyncNav()
 end
 
@@ -429,6 +459,7 @@ function Panel:ShowPage(page)
 	self.page = page
 	self:MarkPageSeen(page)   -- (beta18) its NEW tags go from the next time Settings opens
 	self.scroll:SetVerticalScroll(0)
+	self:SyncHeadShade()   -- (1.9.0-beta20)
 	self:SyncNav()
 	self:Refresh()
 end
@@ -2544,6 +2575,7 @@ function Panel:Refresh()
 		local need = self.y + 10 > h + 1
 		sb:SetShown(need)
 		if not need then self.scroll:SetVerticalScroll(0) end
+		self:SyncHeadShade()   -- (1.9.0-beta20)
 	end
 	if ns.Classic then ns.Classic:DressButtons(self.frame) end   -- new rows match the current skin
 end
@@ -2581,6 +2613,7 @@ function Panel:Open(page, heading)
 	if y and self.scroll then
 		local room = math.max(0, (self.frame.child:GetHeight() or 0) - (self.scroll:GetHeight() or 0))
 		self.scroll:SetVerticalScroll(math.max(0, math.min(room, y - 4)))
+		self:SyncHeadShade()   -- (1.9.0-beta20)
 	end
 	return true, y
 end
@@ -2667,6 +2700,7 @@ function Panel:SetQuery(text)
 	if q and ns.KeyBinds then ns.KeyBinds:CancelCapture() end
 	self.query = q
 	if self.scroll then self.scroll:SetVerticalScroll(0) end
+	self:SyncHeadShade()   -- (1.9.0-beta20)
 	self:SyncNav()
 	self:Refresh()
 end
