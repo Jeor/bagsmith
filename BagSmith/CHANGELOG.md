@@ -1,3 +1,11 @@
+## 1.9.1
+
+New:
+- Hover your gold in the bank window for the same tooltip as in your bags: each of your characters' gold on this
+  ruleset and the total. Hold Shift for your whole account.
+- In your own bags, hover a pinned currency or a row in the currency drawer to see how many each of your characters
+  has, with the total, as in Global Inventory.
+
 ## 1.9.0
 
 New:

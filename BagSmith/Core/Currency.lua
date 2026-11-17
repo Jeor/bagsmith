@@ -283,6 +283,19 @@ function Currency:Global(all)
 	table.sort(out, function(a, b) return (a.name or "") < (b.name or "") end)
 	return out
 end
+-- (1.9.1-beta1, Shweep: "in main bagsmith window when mousing over pinned currencies you should be able to see counts for
+-- others in tooltip, like in global inv"; the drawer's rows too) Who has how many of one currency on this ruleset,
+-- with Global Inventory's counts (saved wallets; items from saved bags and bank), you first: per, total. Nil when only
+-- one character has it.
+function Currency:Breakdown(key)
+	if not key then return nil end
+	for _, e in ipairs(self:Global(false)) do
+		if e.key == key then
+			if #e.per > 1 then return e.per, e.count end
+			return nil
+		end
+	end
+end
 local function pinList()
 	if globalOn() and ns.Inventory then return ns.Inventory:Settings().pins end
 	return ns.db.fav
