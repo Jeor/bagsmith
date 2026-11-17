@@ -58,7 +58,16 @@ function check(key, label) {
 function select(key, label, values) {
   return `<label class="select-label">${label}<select data-setting="${key}">${values.map(([v, t]) => `<option value="${v}" ${state[key] === v ? "selected" : ""}>${t}</option>`).join("")}</select></label>`;
 }
+let sidebarConcept = "compact";
+try { sidebarConcept = localStorage.getItem("bagsmith-sidebar-concept") === "original" ? "original" : "compact"; } catch {}
+const openOptionSections = new Set();
 function options() {
+  for (const details of $("options").querySelectorAll("details[data-section]")) {
+    details.open ? openOptionSections.add(details.dataset.section) : openOptionSections.delete(details.dataset.section);
+  }
+  const focused = document.activeElement;
+  const restoreSetting = focused?.closest("#options") ? focused.dataset.setting : null;
+  const restoreValue = focused?.dataset.value;
   $("options").innerHTML =
     segment("view", "View", [
       ["list", "List"],
@@ -105,6 +114,55 @@ function options() {
     '[data-setting="group"] option[value="bag"]',
   );
   if (bagGrouping) bagGrouping.disabled = state.global;
+  $("drawer").dataset.concept = sidebarConcept;
+  if (sidebarConcept === "compact") {
+    const host = $("options");
+    const view = host.querySelector("fieldset");
+    view.classList.add("view-choice");
+    view.querySelector('[data-value="icons"]').innerHTML = '<span class="view-glyph grid-glyph" aria-hidden="true"></span>Grid';
+    view.querySelector('[data-value="list"]').innerHTML = '<span class="view-glyph list-glyph" aria-hidden="true"></span>List';
+    view.querySelector(".segment").prepend(view.querySelector('[data-value="icons"]'));
+    const layout = host.querySelectorAll("fieldset")[1];
+    layout.classList.add("layout-choice");
+    for (const button of layout.querySelectorAll("button")) {
+      const value = button.dataset.value;
+      button.innerHTML = `<span class="layout-preview preview-${value}" aria-hidden="true">${Array.from({length: 4}, () => '<span><i></i><i></i><i></i></span>').join("")}</span><span>${button.textContent}</span>`;
+      button.title = value === "standard" ? "Full-width categories" : value === "compact" ? "Categories packed to fit their contents" : "Categories arranged in two columns";
+      // Standard and Compact render identically in List view.
+      if (state.view === "list" && value === "compact") button.hidden = true;
+    }
+    const grouping = host.querySelector('[data-setting="group"]').closest("label");
+    grouping.classList.add("inline-group");
+    grouping.firstChild.textContent = "Group by";
+    grouping.querySelector("select").setAttribute("aria-label", "Grouping");
+    grouping.querySelector('[value="section"]').textContent = "Category";
+    const collapse = host.querySelector('[data-action="collapse"]');
+    collapse.querySelector("span").textContent = `${collapsed.size ? "Expand" : "Collapse"} all categories`;
+    const sort = host.querySelector('[data-setting="sort"]').closest("label");
+    const merge = host.querySelector('[data-setting="merge"]').closest("label");
+    const categoryDetails = host.querySelector('[data-setting="count"]').closest("fieldset");
+    function disclosure(id, title, nodes, before) {
+      const details = document.createElement("details");
+      details.className = "option-disclosure";
+      details.dataset.section = id;
+      details.open = openOptionSections.has(id);
+      details.innerHTML = `<summary>${title}<span class="disclosure-chevron" aria-hidden="true">&rsaquo;</span></summary><div class="disclosure-content"></div>`;
+      host.insertBefore(details, before);
+      nodes.forEach(node => details.lastElementChild.append(node));
+      details.addEventListener("toggle", () => {
+        if (!details.isConnected) return;
+        details.open ? openOptionSections.add(id) : openOptionSections.delete(id);
+      });
+    }
+    disclosure("sorting", "Sorting & stacking", [sort, merge], sort);
+    disclosure("details", "Category details", [...categoryDetails.querySelectorAll("label")], categoryDetails);
+    categoryDetails.remove();
+    host.lastElementChild.classList.add("sidebar-tools");
+  }
+  if (restoreSetting) {
+    const candidates = [...$("options").querySelectorAll("[data-setting]")];
+    candidates.find(el => el.dataset.setting === restoreSetting && el.dataset.value === restoreValue)?.focus({preventScroll: true});
+  }
   $("settings").innerHTML = icon("cog") + "All Settings";
 }
 let listRowIndex = 0;
@@ -684,3 +742,11 @@ async function checkRelease() {
 window.addEventListener("focus", checkRelease);
 setInterval(checkRelease, 45000);
 checkRelease();
+
+$("sidebar-concept").value = sidebarConcept;
+$("sidebar-concept").addEventListener("change", event => {
+  sidebarConcept = event.target.value;
+  try { localStorage.setItem("bagsmith-sidebar-concept", sidebarConcept); } catch {}
+  set("drawer", true);
+  $("options").scrollTop = 0;
+});

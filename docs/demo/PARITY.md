@@ -32,3 +32,7 @@ The reported font change was reproduced as Inter before refresh reverting to Mar
 ### List styling fidelity
 
 List rows now follow the addon defaults: 26px row height, 20px icons, 2.5% white alternating fills and 8% white full-row hover from `Buttons.lua`. Quantity uses a separate aligned column instead of an icon overlay. Item/Qty/Type/Vendor headers and numeric alignment remain consistent across standard and split views; narrow categories drop Type then Vendor to protect item names and quantities. Category rules span the available width as in the in-game screenshots. Other optional addon columns and exact Blizzard frame textures remain outside this visual pass.
+
+### Sidebar concept comparison
+
+The workshop Sidebar selector switches between Original and Compact Preview, retaining the same inventory settings. The concept preference is saved in this browser. Compact Preview provides visual layout buttons, inline grouping, and native keyboard-accessible Sorting & stacking / Category details disclosures. Tools remain directly accessible. List mode omits Compact because it duplicates Standard in that view. Opening either concept dismisses the currency drawer. Verified both concepts at desktop and mobile widths, disclosure state during edits, preference persistence, and currency switching.

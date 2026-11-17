@@ -76,7 +76,8 @@ const assert = require("node:assert/strict");
       await button(layout).click();
     await button("List").click();
     assert.ok((await page.locator(".item-name").count()) > 0);
-    await button("Icons").click();
+    await button("Grid").click();
+    await page.locator("summary").filter({hasText:"Sorting & stacking"}).click();
     for (const sort of ["quality", "name", "ilvl", "newest", "oldest", "off"])
       await select("Sorting", sort);
     await select("Grouping", "bag");

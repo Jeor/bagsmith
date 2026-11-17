@@ -1284,3 +1284,46 @@ dialog {
     order: 5;
   }
 }
+
+/* The compact concept uses the same settings and actions as the original. */
+#drawer[data-concept="compact"] .drawer-title { height: 46px; flex-shrink: 0; font-family: var(--heading-font), sans-serif; }
+#drawer[data-concept="compact"] #options { padding: 0 14px 8px; }
+#drawer[data-concept="compact"] fieldset { margin-bottom: 12px; min-width: 0; }
+#drawer[data-concept="compact"] legend { font-size: 12px; margin-bottom: 6px; }
+#drawer[data-concept="compact"] .view-choice { position: relative; padding-left: 48px; min-height: 30px; }
+#drawer[data-concept="compact"] .view-choice legend { position: absolute; left: 0; top: 7px; }
+#drawer[data-concept="compact"] .segment button { border: 0; border-bottom: 2px solid transparent; background: transparent; min-height: 30px; display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0; }
+#drawer[data-concept="compact"] .segment button:hover { background: #ffffff08; }
+#drawer[data-concept="compact"] .segment button[aria-pressed="true"] { background: #ffffff08; border-bottom-color: var(--gold); color: #f0d79e; }
+.view-choice .segment { background: #00000014; border: 1px solid var(--line); }
+.view-glyph { width: 12px; height: 12px; display: inline-block; opacity: .8; }
+.grid-glyph { background: linear-gradient(to right, transparent 42%, var(--bg) 42%, var(--bg) 58%, transparent 58%), linear-gradient(to bottom, currentColor 42%, transparent 42%, transparent 58%, currentColor 58%); }
+.list-glyph { background: repeating-linear-gradient(to bottom, currentColor 0 2px, transparent 2px 5px); height: 12px; }
+#drawer[data-concept="compact"] .layout-choice .segment { gap: 5px; }
+#drawer[data-concept="compact"] .layout-choice button { flex: 1 1 0; min-width: 0; flex-direction: column; padding: 5px 2px; gap: 6px; font-size: 11px; }
+.layout-preview { display: flex; flex-wrap: wrap; align-content: space-between; gap: 3px; width: 100%; height: 34px; padding: 2px; color: #94928a; }
+.layout-preview > span { display: flex; gap: 2px; border-top: 1px solid currentColor; padding-top: 3px; }
+.layout-preview i { display: block; background: currentColor; height: 6px; flex: 1; }
+.preview-standard > span { width: 100%; }
+.preview-standard > span:nth-child(n+3) { display: none; }
+.preview-compact > span { width: 40%; }
+.preview-compact > span:nth-child(2), .preview-compact > span:nth-child(3) { width: 52%; }
+.preview-compact > span:nth-child(3) i:last-child { display: none; }
+.preview-split > span { width: calc(50% - 2px); }
+[aria-pressed="true"] .layout-preview { color: #d7b96f; }
+#drawer[data-concept="compact"] .inline-group { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; margin: 0 0 5px; white-space: nowrap; }
+#drawer[data-concept="compact"] .inline-group select { width: 130px; padding: 5px 6px; font-size: 12px; }
+#drawer[data-concept="compact"] .tool.collapse { font-size: 11px; margin: 0 0 10px; gap: 7px; min-height: 29px; color: var(--muted); }
+.option-disclosure { border-top: 1px solid var(--line); }
+.option-disclosure summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; min-height: 35px; font-size: 13px; }
+.option-disclosure summary::-webkit-details-marker { display: none; }
+.option-disclosure summary:hover { color: var(--gold); }
+.option-disclosure summary:focus-visible { outline: 1px solid var(--gold); outline-offset: -1px; }
+.disclosure-chevron { font-size: 20px; color: var(--muted); transition: transform .12s; }
+.option-disclosure[open] .disclosure-chevron { transform: rotate(90deg); }
+.disclosure-content { padding: 2px 0 10px; }
+.disclosure-content .select-label { font-size: 12px; }
+#drawer[data-concept="compact"] .sidebar-tools { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 4px; }
+#drawer[data-concept="compact"] .sidebar-tools legend { float: left; width: 100%; margin-bottom: 5px; }
+#drawer[data-concept="compact"] .sidebar-tools .tool { font-size: 12px; min-height: 30px; gap: 9px; }
+#drawer[data-concept="compact"] .settings { padding: 11px 0; }
