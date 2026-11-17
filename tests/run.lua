@@ -3170,8 +3170,8 @@ end)()
 	check(card:IsShown() and card.points[1][2] == P.frame and card.points[1][1] == "TOPLEFT" and card.points[1][3] == "TOPRIGHT",
 		"opened from Settings, the card sits beside the Settings window")
 	check(card.raisedAt and card.raisedAt > 0, "the card brings itself to the front when it opens")
-	-- (by design since 1.9.0-beta11: 476, about 8% wider, Shweep)
-	check(card.w == 476 and card.logo:IsShown() and card.logo.texture:find("mark128"), "a wider card (440 since 0.14, 476 since 1.9.0-beta11) with the white BagSmith mark in Modern")
+	-- (by design since 1.9.0-beta11: 476, about 8% wider, Shweep; since beta23: 512, about 7.5% more)
+	check(card.w == 512 and card.logo:IsShown() and card.logo.texture:find("mark128"), "a wider card (440 since 0.14, 476 since 1.9.0-beta11, 512 since beta23) with the white BagSmith mark in Modern")
 	local text = ""; for _, l in ipairs(card.lines) do if l:IsShown() then text = text .. l.text .. " " end end
 	check(text:find("Settings > Dynamic Sections", 1, true) and text:find("Settings > Style", 1, true) and text:find("Split View") and text:find("On by default"), "the bullets point to the right Settings pages (Dynamic Sections, Style)")
 	WN:Close(); P:Hide()
@@ -6437,7 +6437,7 @@ end)()
 	local tf = io.open("BagSmith/BagSmith.toc", "r"); local toc = tf and tf:read("*a") or ""; if tf then tf:close() end
 	-- (1.5.7) the date's format only: which day it must be is the packaging check's job (it knows the build day). Pinning the
 -- day here carried 7 November into 1.5.6, built on the 8th.
-check(toc:find("## Version: 1%.9%.0%-beta22\n") and toc:find("## X%-Date: %d%d%d%d%-%d%d%-%d%d\n"), "the TOC version is 1.9.0-beta22, with a release date in YYYY-MM-DD form")
+check(toc:find("## Version: 1%.9%.0%-beta23\n") and toc:find("## X%-Date: %d%d%d%d%-%d%d%-%d%d\n"), "the TOC version is 1.9.0-beta23, with a release date in YYYY-MM-DD form")
 	n.version = "0.14.0"
 	local e
 	for _, x in ipairs(WN.ENTRIES) do if x.v == "0.13.0" then e = x end end
@@ -8914,7 +8914,7 @@ end)()
 	n.version = "0.14.0"   -- (the mock's own version is older than every entry)
 	WN:ShowLatest(); M.runTimers()
 	local card = BagSmithWhatsNew
-	check(card:GetWidth() == 476, "the card is 476 wide (by design since 1.9.0-beta11; 440 before)")
+	check(card:GetWidth() == 512, "the card is 512 wide (by design since 1.9.0-beta23; 476 since beta11, 440 before)")
 	local sel = card.entries[card.sel]
 	local bullets, want = #sel.items, math.ceil(#sel.items / 2)
 	local shown = 0
@@ -10890,7 +10890,7 @@ end)()
 ;(function()
 	-- 0.15.0 (prod): one clean 0.15.0 changelog section; the sword-and-shield replaces the helmet everywhere.
 	local log = io.open("BagSmith/CHANGELOG.md"):read("*a")
-	check(log:find("^## 1%.9%.0\n") and log:find("\n## 1%.8%.0\n") and log:find("\n## 1%.7%.5\n") and log:find("\n## 1%.7%.4\n") and log:find("\n## 1%.7%.3\n") and log:find("\n## 1%.7%.2\n") and log:find("\n## 1%.7%.1\n") and log:find("\n## 1%.7%.0\n") and log:find("\n## 1%.6%.3\n") and log:find("\n## 1%.6%.2\n") and log:find("\n## 1%.6%.1\n") and log:find("\n## 1%.6%.0\n") and log:find("\n## 1%.5%.8\n") and log:find("\n## 1%.5%.7\n") and log:find("\n## 1%.5%.6\n") and log:find("\n## 1%.5%.5\n") and log:find("\n## 1%.5%.4\n") and log:find("\n## 1%.5%.3\n") and log:find("\n## 1%.5%.2\n") and log:find("\n## 1%.5%.1\n") and log:find("\n## 1%.5%.0\n") and log:find("\n## 1%.4%.2\n") and log:find("\n## 1%.4%.1\n") and log:find("\n## 1%.4%.0\n") and log:find("\n## 1%.3%.1\n") and log:find("\n## 1%.3%.0\n") and log:find("\n## 1%.2%.0\n") and log:find("\n## 1%.1%.0\n") and log:find("\n## 1%.0%.1\n") and log:find("\n## 1%.0%.0\n") and log:find("\n## 0%.15%.0\n") and not log:find("## 0%.15%.0%-beta") and not log:find("## 0%.15%.0%-rc"), "the changelog leads with 1.9.0 (the release in progress; 1.9.0-beta22, by design), then 1.8.0, 1.7.5, 1.7.4, 1.7.3, 1.7.2, 1.7.1, 1.7.0, 1.6.3, 1.6.2, 1.6.1, 1.6.0, 1.5.8, 1.5.7, 1.5.6, 1.5.5, 1.5.4, 1.5.3, 1.5.2, 1.5.1, 1.5.0, 1.4.2, 1.4.1, 1.4.0, 1.3.1, 1.3.0, 1.2.0, 1.1.0, 1.0.1 and 1.0.0, then one 0.15.0 section (the beta and rc entries folded in)")
+	check(log:find("^## 1%.9%.0\n") and log:find("\n## 1%.8%.0\n") and log:find("\n## 1%.7%.5\n") and log:find("\n## 1%.7%.4\n") and log:find("\n## 1%.7%.3\n") and log:find("\n## 1%.7%.2\n") and log:find("\n## 1%.7%.1\n") and log:find("\n## 1%.7%.0\n") and log:find("\n## 1%.6%.3\n") and log:find("\n## 1%.6%.2\n") and log:find("\n## 1%.6%.1\n") and log:find("\n## 1%.6%.0\n") and log:find("\n## 1%.5%.8\n") and log:find("\n## 1%.5%.7\n") and log:find("\n## 1%.5%.6\n") and log:find("\n## 1%.5%.5\n") and log:find("\n## 1%.5%.4\n") and log:find("\n## 1%.5%.3\n") and log:find("\n## 1%.5%.2\n") and log:find("\n## 1%.5%.1\n") and log:find("\n## 1%.5%.0\n") and log:find("\n## 1%.4%.2\n") and log:find("\n## 1%.4%.1\n") and log:find("\n## 1%.4%.0\n") and log:find("\n## 1%.3%.1\n") and log:find("\n## 1%.3%.0\n") and log:find("\n## 1%.2%.0\n") and log:find("\n## 1%.1%.0\n") and log:find("\n## 1%.0%.1\n") and log:find("\n## 1%.0%.0\n") and log:find("\n## 0%.15%.0\n") and not log:find("## 0%.15%.0%-beta") and not log:find("## 0%.15%.0%-rc"), "the changelog leads with 1.9.0 (the release in progress; 1.9.0-beta23, by design), then 1.8.0, 1.7.5, 1.7.4, 1.7.3, 1.7.2, 1.7.1, 1.7.0, 1.6.3, 1.6.2, 1.6.1, 1.6.0, 1.5.8, 1.5.7, 1.5.6, 1.5.5, 1.5.4, 1.5.3, 1.5.2, 1.5.1, 1.5.0, 1.4.2, 1.4.1, 1.4.0, 1.3.1, 1.3.0, 1.2.0, 1.1.0, 1.0.1 and 1.0.0, then one 0.15.0 section (the beta and rc entries folded in)")
 	local section = log:match("(## 0%.15%.0\n.-)\n## ") or ""
 	local bad = false
 	for _, w in ipairs({ "colour", "favourite", "behaviour", "cancelled", "helmet", "\226\128\148" }) do if section:find(w) then bad = true end end

@@ -155,8 +155,9 @@ WN.ENTRIES = {
 }
 WN.MAX_SHOWN = 5   -- releases with a tab (five fit on one row in both skins)
 WN.URL = "https://www.curseforge.com/wow/addons/bagsmith/files/all"
--- 440 since 0.14: bullets wrap less, the card is shorter; (1.9.0-beta11, Shweep: "5-10% wider") 476, about 8% more
-local WIDTH, PAD, LOGO = 476, 16, 32
+-- 440 since 0.14: bullets wrap less, the card is shorter; (1.9.0-beta11, Shweep: "5-10% wider") 476, about 8% more;
+-- (1.9.0-beta23, Shweep: "extend What's New about 5-10% in width") 512, about 7.5% more
+local WIDTH, PAD, LOGO = 512, 16, 32
 
 -- "0.11.0-beta2" -> { 0, 11, 0 }; a beta counts as its release.
 local function parse(v)
