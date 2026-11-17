@@ -29,7 +29,7 @@ KB.LIST = {
 	{ "BAGSMITH_TRAVEL", "Toggle Travel Mode" },
 	{ "BAGSMITH_CURRENCY", "Toggle Currency Drawer" },
 	{ "CLICK BagSmithDisenchantButton:LeftButton", "Disenchant Next Item", "In the Disenchant Helper: the same as clicking its Disenchant button." },
-	{ "BAGSMITH_CONFIRMKEY", "Confirm Prompts (hold)", "With Confirm set to Custom (Automations & Actions > Prompts): a yes/no box that appears while this key is held is confirmed." },
+	{ "BAGSMITH_CONFIRMKEY", "Confirm Prompts (hold)", "With Confirm set to Custom (Automations > Prompts): a yes/no box that appears while this key is held is confirmed." },
 }
 -- The custom confirm key: the binding runs on press and release, so BagSmith knows when it is held.
 function BagSmith_ConfirmKey(keystate)

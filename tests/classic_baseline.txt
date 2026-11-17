@@ -72,6 +72,7 @@
 # 1.9.0-beta6 (Shweep: "we may want to make it 5-10% taller"): Settings 588 tall (was 560), so its side list keeps full spacing with the Global sub-pages. Both scenarios checked to differ only in the settings line's height, Modern unchanged, then re-recorded
 # 1.9.0-beta10 (Shweep's main-page icons): each main page in the Settings list gains its icon (settings.3.N.r2, the accent at 0.65, the open page's at 1.00); an arrow after it renumbers r2 to r3, unchanged. Both scenarios checked to differ only there, then re-recorded
 # 1.9.0-beta20 (Shweep: "a soft shadow or line" under Settings' header): a new Settings child after the page (settings.7: its line in the skin's line color, and its shadow), so the two after it are numbered one higher (8 and 9). Both scenarios checked to differ only by its insertion, Modern's the same, then re-recorded
+# 1.9.0-beta22 (Shweep: "pull in the carrots closer to the words"): the side list's four arrows (settings.3.5, .6, .7 and .9, r3) sit 4 px after their page's name (LEFT of the arrow on the name's RIGHT), not at the row's right edge. Both scenarios checked to differ only there, Modern unchanged, then re-recorded
 == classic
 look main bg=0.09,0.09,0.10,0.00 border=0.00,0.00,0.00,0.00 w=620 h=560 at=BOTTOMRIGHT,UIParent,BOTTOMRIGHT,-80,140
 look main.1 w=nil h=54 at=TOPLEFT,parent,TOPLEFT,0,0;TOPRIGHT,parent,TOPRIGHT,0,0
@@ -279,22 +280,22 @@ look settings.3.4.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0
 look settings.3.5 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-112;TOPRIGHT,parent,TOPRIGHT,-10,-112
 look settings.3.5.r1 text=0.60,0.55,0.45,1.00
 look settings.3.5.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
-look settings.3.5.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=RIGHT,parent,RIGHT,-6,0 layer=ARTWORK/nil
+look settings.3.5.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=LEFT,frame,RIGHT,4,0 layer=ARTWORK/nil
 look settings.3.6 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-140;TOPRIGHT,parent,TOPRIGHT,-10,-140
 look settings.3.6.r1 text=0.60,0.55,0.45,1.00
 look settings.3.6.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
-look settings.3.6.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=RIGHT,parent,RIGHT,-6,0 layer=ARTWORK/nil
+look settings.3.6.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=LEFT,frame,RIGHT,4,0 layer=ARTWORK/nil
 look settings.3.7 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-168;TOPRIGHT,parent,TOPRIGHT,-10,-168
 look settings.3.7.r1 text=0.60,0.55,0.45,1.00
 look settings.3.7.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
-look settings.3.7.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=RIGHT,parent,RIGHT,-6,0 layer=ARTWORK/nil
+look settings.3.7.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=LEFT,frame,RIGHT,4,0 layer=ARTWORK/nil
 look settings.3.8 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-196;TOPRIGHT,parent,TOPRIGHT,-10,-196
 look settings.3.8.r1 text=0.60,0.55,0.45,1.00
 look settings.3.8.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
 look settings.3.9 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-224;TOPRIGHT,parent,TOPRIGHT,-10,-224
 look settings.3.9.r1 text=0.60,0.55,0.45,1.00
 look settings.3.9.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
-look settings.3.9.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=RIGHT,parent,RIGHT,-6,0 layer=ARTWORK/nil
+look settings.3.9.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=LEFT,frame,RIGHT,4,0 layer=ARTWORK/nil
 look settings.3.10 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-252;TOPRIGHT,parent,TOPRIGHT,-10,-252
 look settings.3.10.r1 text=0.60,0.55,0.45,1.00
 look settings.3.10.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
@@ -731,22 +732,22 @@ look settings.3.4.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0
 look settings.3.5 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-112;TOPRIGHT,parent,TOPRIGHT,-10,-112
 look settings.3.5.r1 text=0.60,0.55,0.45,1.00
 look settings.3.5.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
-look settings.3.5.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=RIGHT,parent,RIGHT,-6,0 layer=ARTWORK/nil
+look settings.3.5.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=LEFT,frame,RIGHT,4,0 layer=ARTWORK/nil
 look settings.3.6 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-140;TOPRIGHT,parent,TOPRIGHT,-10,-140
 look settings.3.6.r1 text=0.60,0.55,0.45,1.00
 look settings.3.6.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
-look settings.3.6.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=RIGHT,parent,RIGHT,-6,0 layer=ARTWORK/nil
+look settings.3.6.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=LEFT,frame,RIGHT,4,0 layer=ARTWORK/nil
 look settings.3.7 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-168;TOPRIGHT,parent,TOPRIGHT,-10,-168
 look settings.3.7.r1 text=0.60,0.55,0.45,1.00
 look settings.3.7.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
-look settings.3.7.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=RIGHT,parent,RIGHT,-6,0 layer=ARTWORK/nil
+look settings.3.7.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=LEFT,frame,RIGHT,4,0 layer=ARTWORK/nil
 look settings.3.8 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-196;TOPRIGHT,parent,TOPRIGHT,-10,-196
 look settings.3.8.r1 text=0.60,0.55,0.45,1.00
 look settings.3.8.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
 look settings.3.9 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-224;TOPRIGHT,parent,TOPRIGHT,-10,-224
 look settings.3.9.r1 text=0.60,0.55,0.45,1.00
 look settings.3.9.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
-look settings.3.9.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=RIGHT,parent,RIGHT,-6,0 layer=ARTWORK/nil
+look settings.3.9.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=LEFT,frame,RIGHT,4,0 layer=ARTWORK/nil
 look settings.3.10 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-252;TOPRIGHT,parent,TOPRIGHT,-10,-252
 look settings.3.10.r1 text=0.60,0.55,0.45,1.00
 look settings.3.10.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil

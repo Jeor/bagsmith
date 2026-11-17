@@ -4084,7 +4084,7 @@ end)()
 	local keys = {}
 	for _, w in ipairs(P.pools.check) do if w:IsShown() and w.key then keys[w.key] = w.help and w.help.text or "" end end
 	check(keys.travelLeaveBank and keys.travelLeaveBank:find("back on when you close the bank") and keys.travelLeaveAH and keys.travelLeaveVendor,
-		"Settings > Automations & Actions: Auto Travel Mode with its settings, each saying it comes back on")
+		"Settings > Automations: Auto Travel Mode with its settings, each saying it comes back on")
 	P:Hide()
 	-- Remembered across a reload.
 	local n2 = boot({ travelMode = true })
@@ -4494,8 +4494,9 @@ end)()
 	local order = {}
 	for _, b in ipairs(P.navButtons) do order[#order + 1] = b.text.text end
 	-- (1.9.0-beta6, by design) each of Sections, Columns and Sheets gains its Global page, last (beta8: "Global Inv ...")
-	check(table.concat(order, "|") == "General|Style|Item Icons|Windows|Sections|Dynamic Sections|Custom Sections|Global Inv Sections|Columns|Bag Columns|Bank Columns|Global Inv Columns|Sheets|Bag Sheets|Bank Sheets|Global Inv Sheets|Sorting & Filters|Automations & Actions|Loot Helper|Disenchant Helper|Keybindings|Plugins|Profile|Advanced",
-		"Settings pages: General first, Item Icons right after Style (1.5.0), Profile just before Advanced (Automations & Actions has its two helper sub-pages since 1.2.0)")
+	-- (by design since 1.9.0-beta22, Shweep: "rename to Automations"; was "Automations & Actions")
+	check(table.concat(order, "|") == "General|Style|Item Icons|Windows|Sections|Dynamic Sections|Custom Sections|Global Inv Sections|Columns|Bag Columns|Bank Columns|Global Inv Columns|Sheets|Bag Sheets|Bank Sheets|Global Inv Sheets|Sorting & Filters|Automations|Loot Helper|Disenchant Helper|Keybindings|Plugins|Profile|Advanced",
+		"Settings pages: General first, Item Icons right after Style (1.5.0), Profile just before Advanced (Automations has its two helper sub-pages since 1.2.0)")
 	local stray = false
 	for _, it in ipairs(items) do if it.kind == "text" and it.label:find("^Taller bags") then stray = true end end
 	check(not stray, "\"Taller bags scroll\" is the Max Height setting's help, not a stray line")
@@ -4670,7 +4671,7 @@ end)()
 	for _, w in ipairs(P.pools.check) do if w:IsShown() and w.key then helps[w.key] = w.help and w.help.text end end
 	check(helps.travelLeaveAH == "Turns it back on when you close the auction house." and helps.travelLeaveTrade == "Turns it back on when the trade is finished or canceled.",
 		"the auction house and trading help lines name what ends them")
-	check(helps.cleanOnOpen and helps.cleanOnOpen:find("Blizzard's Clean Up", 1, true), "Clean Up Bags When Opened is on the Automations & Actions page")   -- (1.6.0-beta4) approved wording
+	check(helps.cleanOnOpen and helps.cleanOnOpen:find("Blizzard's Clean Up", 1, true), "Clean Up Bags When Opened is on the Automations page")   -- (1.6.0-beta4) approved wording
 	P:Hide()
 	-- Clean Up Bags When Opened.
 	local sorts = 0
@@ -6436,7 +6437,7 @@ end)()
 	local tf = io.open("BagSmith/BagSmith.toc", "r"); local toc = tf and tf:read("*a") or ""; if tf then tf:close() end
 	-- (1.5.7) the date's format only: which day it must be is the packaging check's job (it knows the build day). Pinning the
 -- day here carried 7 November into 1.5.6, built on the 8th.
-check(toc:find("## Version: 1%.9%.0%-beta21\n") and toc:find("## X%-Date: %d%d%d%d%-%d%d%-%d%d\n"), "the TOC version is 1.9.0-beta21, with a release date in YYYY-MM-DD form")
+check(toc:find("## Version: 1%.9%.0%-beta22\n") and toc:find("## X%-Date: %d%d%d%d%-%d%d%-%d%d\n"), "the TOC version is 1.9.0-beta22, with a release date in YYYY-MM-DD form")
 	n.version = "0.14.0"
 	local e
 	for _, x in ipairs(WN.ENTRIES) do if x.v == "0.13.0" then e = x end end
@@ -10111,7 +10112,8 @@ end)()
 		return table.concat(t, "|"), gap
 	end
 	local list, gap = visible()
-	check(list == "General|Style|Item Icons|Windows|Sections|Columns|Sheets|Sorting & Filters|Automations & Actions|Keybindings|Plugins|Profile|Advanced" and not gap,
+	-- (by design since 1.9.0-beta22, Shweep: "rename to Automations"; was "Automations & Actions")
+	check(list == "General|Style|Item Icons|Windows|Sections|Columns|Sheets|Sorting & Filters|Automations|Keybindings|Plugins|Profile|Advanced" and not gap,
 		"the list is folded: sub-pages hidden, no gaps: " .. list)
 	local function nav(label) for _, b in ipairs(P.navButtons) do if b.text.text == label then return b end end end
 	check(nav("Sections").arrow:IsShown() and nav("Sections").arrow.texture:find("chev%-right") and not nav("General").arrow, "pages with sub-pages show a folded arrow")
@@ -10174,7 +10176,8 @@ end)()
 	check(not text:find("Make your own sections", 1, true) and text:find("Keybindings | Keybindings | Click Set Key", 1, true) and text:find("Disenchant Helper", 1, true),   -- (1.6.0-beta4) a help line naming its keybinding: Disenchant Helper's now (Favorites' no longer does)
 		"explanations show only with their whole card (no stray Custom Sections note): " .. text)
 	list = visible()
-	check(list == "General|Style|Item Icons|Windows|Sections|Columns|Sheets|Sorting & Filters|Automations & Actions|Keybindings|Plugins|Profile|Advanced", "while searching the list is folded")
+	-- (by design since 1.9.0-beta22, Shweep: "rename to Automations"; was "Automations & Actions")
+	check(list == "General|Style|Item Icons|Windows|Sections|Columns|Sheets|Sorting & Filters|Automations|Keybindings|Plugins|Profile|Advanced", "while searching the list is folded")
 	box:SetText(""); box:GetScript("OnTextChanged")(box, true)
 	P:Hide()
 end)()
@@ -10887,7 +10890,7 @@ end)()
 ;(function()
 	-- 0.15.0 (prod): one clean 0.15.0 changelog section; the sword-and-shield replaces the helmet everywhere.
 	local log = io.open("BagSmith/CHANGELOG.md"):read("*a")
-	check(log:find("^## 1%.9%.0\n") and log:find("\n## 1%.8%.0\n") and log:find("\n## 1%.7%.5\n") and log:find("\n## 1%.7%.4\n") and log:find("\n## 1%.7%.3\n") and log:find("\n## 1%.7%.2\n") and log:find("\n## 1%.7%.1\n") and log:find("\n## 1%.7%.0\n") and log:find("\n## 1%.6%.3\n") and log:find("\n## 1%.6%.2\n") and log:find("\n## 1%.6%.1\n") and log:find("\n## 1%.6%.0\n") and log:find("\n## 1%.5%.8\n") and log:find("\n## 1%.5%.7\n") and log:find("\n## 1%.5%.6\n") and log:find("\n## 1%.5%.5\n") and log:find("\n## 1%.5%.4\n") and log:find("\n## 1%.5%.3\n") and log:find("\n## 1%.5%.2\n") and log:find("\n## 1%.5%.1\n") and log:find("\n## 1%.5%.0\n") and log:find("\n## 1%.4%.2\n") and log:find("\n## 1%.4%.1\n") and log:find("\n## 1%.4%.0\n") and log:find("\n## 1%.3%.1\n") and log:find("\n## 1%.3%.0\n") and log:find("\n## 1%.2%.0\n") and log:find("\n## 1%.1%.0\n") and log:find("\n## 1%.0%.1\n") and log:find("\n## 1%.0%.0\n") and log:find("\n## 0%.15%.0\n") and not log:find("## 0%.15%.0%-beta") and not log:find("## 0%.15%.0%-rc"), "the changelog leads with 1.9.0 (the release in progress; 1.9.0-beta21, by design), then 1.8.0, 1.7.5, 1.7.4, 1.7.3, 1.7.2, 1.7.1, 1.7.0, 1.6.3, 1.6.2, 1.6.1, 1.6.0, 1.5.8, 1.5.7, 1.5.6, 1.5.5, 1.5.4, 1.5.3, 1.5.2, 1.5.1, 1.5.0, 1.4.2, 1.4.1, 1.4.0, 1.3.1, 1.3.0, 1.2.0, 1.1.0, 1.0.1 and 1.0.0, then one 0.15.0 section (the beta and rc entries folded in)")
+	check(log:find("^## 1%.9%.0\n") and log:find("\n## 1%.8%.0\n") and log:find("\n## 1%.7%.5\n") and log:find("\n## 1%.7%.4\n") and log:find("\n## 1%.7%.3\n") and log:find("\n## 1%.7%.2\n") and log:find("\n## 1%.7%.1\n") and log:find("\n## 1%.7%.0\n") and log:find("\n## 1%.6%.3\n") and log:find("\n## 1%.6%.2\n") and log:find("\n## 1%.6%.1\n") and log:find("\n## 1%.6%.0\n") and log:find("\n## 1%.5%.8\n") and log:find("\n## 1%.5%.7\n") and log:find("\n## 1%.5%.6\n") and log:find("\n## 1%.5%.5\n") and log:find("\n## 1%.5%.4\n") and log:find("\n## 1%.5%.3\n") and log:find("\n## 1%.5%.2\n") and log:find("\n## 1%.5%.1\n") and log:find("\n## 1%.5%.0\n") and log:find("\n## 1%.4%.2\n") and log:find("\n## 1%.4%.1\n") and log:find("\n## 1%.4%.0\n") and log:find("\n## 1%.3%.1\n") and log:find("\n## 1%.3%.0\n") and log:find("\n## 1%.2%.0\n") and log:find("\n## 1%.1%.0\n") and log:find("\n## 1%.0%.1\n") and log:find("\n## 1%.0%.0\n") and log:find("\n## 0%.15%.0\n") and not log:find("## 0%.15%.0%-beta") and not log:find("## 0%.15%.0%-rc"), "the changelog leads with 1.9.0 (the release in progress; 1.9.0-beta22, by design), then 1.8.0, 1.7.5, 1.7.4, 1.7.3, 1.7.2, 1.7.1, 1.7.0, 1.6.3, 1.6.2, 1.6.1, 1.6.0, 1.5.8, 1.5.7, 1.5.6, 1.5.5, 1.5.4, 1.5.3, 1.5.2, 1.5.1, 1.5.0, 1.4.2, 1.4.1, 1.4.0, 1.3.1, 1.3.0, 1.2.0, 1.1.0, 1.0.1 and 1.0.0, then one 0.15.0 section (the beta and rc entries folded in)")
 	local section = log:match("(## 0%.15%.0\n.-)\n## ") or ""
 	local bad = false
 	for _, w in ipairs({ "colour", "favourite", "behaviour", "cancelled", "helmet", "\226\128\148" }) do if section:find(w) then bad = true end end

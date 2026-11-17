@@ -24,7 +24,7 @@ end
 ------------------------------------------------------------------------
 -- (1.8.0-beta6, Shweep) the page side 15% wider: 510 px beside the page list, now 587 (the window 680 to 757)
 local NAV_W, WIN_W, WIN_H = 170, 757, 588   -- (1.9.0-beta6, Shweep) 5% taller (was 560): the Global sub-pages
-local SEARCH_W = 200   -- NAV_W fits the longest page name, "Automations & Actions"
+local SEARCH_W = 200   -- NAV_W fits the longest page name (1.9.0-beta22: "Automations & Actions" is "Automations")
 -- A third field names the page an entry sits under: it's listed (indented)
 -- only while that page or one of its sub-pages is open.
 local PAGES = {
@@ -32,7 +32,7 @@ local PAGES = {
 	{ "sections", "Sections" }, { "dynamic", "Dynamic Sections", "sections" }, { "custom", "Custom Sections", "sections" }, { "globalsections", "Global Inv Sections", "sections" },
 	{ "columns", "Columns" }, { "bagcols", "Bag Columns", "columns" }, { "bankcols", "Bank Columns", "columns" }, { "globalcols", "Global Inv Columns", "columns" },
 	{ "sheets", "Sheets" }, { "bagsheets", "Bag Sheets", "sheets" }, { "banksheets", "Bank Sheets", "sheets" }, { "globalsheets", "Global Inv Sheets", "sheets" },
-	{ "sorting", "Sorting & Filters" }, { "automation", "Automations & Actions" }, { "loothelper", "Loot Helper", "automation" }, { "dehelper", "Disenchant Helper", "automation" },
+	{ "sorting", "Sorting & Filters" }, { "automation", "Automations" }, { "loothelper", "Loot Helper", "automation" }, { "dehelper", "Disenchant Helper", "automation" },
 	{ "keys", "Keybindings" }, { "plugins", "Plugins" }, { "profile", "Profile" }, { "advanced", "Advanced" },
 }
 -- (1.9.0-beta8, Shweep: "in each's header in settings and in the settings left hand can each also get their icon") the
@@ -248,8 +248,10 @@ function Panel:Create()
 		end
 		b.parent = page[3]
 		if HAS_SUBS[page[1]] then
-			-- A page with sub-pages: a small arrow, right when folded, down when open.
-			b.arrow = b:CreateTexture(nil, "ARTWORK"); b.arrow:SetSize(10, 10); b.arrow:SetPoint("RIGHT", -6, 0)
+			-- A page with sub-pages: a small arrow, right when folded, down when open. (1.9.0-beta22, Shweep: "pull in the
+			-- carrots closer to the words so the new fits better beside them") just after the page's name, not at the
+			-- row's right, so every NEW tag lines up at the right edge.
+			b.arrow = b:CreateTexture(nil, "ARTWORK"); b.arrow:SetSize(10, 10); b.arrow:SetPoint("LEFT", b.text, "RIGHT", Panel.NAV_ARROW_GAP, 0)
 		end
 		b.bar = b:CreateTexture(nil, "ARTWORK"); b.bar:SetPoint("TOPLEFT", 0, -4); b.bar:SetPoint("BOTTOMLEFT", 0, 4); b.bar:SetWidth(3)
 		b.bar:SetTexture("Interface\\Buttons\\WHITE8X8")
@@ -353,6 +355,8 @@ function Panel:Create()
 	self:ApplyPosition()
 end
 
+-- (1.9.0-beta22) the gap between a page's name and its arrow in the side list
+Panel.NAV_ARROW_GAP = 4
 -- (1.9.0-beta20) the header's shadow: clear at the top of a page, full once scrolled HEAD_SHADE_RAMP px
 Panel.HEAD_SHADE_H, Panel.HEAD_SHADE_RAMP = 10, 12
 function Panel:SyncHeadShade()
@@ -402,10 +406,12 @@ function Panel:SyncNav()
 		-- (beta18) at the right of the page's row, as FlareUI has it
 		newTag(b, self:NewPage(b.page), b, 0)
 		if b.newTag and b.newTag:IsShown() then
-			-- (beta9, Shweep: "pull them left a hair") a sub-page has no arrow, so its tag may use the arrow's room
-			local x = (NAV_W - 10) - (b.arrow and 12 or 0) - tagWidth(b.newTag)
+			-- (beta9, Shweep: "pull them left a hair") at the row's right edge; (beta22) every row's at the same edge, the
+			-- arrow now beside the page's name
+			local x = (NAV_W - 10) - tagWidth(b.newTag)
 			-- (1.9.0-beta8) a sub-page whose name reaches the tag shows none here: its page above and its heading say NEW
 			local textEnd = (b.icon and ((b.parent and 18 or 8) + 14 + 4) or (b.parent and 24 or 10)) + (b.text:GetStringWidth() or 0)
+				+ (b.arrow and (Panel.NAV_ARROW_GAP + 10) or 0)
 			if b.parent and textEnd + 6 > x then newTag(b, false) else newTag(b, true, b, x) end
 		end
 		if on then b.bar:SetVertexColor(Skins:Accent()); b.bar:Show() else b.bar:Hide() end

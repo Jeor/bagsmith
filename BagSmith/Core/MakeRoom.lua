@@ -16,7 +16,7 @@
 
 	The game only lets an addon delete an item from a click or key press, so
 	every destroy happens from a click on this panel. Nothing is ever deleted
-	on its own. Settings live under Automations & Actions.
+	on its own. Settings live under Automations (its Loot Helper page).
 --]]
 local ADDON, ns = ...
 local MR = { skipped = {}, pending = {} }

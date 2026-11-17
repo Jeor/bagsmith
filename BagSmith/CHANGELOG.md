@@ -46,6 +46,8 @@ Changed:
 - In the Modern look, the footer's gold and buttons sit centered between its line and the bottom of the window.
 - The Disenchant Helper's estimate for green items up to level 15 follows what they give on WoW Forever: more often an
   essence, and no shard.
+- Settings: the Automations & Actions page is now called Automations, and in the page list the arrows sit right after
+  the page names, so the NEW tags line up.
 - The Font you pick (Settings > Style) also shows on the buttons along the top of your bags (Sections, Sort, Merge
   Stacks, Filter), the sheet tabs and the character picker and its list, at their usual size.
 Fixed:
