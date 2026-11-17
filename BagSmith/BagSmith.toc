@@ -43,6 +43,7 @@ Core\Buttons.lua
 Core\Corners.lua
 Frames\Outline.lua
 Frames\View.lua
+Frames\CompactCategories.lua
 Frames\ViewList.lua
 Frames\Scroll.lua
 Frames\Classic.lua

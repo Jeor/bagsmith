@@ -287,7 +287,7 @@
 		{ "general", "Turn off to keep Blizzard's bags on B. You can still open BagSmith from the minimap button or /bs." },
 		{ "general", "Which addon BagSmith gets auction prices from. Automatic uses the one you have, or Auctionator if you have both." },
 		{ "general", "Stops BagSmith's hello in chat when you log in." },
-		{ "look", "Shows sections side by side in two columns. Works with By Section or By Bag when the window is wide enough." },
+		{ "look", "Shows each section across the full width." },
 		{ "icons", "Clearing your Recent Items also removes the green dots." },
 		{ "icons", "Choose what shows in each corner of your item icons, with a backup for items the first choice doesn't apply to. In List view, item level and stack count have their own columns." },
 		{ "automation", "Sells your grey and junk-marked items when you visit a vendor. You can buy back the last 12. Like Blizzard's own Sell All Junk, it includes grey favorites." },

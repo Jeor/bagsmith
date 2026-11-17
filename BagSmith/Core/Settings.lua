@@ -61,6 +61,7 @@ local DEFAULTS = {
 	reagent = "lane",          -- inline (Mixed In) | lane (Own Section)
 	keys = true, emptySlots = true,
 	splitView = false,         -- icon view with sections: sections side by side in two columns (Sections page)
+	compactCategories = false, -- Icons + By Section: variable-width category rows
 	splitViewRecentWide = false,   -- (1.7.0-beta2) Split View: Recent spans both columns instead of pairing
 	recentSection = true,      -- a Recent section pinned at the top of the bags window (Sections page)
 	recentWindow = "session",  -- session | 1h | 15m

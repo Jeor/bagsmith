@@ -746,7 +746,7 @@ end
 -- (1.8.0-beta2, Shweep: "Font selection needs to be a dropdown") A choice from a list too long for segments: a button
 -- showing the current choice with a down chevron; it opens BagSmith's menu (ns.ShowMenu) under it, the current choice
 -- ticked; a pick applies at once. choices: { { key = , label = , path = } }; a path shows that name in its own face.
-function Panel:Dropdown(key, label, choices, help)
+function Panel:Dropdown(key, label, choices, help, binding)
 	local DROP_W = 180
 	local s = acquire(self, "dropdown", function(p)
 		local w = CreateFrame("Frame", nil, p); w:SetSize(ROW_W, LINE)
@@ -754,9 +754,12 @@ function Panel:Dropdown(key, label, choices, help)
 		w.btn = ns.TextButton(w, "", DROP_W, function(btn)
 			local pr = btn:GetParent()
 			local items = {}
+			-- A search refresh can reuse this row while its menu is still open.
+			local settingKey, binding = pr.key, pr.binding
+			local value = binding and binding.get() or ns.db[settingKey]
 			-- (1.8.0-beta2, Shweep) a group: a long list scrolls inside the menu, the current one in view
 			for _, c in ipairs(pr.choices or {}) do
-				items[#items + 1] = { text = c.label, checked = c.key == ns.db[pr.key], font = c.path, group = true, radio = true, onClick = function() ns:Set(pr.key, c.key) end }
+				items[#items + 1] = { text = c.label, checked = c.key == value, font = c.path, group = true, radio = true, onClick = function() if binding then binding.set(c.key) else ns:Set(settingKey, c.key) end end }
 			end
 			items.listRows = 20   -- (1.8.0-beta22, after FlareUI) twenty at a time before it scrolls
 			ns.ShowMenu(items, btn)
@@ -791,9 +794,10 @@ function Panel:Dropdown(key, label, choices, help)
 		w.btn:SetClassic(ns.Classic and ns.Classic.IsOn and ns.Classic.IsOn() or false)
 		return w
 	end)
-	s.key, s.choices = key, choices
+	s.key, s.choices, s.binding = key, choices, binding
 	local cur
-	for _, c in ipairs(choices) do if c.key == ns.db[key] then cur = c end end
+	local value = binding and binding.get() or ns.db[key]
+	for _, c in ipairs(choices) do if c.key == value then cur = c end end
 	cur = cur or choices[1]
 	local cy = layoutRow(s, label, help, DROP_W, 22)
 	s.btn:ClearAllPoints(); s.btn:SetPoint("TOPRIGHT", s, "TOPRIGHT", 0, cy)
@@ -1502,12 +1506,21 @@ pages.look = function(self, db)
 		self:Dropdown("fontName", "Font", choices, "The same item text in another font: BagSmith's own, the game's, or one another addon shares.")
 	end
 	self:Head("Layout")
-	self:Check("splitView", "Split View (Icons View)", "Shows sections side by side in two columns. Works with By Section or By Bag when the window is wide enough.")
-	-- (1.7.0-beta2, Shweep) greyed while Split View is off
-	self:Indented(function()
-		self:Check("splitViewRecentWide", "Full-Width Recent", "Recent Items spans both columns instead of sharing a row with the next section.",
-			(not db.splitView) and { disabled = true, checked = db.splitViewRecentWide } or nil)
-	end)
+	local function layout() return ns.db.compactCategories and "compact" or (ns.db.splitView and "split" or "standard") end
+	local help = { standard = "Shows each section across the full width.", split = "Shows sections in two columns in By Section or By Bag.", compact = "Fits categories into compact rows in By Section." }
+	self:Dropdown("iconLayout", "Icon Layout", { {key="standard",label="Standard"}, {key="split",label="Split"}, {key="compact",label="Compact"} }, help[layout()], {
+		get = layout,
+		set = function(value)
+			-- Keep existing saved-profile keys, updating both before one refresh.
+			ns:Set("splitView", value == "split", true)
+			ns:Set("compactCategories", value == "compact")
+		end,
+	})
+	if layout() ~= "standard" then
+		self:Indented(function()
+			self:Check("splitViewRecentWide", "Full-Width Recent", "Gives Recent Items its own full-width row instead of sharing space with other sections.")
+		end)
+	end
 	self:Check("emptySlots", "Show Empty Slots", "Shows your free bag spaces as empty squares in Icons view. Not shown in By Section.")
 end
 

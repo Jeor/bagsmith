@@ -12,6 +12,10 @@ Spreadsheet-style bags for World of Warcraft: Forever.
 - Sections by type or by bag, collapsible, reorderable (drag a section header or use Settings),
   with an expand/collapse-all button. Keys and the reagent bag can have their own sections.
   Icon Split View puts sections side by side in two columns in icon view.
+  Settings > Style > Icon Layout offers Standard, Split, or Compact.
+  Compact fits variable-width categories into rows in Icons + By Section.
+  It keeps category order and uses your existing skin; hover a heading for vendor and AH totals.
+  Full-Width Recent gives Recent its own row in either Split or Compact.
   Headers show each section's item count and vendor value (and AH total with Auctionator).
 - Recent Items: what you got since logging in (loot, vendors, mail, trades, quest rewards, crafting), in a section at the top
   (also kept in its usual section). Gear you take off and items from the bank don't count.
