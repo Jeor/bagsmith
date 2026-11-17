@@ -71,7 +71,8 @@ end
 		for _, h in ipairs(P.pools.head) do if h:IsShown() and (not first or select(5, h:GetPoint(1)) > select(5, first:GetPoint(1))) then first = h end end
 		check(first and first.icon and first.icon:IsShown() and tostring(first.icon.texture):find(pat), page .. ": and before its heading")
 	end
-	check(not (by.general.icon and by.general.icon.texture) and not (by.sections.icon and by.sections.icon.texture), "the main pages have none")
+	-- (by design since 1.9.0-beta10: the main pages have theirs too, Shweep's concepts)
+	check(tostring(by.general.icon and by.general.icon.texture):find("ui%-set%-general") and tostring(by.sections.icon and by.sections.icon.texture):find("ui%-set%-sections"), "the main pages have theirs")
 	-- an icon's file path isn't searchable text
 	P:SetQuery("pouch")
 	local found = false
@@ -167,7 +168,7 @@ end)()
 	check(tip:find("search, tab and filters", 1, true) and tip:find("Vendor:", 1, true), "hover: what it totals and means: " .. tip)
 	-- a search changes it
 	V.st.filters.text = "zzz"; n:RefreshViews(true); M.runTimers()
-	check(T.count.text == "(0 items shown)" and T.cells.v.text == "-", "it follows the search")
+	check(T.count.text == "(0 items shown)" and T.cells.v.text == "V: -", "it follows the search (by design since beta10: \"V:\" before it)")
 	V.st.filters.text = ""; n:RefreshViews(true); M.runTimers()
 	-- leaving
 	V.btnGlobal:GetScript("OnClick")(V.btnGlobal); M.runTimers(); M.runTimers()

@@ -43,7 +43,20 @@ Panel.PAGE_ICON = {
 	bagcols = MEDIA_PATH .. "mark.tga", bankcols = MEDIA_PATH .. "ui-bank.tga", globalcols = MEDIA_PATH .. "ui-globe.tga",
 	bagsheets = MEDIA_PATH .. "mark.tga", banksheets = MEDIA_PATH .. "ui-bank.tga", globalsheets = MEDIA_PATH .. "ui-globe.tga",
 	loothelper = MEDIA_PATH .. "ui-pouch.tga", dehelper = MEDIA_PATH .. "ui-disenchant.tga",
+	-- (1.9.0-beta10, Shweep's concepts) the main pages
+	general = MEDIA_PATH .. "ui-set-general.tga", look = MEDIA_PATH .. "ui-set-style.tga", icons = MEDIA_PATH .. "ui-set-icons.tga",
+	window = MEDIA_PATH .. "ui-set-windows.tga", sections = MEDIA_PATH .. "ui-set-sections.tga", columns = MEDIA_PATH .. "ui-set-columns.tga",
+	sheets = MEDIA_PATH .. "ui-set-sheets.tga", sorting = MEDIA_PATH .. "ui-set-filter.tga", automation = MEDIA_PATH .. "ui-set-auto.tga",
+	keys = MEDIA_PATH .. "ui-set-keys.tga", plugins = MEDIA_PATH .. "ui-set-plugins.tga", profile = MEDIA_PATH .. "ui-set-profile.tga",
+	advanced = MEDIA_PATH .. "ui-set-advanced.tga",
 }
+-- (1.9.0-beta10, Shweep: "all these icons in settings should use the accent color - but dimmed") the accent, dimmed;
+-- the open page's in the list at full strength
+Panel.ICON_DIM = 0.65
+function Panel.IconColor(tex, full)
+	local r, g, b = Skins:Accent()
+	tex:SetVertexColor(r, g, b, full and 1 or Panel.ICON_DIM)
+end
 -- (beta9, Shweep: "BagSmith icon is not centered vertically well") the mark's art sits a touch high in its square
 Panel.ICON_NUDGE = { [MEDIA_PATH .. "mark.tga"] = -1 }
 -- a page's first heading, with its icon
@@ -282,7 +295,7 @@ function Panel:Create()
 	child:SetSize(1, 1)
 	scroll:SetScrollChild(child)
 	f.child, self.scroll = child, scroll
-	self.pools = { cornerCards = {}, head = {}, check = {}, seg = {}, step = {}, dropdown = {}, list = {}, text = {}, edit = {}, btn = {}, color = {}, profiles = {}, cmd = {}, bind = {}, about = {}, csec = {}, csechead = {}, moved = {}, gset = {}, ptitle = {}, listhead = {}, card = {}, sep = {}, plug = {}, pnotice = {}, feat = {}, sub = {} }   -- (1.6.0) sub: sub-headings inside a card
+	self.pools = { cornerCards = {}, head = {}, check = {}, seg = {}, step = {}, dropdown = {}, list = {}, text = {}, edit = {}, btn = {}, color = {}, profiles = {}, cmd = {}, bind = {}, about = {}, csec = {}, csechead = {}, moved = {}, gset = {}, ptitle = {}, pagetitle = {}, listhead = {}, card = {}, sep = {}, plug = {}, pnotice = {}, feat = {}, sub = {} }   -- (1.6.0) sub: sub-headings inside a card
 	self.page = self.page or "general"
 	table.insert(UISpecialFrames, "BagSmithSettings")
 	ns:CombatWindow(f)   -- (1.5.6) fades in combat like the bags window
@@ -355,7 +368,7 @@ function Panel:SyncNav()
 		end
 		local on = b.page == self.page and not self.query   -- (no page is current while searching)
 		b.text:SetTextColor(unpack(on and s.heading or s.muted))
-		if b.icon then b.icon:SetVertexColor(unpack(on and s.heading or s.muted)) end
+		if b.icon then Panel.IconColor(b.icon, on) end
 		-- (beta18) at the right of the page's row, as FlareUI has it
 		newTag(b, self:NewPage(b.page), b, 0)
 		if b.newTag and b.newTag:IsShown() then
@@ -534,7 +547,7 @@ function Panel:Head(text, info)
 	h.text:ClearAllPoints()
 	if info and info.headIcon then
 		if not h.icon then h.icon = h:CreateTexture(nil, "ARTWORK"); h.icon:SetSize(16, 16) end
-		h.icon:SetTexture(info.headIcon); h.icon:SetVertexColor(Skins:Color("heading"))
+		h.icon:SetTexture(info.headIcon); Panel.IconColor(h.icon, false)
 		h.text:SetPoint("BOTTOMLEFT", 2 + 16 + 6, 6)
 		-- (beta9) centered on the heading's line, not sat on its baseline
 		h.icon:ClearAllPoints(); h.icon:SetPoint("RIGHT", h.text, "LEFT", -6, Panel.ICON_NUDGE[info.headIcon] or 0); h.icon:Show()
@@ -2492,7 +2505,7 @@ function Panel:Refresh()
 	for _, pool in pairs(self.pools) do for _, w in ipairs(pool) do w:Hide() end end
 	self.frame.sub:SetText("Profile: " .. ns.profileName)
 	local fn = pages[self.page] or pages.profile
-	if self.query then self:RefreshSearch(ns.db) else fn(self, ns.db) end
+	if self.query then self:RefreshSearch(ns.db) else self:MainPageTitle(self.page); fn(self, ns.db) end
 	self:CloseCard()
 	self.frame.child:SetHeight(self.y + 10)
 	self.frame.child:SetWidth(ROW_W)
@@ -2504,6 +2517,26 @@ function Panel:Refresh()
 		if not need then self.scroll:SetVerticalScroll(0) end
 	end
 	if ns.Classic then ns.Classic:DressButtons(self.frame) end   -- new rows match the current skin
+end
+
+-- (1.9.0-beta10, Shweep: "Each primary area now also gets a primary header with icon beside it at top, don't add too
+-- much wasted space below") A main page's name and icon above its first section, snug against it. Pages under another
+-- already lead with theirs on their first heading.
+function Panel:MainPageTitle(page)   -- (not PageTitle: search results' page labels, below)
+	local icon = Panel.PAGE_ICON[page]
+	local label
+	for _, p in ipairs(PAGES) do if p[1] == page and not p[3] then label = p[2] end end
+	if not (icon and label) then return end
+	local t = acquire(self, "pagetitle", function(p)
+		local w = CreateFrame("Frame", nil, p); w:SetSize(ROW_W, 24)
+		w.icon = w:CreateTexture(nil, "ARTWORK"); w.icon:SetSize(18, 18); w.icon:SetPoint("LEFT", 2, 0)
+		w.text = fs(w, "GameFontNormalLarge"); w.text:SetPoint("LEFT", w.icon, "RIGHT", 7, 0)
+		return w
+	end)
+	t.page = page
+	t.icon:SetTexture(icon); Panel.IconColor(t.icon, true)
+	t.text:SetText(label); t.text:SetTextColor(Skins:Color("heading"))
+	self.y = self.y + 18
 end
 
 -- (1.8.0-beta18) Open Settings on a page, scrolled to a heading on it when one is named (What's New's links). A heading

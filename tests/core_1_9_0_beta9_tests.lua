@@ -41,15 +41,16 @@ end
 	V:UpdateTotalRow(rows, plan)
 	local function at(cell) local p = { cell:GetPoint(1) }; return p[4], p[4] + cell.width end
 	local vl, vr = at(T.cells.v)
-	check(T.cells.v.text == "2g 60s 22c" and vr == 216 and vl < 184, "Vendor: the whole sum, ending at its column's right edge, using the empty cells to its left (" .. vl .. ")")
+	-- (by design since 1.9.0-beta10: "V:" and "AH:" before the sums)
+	check(T.cells.v.text == "V: 2g 60s 22c" and vr == 216 and vl < 184, "Vendor: the whole sum, ending at its column's right edge, using the empty cells to its left (" .. vl .. ")")
 	local al, ar = at(T.cells.ah)
-	check(T.cells.ah.text == "47s 94c" and ar == 296 and al >= vr, "AH Price: the same, after Vendor's (" .. al .. ")")
+	check(T.cells.ah.text == "AH: 47s 94c" and ar == 296 and al >= vr, "AH Price: the same, after Vendor's (" .. al .. ")")
 	check(T.count.text == "(1)" or T.count.text == "(1 item shown)", "the count: " .. tostring(T.count.text))
 	-- tighter: the copper goes first
 	plan[4] = { key = "v", x = 104, width = 12 }; plan[2] = { key = "who", x = 104, width = 0 }; plan[3] = { key = "w", x = 104, width = 0 }
 	V:UpdateTotalRow(rows, plan)
 	check(T.count.text == "(1)" or T.count.text == "", "tighter: the count shortens: " .. tostring(T.count.text))
-	check(T.cells.v.text == "2g 60s" or T.cells.v.text == "2g", "and the sum is rounded, not cut: " .. tostring(T.cells.v.text))
+	check(T.cells.v.text == "V: 2g 60s" or T.cells.v.text == "V: 2g", "and the sum is rounded, not cut: " .. tostring(T.cells.v.text))
 	-- the exact sums in the tooltip
 	GameTooltip.lines = {}
 	T:GetScript("OnEnter")(T)
@@ -118,7 +119,8 @@ end)()
 	check(e.v == "1.9.0" and e.heading == "BagSmith 1.9" and #e.items == 7, "the 1.9 card leads, with seven bullets")
 	local heads = {}
 	for _, it in ipairs(e.items) do heads[#heads + 1] = it:match("^|cfffac775(.-):|r") end
-	check(table.concat(heads, "|") == "Global Inventory|Your Characters in Every Tooltip|Compact View|Shared Disenchanting|Footer Text Size|Bolder Borders|Count Every Free Slot",
+	-- (by design since 1.9.0-beta10: Alts in Your Tooltips, Shweep's rewording)
+	check(table.concat(heads, "|") == "Global Inventory|Alts in Your Tooltips|Compact View|Shared Disenchanting|Footer Text Size|Bolder Borders|Count Every Free Slot",
 		"its bullets, as Shweep approved: " .. table.concat(heads, "|"))
 	local text = table.concat(e.items, " ")
 	check(not text:find("\226\128\148") and not text:find("\226\128\147"), "no em or en dashes")

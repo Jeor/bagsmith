@@ -2421,10 +2421,12 @@ function View:UpdateTotalRow(shown, plan)
 		-- (beta9, Shweep: "can the new pinned total fit somehow at smaller widths?") each sum ends at its column's right
 		-- edge but may take the empty cells to its left (Who, Where, Type), as a spreadsheet lets text run on; still too
 		-- tight, the count shortens to "(N)", then the sums drop their copper, then their silver. Never cut short.
-		local function money(c, drop)
-			if c <= 0 then return "-" end
+		-- (beta10, Shweep) "V:" and "AH:" before them, as the section headers write theirs
+		local LABEL = { v = "V: ", ah = "AH: " }
+		local function money(c, drop, key)
+			if c <= 0 then return LABEL[key] .. "-" end
 			if drop == 1 and c >= 100 then c = c - c % 100 elseif drop == 2 and c >= 10000 then c = c - c % 10000 end
-			return ns.Money(c)
+			return LABEL[key] .. ns.Money(c)
 		end
 		local function width(fs, text) fs:SetText(text); return (fs.GetUnboundedStringWidth and fs:GetUnboundedStringWidth()) or fs:GetStringWidth() or 0 end
 		local labelEnd = (item and item.colX or 0) + 4 + width(r.label, "Total") + 6
@@ -2438,7 +2440,7 @@ function View:UpdateTotalRow(shown, plan)
 			local fits, place = true, {}
 			for _, col in ipairs(sums) do
 				local right = col.x + col.width
-				local text = money(col.key == "v" and v or a, t[1])
+				local text = money(col.key == "v" and v or a, t[1], col.key)
 				local w = width(r.cells[col.key], text)
 				if right - w < left then fits = false; break end
 				place[col.key] = { left = left, right = right, text = text }
@@ -2459,7 +2461,7 @@ function View:UpdateTotalRow(shown, plan)
 				-- (no room even rounded: the last try's text, cut at its own column, rather than nothing)
 				local col = at[key]
 				cell:ClearAllPoints(); cell:SetPoint("LEFT", r, "LEFT", col.x, 0); cell:SetWidth(col.width)
-				cell:SetText(money(key == "v" and v or a, 2)); cell:SetTextColor(unpack(sk.text)); cell:Show()
+				cell:SetText(money(key == "v" and v or a, 2, key)); cell:SetTextColor(unpack(sk.text)); cell:Show()
 			else
 				cell:Hide()
 			end
