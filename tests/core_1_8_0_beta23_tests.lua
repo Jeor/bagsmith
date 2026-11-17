@@ -58,6 +58,6 @@ end)()
 	n.SettingsPanel:Show(); n.SettingsPanel:ShowPage("automation")
 	local row
 	for _, w in ipairs(n.SettingsPanel.pools.check) do if w:IsShown() and w.key == "travelLeaveGuildBank" then row = w end end
-	check(row and row.text.text == "Leave Travel Mode at the Guild Bank", "Settings > Automations & Actions lists it")
+	check(row and row.text.text == "Leave Travel Mode at the Guild Bank", "Settings > Automations lists it")
 	check((n.errors or 0) == 0, "no errors")
 end)()

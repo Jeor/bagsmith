@@ -23,18 +23,47 @@ end
 -- always in sync with the profile; widgets are pooled by type.
 ------------------------------------------------------------------------
 -- (1.8.0-beta6, Shweep) the page side 15% wider: 510 px beside the page list, now 587 (the window 680 to 757)
-local NAV_W, WIN_W, WIN_H = 170, 757, 560
-local SEARCH_W = 200   -- NAV_W fits the longest page name, "Automations & Actions"
+local NAV_W, WIN_W, WIN_H = 170, 757, 588   -- (1.9.0-beta6, Shweep) 5% taller (was 560): the Global sub-pages
+local SEARCH_W = 200   -- NAV_W fits the longest page name (1.9.0-beta22: "Automations & Actions" is "Automations")
 -- A third field names the page an entry sits under: it's listed (indented)
 -- only while that page or one of its sub-pages is open.
 local PAGES = {
 	{ "general", "General" }, { "look", "Style" }, { "icons", "Item Icons" }, { "window", "Windows" },
-	{ "sections", "Sections" }, { "dynamic", "Dynamic Sections", "sections" }, { "custom", "Custom Sections", "sections" },
-	{ "columns", "Columns" }, { "bagcols", "Bag Columns", "columns" }, { "bankcols", "Bank Columns", "columns" },
-	{ "sheets", "Sheets" }, { "bagsheets", "Bag Sheets", "sheets" }, { "banksheets", "Bank Sheets", "sheets" },
-	{ "sorting", "Sorting & Filters" }, { "automation", "Automations & Actions" }, { "loothelper", "Loot Helper", "automation" }, { "dehelper", "Disenchant Helper", "automation" },
+	{ "sections", "Sections" }, { "dynamic", "Dynamic Sections", "sections" }, { "custom", "Custom Sections", "sections" }, { "globalsections", "Global Inv Sections", "sections" },
+	{ "columns", "Columns" }, { "bagcols", "Bag Columns", "columns" }, { "bankcols", "Bank Columns", "columns" }, { "globalcols", "Global Inv Columns", "columns" },
+	{ "sheets", "Sheets" }, { "bagsheets", "Bag Sheets", "sheets" }, { "banksheets", "Bank Sheets", "sheets" }, { "globalsheets", "Global Inv Sheets", "sheets" },
+	{ "sorting", "Sorting & Filters" }, { "automation", "Automations" }, { "loothelper", "Loot Helper", "automation" }, { "dehelper", "Disenchant Helper", "automation" },
 	{ "keys", "Keybindings" }, { "plugins", "Plugins" }, { "profile", "Profile" }, { "advanced", "Advanced" },
 }
+-- (1.9.0-beta8, Shweep: "in each's header in settings and in the settings left hand can each also get their icon") the
+-- sub-pages' icons, one color like the text, before the name in the list and in the page's heading
+local MEDIA_PATH = "Interface\\AddOns\\BagSmith\\Media\\"
+Panel.PAGE_ICON = {
+	dynamic = MEDIA_PATH .. "ui-dynamic.tga", custom = MEDIA_PATH .. "ui-sliders.tga", globalsections = MEDIA_PATH .. "ui-globe.tga",
+	bagcols = MEDIA_PATH .. "mark.tga", bankcols = MEDIA_PATH .. "ui-bank.tga", globalcols = MEDIA_PATH .. "ui-globe.tga",
+	bagsheets = MEDIA_PATH .. "mark.tga", banksheets = MEDIA_PATH .. "ui-bank.tga", globalsheets = MEDIA_PATH .. "ui-globe.tga",
+	loothelper = MEDIA_PATH .. "ui-pouch.tga", dehelper = MEDIA_PATH .. "ui-disenchant.tga",
+	-- (1.9.0-beta10, Shweep's concepts) the main pages
+	general = MEDIA_PATH .. "ui-set-general.tga", look = MEDIA_PATH .. "ui-set-style.tga", icons = MEDIA_PATH .. "ui-set-icons.tga",
+	window = MEDIA_PATH .. "ui-set-windows.tga", sections = MEDIA_PATH .. "ui-set-sections.tga", columns = MEDIA_PATH .. "ui-set-columns.tga",
+	sheets = MEDIA_PATH .. "ui-set-sheets.tga", sorting = MEDIA_PATH .. "ui-set-filter.tga", automation = MEDIA_PATH .. "ui-set-auto.tga",
+	keys = MEDIA_PATH .. "ui-set-keys.tga", plugins = MEDIA_PATH .. "ui-set-plugins.tga", profile = MEDIA_PATH .. "ui-set-profile.tga",
+	advanced = MEDIA_PATH .. "ui-set-advanced.tga",
+}
+-- (1.9.0-beta10, Shweep: "all these icons in settings should use the accent color - but dimmed") the accent, dimmed;
+-- the open page's in the list at full strength
+Panel.ICON_DIM = 0.65
+function Panel.IconColor(tex, full)
+	local r, g, b = Skins:Accent()
+	tex:SetVertexColor(r, g, b, full and 1 or Panel.ICON_DIM)
+end
+-- (beta9, Shweep: "BagSmith icon is not centered vertically well") the mark's art sits a touch high in its square
+Panel.ICON_NUDGE = { [MEDIA_PATH .. "mark.tga"] = -1 }
+-- a page's first heading, with its icon
+function Panel:PageHead(text, page)
+	local icon = Panel.PAGE_ICON[page]
+	return self:Head(text, icon and { headIcon = icon, noIcon = true } or nil)
+end
 -- (1.8.0-beta18) What's New's "Settings > ..." links find their page by its name here (About & Support too).
 function Panel:PageLabels()
 	if not self.labels then
@@ -48,11 +77,14 @@ end
 -- the left, and the headings and settings on them. A page's tags go once it has been opened, from the next time
 -- Settings opens (so they don't vanish while you look). Kept per account (BagSmithDB.newSeen), per release; a release
 -- other than NEW.release shows none, so the list is replaced each release. heads and keys name the page they're on.
+-- (1.9.0-beta1) 1.9's list (1.8's: Style, Item Icons and Profile; Special Bag Slot Indicators, Shared Between Characters;
+-- Text Size, Font, Gold Frame for Quest Items).
 Panel.NEW = {
-	release = "1.8",
-	pages = { look = true, icons = true, profile = true },
-	heads = { ["Special Bag Slot Indicators"] = "icons", ["Shared Between Characters"] = "profile" },
-	keys = { textScale = "look", fontName = "look", questFrame = "icons" },
+	release = "1.9",
+	pages = { general = true, window = true, icons = true, look = true, sections = true, columns = true, sheets = true,
+		globalsections = true, globalcols = true, globalsheets = true },
+	heads = {},
+	keys = { tipInventory = "general", tipAHPrice = "general", bagSlotCount = "window", borderWeight = "icons", iconLayout = "look", footerTextScale = "look", globalResize = "window" },
 }
 Panel.NEW_COLOR = { 0.55, 0.78, 1 }   -- the soft blue of What's New's links
 local function release() return tostring(ns.version or ""):match("^(%d+%.%d+)") end
@@ -164,7 +196,7 @@ function Panel:Create()
 	end)
 	title.band = f:CreateTexture(nil, "BACKGROUND")
 	title.band:SetPoint("TOPLEFT", f, "TOPLEFT", 4, -4); title.band:SetPoint("TOPRIGHT", f, "TOPRIGHT", -4, -4)
-	title.band:SetPoint("BOTTOM", title, "BOTTOM", 0, -8)
+	title.band:SetPoint("BOTTOM", title, "BOTTOM", 0, -11)   -- (1.9.0-beta20) down to the header's line (was -8: a gap)
 	title.band:SetTexture("Interface\\Buttons\\WHITE8X8"); title.band:SetVertexColor(1, 1, 1, 0.045)
 	local mark = title:CreateTexture(nil, "ARTWORK"); mark:SetSize(16, 16); mark:SetPoint("LEFT", 2, 0)
 	mark:SetTexture("Interface\\AddOns\\BagSmith\\Media\\mark.tga"); self.mark = mark
@@ -204,11 +236,22 @@ function Panel:Create()
 	for i, page in ipairs(PAGES) do
 		local b = CreateFrame("Button", nil, nav)
 		b:SetHeight(26)   -- (placed by SyncNav: sub-pages show only under the open page)
-		b.text = fs(b); b.text:SetPoint("LEFT", page[3] and 24 or 10, 0); b.text:SetText(page[2])
+		b.text = fs(b); b.text:SetText(page[2])
+		local icon = Panel.PAGE_ICON[page[1]]
+		if icon then
+			b.icon = b:CreateTexture(nil, "ARTWORK"); b.icon:SetSize(14, 14); b.icon:SetTexture(icon)
+			-- (beta9) a little less indent, so the longer names leave room for a NEW tag
+			b.icon:SetPoint("LEFT", page[3] and 18 or 8, Panel.ICON_NUDGE[icon] or 0)
+			b.text:SetPoint("LEFT", b.icon, "RIGHT", 4, -(Panel.ICON_NUDGE[icon] or 0))
+		else
+			b.text:SetPoint("LEFT", page[3] and 24 or 10, 0)
+		end
 		b.parent = page[3]
 		if HAS_SUBS[page[1]] then
-			-- A page with sub-pages: a small arrow, right when folded, down when open.
-			b.arrow = b:CreateTexture(nil, "ARTWORK"); b.arrow:SetSize(10, 10); b.arrow:SetPoint("RIGHT", -6, 0)
+			-- A page with sub-pages: a small arrow, right when folded, down when open. (1.9.0-beta22, Shweep: "pull in the
+			-- carrots closer to the words so the new fits better beside them") just after the page's name, not at the
+			-- row's right, so every NEW tag lines up at the right edge.
+			b.arrow = b:CreateTexture(nil, "ARTWORK"); b.arrow:SetSize(10, 10); b.arrow:SetPoint("LEFT", b.text, "RIGHT", Panel.NAV_ARROW_GAP, 0)
 		end
 		b.bar = b:CreateTexture(nil, "ARTWORK"); b.bar:SetPoint("TOPLEFT", 0, -4); b.bar:SetPoint("BOTTOMLEFT", 0, 4); b.bar:SetWidth(3)
 		b.bar:SetTexture("Interface\\Buttons\\WHITE8X8")
@@ -249,12 +292,32 @@ function Panel:Create()
 		local new = math.max(0, math.min(range, (s:GetVerticalScroll() or 0) - delta * WHEEL_STEP))
 		if s.ScrollBar and s.ScrollBar.SetValue then s.ScrollBar:SetValue(new) end
 		s:SetVerticalScroll(new)
+		Panel:SyncHeadShade()
 	end)
 	local child = CreateFrame("Frame", nil, scroll)
 	child:SetSize(1, 1)
 	scroll:SetScrollChild(child)
 	f.child, self.scroll = child, scroll
-	self.pools = { cornerCards = {}, head = {}, check = {}, seg = {}, step = {}, dropdown = {}, list = {}, text = {}, edit = {}, btn = {}, color = {}, profiles = {}, cmd = {}, bind = {}, about = {}, csec = {}, csechead = {}, moved = {}, gset = {}, ptitle = {}, listhead = {}, card = {}, sep = {}, plug = {}, pnotice = {}, feat = {}, sub = {} }   -- (1.6.0) sub: sub-headings inside a card
+	-- (1.9.0-beta20, Shweep: "when you scroll in settings things scroll under the header... a soft shadow or line there
+	-- would help give the header some indication of existing") A line in the skin's line color under the header, across
+	-- the window, where the page is cut off (Modern's title band reaches down to it); and under it, over the page, a soft
+	-- shadow that shows once the page is scrolled, fading in over its first pixels. Above the page's own rows.
+	local shade = CreateFrame("Frame", nil, f)
+	shade:SetPoint("TOPLEFT", nav, "TOPLEFT", 0, 1)
+	shade:SetPoint("TOPRIGHT", scroll, "TOPRIGHT", 22, 1)
+	shade:SetHeight(Panel.HEAD_SHADE_H + 1)
+	shade:SetFrameLevel(scroll:GetFrameLevel() + 50)
+	shade.line = shade:CreateTexture(nil, "ARTWORK")
+	shade.line:SetPoint("TOPLEFT", 0, 0); shade.line:SetPoint("TOPRIGHT", 0, 0); shade.line:SetHeight(1)
+	shade.fade = shade:CreateTexture(nil, "ARTWORK")
+	shade.fade:SetTexture("Interface\\AddOns\\BagSmith\\Media\\ui-shade.tga")
+	shade.fade:SetPoint("TOPLEFT", nav, "TOPRIGHT", 1, 0); shade.fade:SetPoint("TOPRIGHT", scroll, "TOPRIGHT", 0, 0)
+	shade.fade:SetHeight(Panel.HEAD_SHADE_H)
+	shade.fade:SetVertexColor(0, 0, 0, 0.55)
+	shade.fade:SetAlpha(0)
+	f.headShade = shade
+	scroll:HookScript("OnVerticalScroll", function() Panel:SyncHeadShade() end)
+	self.pools = { cornerCards = {}, head = {}, check = {}, seg = {}, step = {}, dropdown = {}, list = {}, text = {}, edit = {}, btn = {}, color = {}, profiles = {}, cmd = {}, bind = {}, about = {}, csec = {}, csechead = {}, moved = {}, gset = {}, ptitle = {}, pagetitle = {}, listhead = {}, card = {}, sep = {}, plug = {}, pnotice = {}, feat = {}, sub = {} }   -- (1.6.0) sub: sub-headings inside a card
 	self.page = self.page or "general"
 	table.insert(UISpecialFrames, "BagSmithSettings")
 	ns:CombatWindow(f)   -- (1.5.6) fades in combat like the bags window
@@ -292,12 +355,24 @@ function Panel:Create()
 	self:ApplyPosition()
 end
 
+-- (1.9.0-beta22) the gap between a page's name and its arrow in the side list
+Panel.NAV_ARROW_GAP = 4
+-- (1.9.0-beta20) the header's shadow: clear at the top of a page, full once scrolled HEAD_SHADE_RAMP px
+Panel.HEAD_SHADE_H, Panel.HEAD_SHADE_RAMP = 10, 12
+function Panel:SyncHeadShade()
+	local shade = self.frame and self.frame.headShade
+	if not (shade and self.scroll) then return end
+	local y = tonumber(self.scroll:GetVerticalScroll()) or 0
+	shade.fade:SetAlpha(math.max(0, math.min(1, y / Panel.HEAD_SHADE_RAMP)))
+end
+
 function Panel:ApplySkin()
 	local s = Skins:Current()
 	self.mark:SetVertexColor(unpack(s.heading))
 	self.frame.title:SetTextColor(unpack(s.heading))
 	self.frame.sub:SetTextColor(unpack(s.muted))
 	self.nav.line:SetColorTexture(unpack(s.line))
+	if self.frame.headShade then self.frame.headShade.line:SetColorTexture(unpack(s.line)) end   -- (1.9.0-beta20)
 	self:SyncNav()
 end
 
@@ -327,9 +402,18 @@ function Panel:SyncNav()
 		end
 		local on = b.page == self.page and not self.query   -- (no page is current while searching)
 		b.text:SetTextColor(unpack(on and s.heading or s.muted))
+		if b.icon then Panel.IconColor(b.icon, on) end
 		-- (beta18) at the right of the page's row, as FlareUI has it
 		newTag(b, self:NewPage(b.page), b, 0)
-		if b.newTag and b.newTag:IsShown() then newTag(b, true, b, (NAV_W - 10) - 12 - tagWidth(b.newTag)) end
+		if b.newTag and b.newTag:IsShown() then
+			-- (beta9, Shweep: "pull them left a hair") at the row's right edge; (beta22) every row's at the same edge, the
+			-- arrow now beside the page's name
+			local x = (NAV_W - 10) - tagWidth(b.newTag)
+			-- (1.9.0-beta8) a sub-page whose name reaches the tag shows none here: its page above and its heading say NEW
+			local textEnd = (b.icon and ((b.parent and 18 or 8) + 14 + 4) or (b.parent and 24 or 10)) + (b.text:GetStringWidth() or 0)
+				+ (b.arrow and (Panel.NAV_ARROW_GAP + 10) or 0)
+			if b.parent and textEnd + 6 > x then newTag(b, false) else newTag(b, true, b, x) end
+		end
 		if on then b.bar:SetVertexColor(Skins:Accent()); b.bar:Show() else b.bar:Hide() end
 	end
 	-- (1.5.4) Place them: full spacing when they fit above About & Support, tighter when not, and when even the tight
@@ -381,6 +465,7 @@ function Panel:ShowPage(page)
 	self.page = page
 	self:MarkPageSeen(page)   -- (beta18) its NEW tags go from the next time Settings opens
 	self.scroll:SetVerticalScroll(0)
+	self:SyncHeadShade()   -- (1.9.0-beta20)
 	self:SyncNav()
 	self:Refresh()
 end
@@ -495,6 +580,18 @@ function Panel:Head(text, info)
 		return w
 	end)
 	h.text:SetText(text); h.text:SetTextColor(Skins:Color("heading")); h.line:SetColorTexture(Skins:Color("line"))
+	-- (1.9.0-beta8) a sub-page's icon before its first heading
+	h.text:ClearAllPoints()
+	if info and info.headIcon then
+		if not h.icon then h.icon = h:CreateTexture(nil, "ARTWORK"); h.icon:SetSize(16, 16) end
+		h.icon:SetTexture(info.headIcon); Panel.IconColor(h.icon, false)
+		h.text:SetPoint("BOTTOMLEFT", 2 + 16 + 6, 6)
+		-- (beta9) centered on the heading's line, not sat on its baseline
+		h.icon:ClearAllPoints(); h.icon:SetPoint("RIGHT", h.text, "LEFT", -6, Panel.ICON_NUDGE[info.headIcon] or 0); h.icon:Show()
+	else
+		if h.icon then h.icon:Hide() end
+		h.text:SetPoint("BOTTOMLEFT", 2, 6)
+	end
 	if info and not info.noIcon then
 		if not h.info then h.info = ns.Why.InfoButton(h) end
 		h.info.title, h.info.lines = info.title, info.lines
@@ -503,7 +600,7 @@ function Panel:Head(text, info)
 	elseif h.info then
 		h.info:Hide()
 	end
-	local tagX = (h.text:GetStringWidth() or 0) + 6 + ((h.info and h.info:IsShown()) and 20 or 0)
+	local tagX = (h.text:GetStringWidth() or 0) + 6 + ((h.info and h.info:IsShown()) and 20 or 0)   -- (from the text)
 	newTag(h, self:IsNew("heads", text), h.text, tagX)   -- (beta18)
 	self.y = self.y + 40
 	-- The card for this sub-section starts just under the heading's line.
@@ -514,13 +611,14 @@ end
 
 -- color (optional, 1.6.0): a skin colour name for a line that needs weight ("heading"); muted otherwise.
 function Panel:Text(text, color)
-	local w = acquire(self, "text", function(p) local w = CreateFrame("Frame", nil, p); w:SetSize(ROW_W, 20); w.text = fs(w); w.text:SetPoint("TOPLEFT", 2, -2); return w end)
+	-- (1.9.0-beta3, Shweep: text pushed up to the line above) 6 px above and below, as a setting's label has
+	local w = acquire(self, "text", function(p) local w = CreateFrame("Frame", nil, p); w:SetSize(ROW_W, 20); w.text = fs(w); w.text:SetPoint("TOPLEFT", 2, -6); return w end)
 	if w.info then w.info:Hide(); w.othersLine = nil end   -- (1.5.0-beta6) a reused row loses the Icon Corners line's info icon
 	w.emphasis = color
 	w.text:SetText(text); w.text:SetTextColor(Skins:Color(color or "muted"))
 	local h = wrapText(w.text, rowW - 4)
-	w:SetHeight(h + 8)
-	self.y = self.y + h + 10
+	w:SetHeight(h + 12)
+	self.y = self.y + h + 12
 end
 
 -- (1.6.0) A small sub-heading inside a card, in the heading colour (the Opacity card's Always, While Moving, In Combat).
@@ -604,6 +702,11 @@ function Panel:Check(key, label, help, opts)
 	self.y = self.y + c:GetHeight()
 end
 
+-- (1.9.0-beta5) Icon Layout's one choice from its two stored switches; Compact wins if an old profile has both
+function Panel.IconLayout()
+	return ns.db.compactCategories and "compact" or (ns.db.splitView and "split" or "full")
+end
+
 -- below: the options go on their own line under the label and help, left
 -- to right, wrapping only if they don't fit (for long option labels).
 -- extra (optional): { label = ..., onClick = fn }, a small button under the
@@ -630,6 +733,8 @@ function Panel:Seg(key, label, options, help, below, extra)
 		b:SetWidth(b.w)
 		local current
 		if key == "__openWindows" then current = ns.db.bagWindows and "all" or (ns.db.reagentWindow and "reagent" or "main")
+		elseif key == "iconLayout" then current = Panel.IconLayout()
+		elseif key == "__globalGrp" then current = ns.Inventory and ns.Inventory:Settings().grp or "type"
 		else current = ns.db[key] end
 		b:SetActive(current == opt[1])
 		b:Show()
@@ -683,8 +788,19 @@ end
 -- Number rows: minus, a box you can type into, plus. Whole numbers only;
 -- percentages are typed as whole percents (85 for 85%). Out-of-range
 -- values snap to the nearest limit.
+-- (1.9.0-beta14) a number row's value: a setting, or Global Inventory's window size (saved apart from profiles)
+local GLOBAL_STEP = { __globalW = { "w", 440, 1400 }, __globalH = { "h", 300, 1200 } }
+function Panel.StepValue(key)
+	local g = GLOBAL_STEP[key]
+	if g then
+		local V = ns.View
+		local G = ns.Inventory and ns.Inventory:Settings() or {}
+		return G[g[1]] or (g[1] == "w" and (V and V.GLOBAL_W or 750) or (V and V.GLOBAL_H or 620))
+	end
+	return ns.db[key]
+end
 local function stepShow(w)
-	local v = ns.db[w.key] or 0
+	local v = Panel.StepValue(w.key) or 0
 	w.value:SetText(tostring(w.percent and math.floor(v * 100 + 0.5) or math.floor(v + 0.5)))
 end
 local function stepCommit(box)
@@ -697,7 +813,9 @@ local function stepCommit(box)
 end
 -- info (1.4.2): an optional { title, lines, keywords } for a small info icon beside the label, with its own tooltip
 -- (the same icon BagSmith uses for its held-back explanations); its words are searchable too.
-function Panel:Step(key, label, step, fmt, help, info)
+-- opts (1.9.0-beta14, optional): { disabled = true } greys the row out, its value shown but fixed (a sub-setting whose
+-- switch is off).
+function Panel:Step(key, label, step, fmt, help, info, opts)
 	local s = acquire(self, "step", function(p)
 		local w = CreateFrame("Frame", nil, p); w:SetSize(ROW_W, LINE)
 		w.text = fs(w); w.help = fs(w)
@@ -712,8 +830,8 @@ function Panel:Step(key, label, step, fmt, help, info)
 		w.unit = w.value:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 		w.unit:SetPoint("RIGHT", w.value, "RIGHT", -6, 0)
 		w.unit:SetText("%")
-		w.minus = ns.IconButton(w, "Interface\\AddOns\\BagSmith\\Media\\ui-minus.tga", "Decrease", function(b) local pr = b:GetParent(); ns:Set(pr.key, ns.db[pr.key] - pr.step) end); w.minus:SetSize(22, 22)
-		w.plus = ns.IconButton(w, "Interface\\AddOns\\BagSmith\\Media\\ui-plus.tga", "Increase", function(b) local pr = b:GetParent(); ns:Set(pr.key, ns.db[pr.key] + pr.step) end); w.plus:SetSize(22, 22)
+		w.minus = ns.IconButton(w, "Interface\\AddOns\\BagSmith\\Media\\ui-minus.tga", "Decrease", function(b) local pr = b:GetParent(); ns:Set(pr.key, Panel.StepValue(pr.key) - pr.step) end); w.minus:SetSize(22, 22)
+		w.plus = ns.IconButton(w, "Interface\\AddOns\\BagSmith\\Media\\ui-plus.tga", "Increase", function(b) local pr = b:GetParent(); ns:Set(pr.key, Panel.StepValue(pr.key) + pr.step) end); w.plus:SetSize(22, 22)
 		return w
 	end)
 	s.key, s.step = key, step
@@ -728,6 +846,13 @@ function Panel:Step(key, label, step, fmt, help, info)
 	-- same spot whether or not the % is shown in the right-hand space.
 	if s.value.SetTextInsets then s.value:SetTextInsets(12, 12, 0, 0) end
 	stepShow(s)
+	local off = opts and opts.disabled and true or false
+	for _, b in ipairs({ s.minus, s.plus, s.value }) do
+		if off then if b.Disable then b:Disable() end else if b.Enable then b:Enable() end end
+		if b.EnableMouse then b:EnableMouse(not off) end
+		b:SetAlpha(off and 0.5 or 1)
+	end
+	if off then s.text:SetTextColor(Skins:Color("muted")) end
 	if info then
 		if not s.info then s.info = ns.Why.InfoButton(s) end
 		s.info.title, s.info.lines = info.title, info.lines
@@ -743,7 +868,7 @@ end
 -- (1.8.0-beta2, Shweep: "Font selection needs to be a dropdown") A choice from a list too long for segments: a button
 -- showing the current choice with a down chevron; it opens BagSmith's menu (ns.ShowMenu) under it, the current choice
 -- ticked; a pick applies at once. choices: { { key = , label = , path = } }; a path shows that name in its own face.
-function Panel:Dropdown(key, label, choices, help)
+function Panel:Dropdown(key, label, choices, help, binding)
 	local DROP_W = 180
 	local s = acquire(self, "dropdown", function(p)
 		local w = CreateFrame("Frame", nil, p); w:SetSize(ROW_W, LINE)
@@ -751,9 +876,12 @@ function Panel:Dropdown(key, label, choices, help)
 		w.btn = ns.TextButton(w, "", DROP_W, function(btn)
 			local pr = btn:GetParent()
 			local items = {}
+			-- A search refresh can reuse this row while its menu is still open.
+			local settingKey, binding = pr.key, pr.binding
+			local value = binding and binding.get() or ns.db[settingKey]
 			-- (1.8.0-beta2, Shweep) a group: a long list scrolls inside the menu, the current one in view
 			for _, c in ipairs(pr.choices or {}) do
-				items[#items + 1] = { text = c.label, checked = c.key == ns.db[pr.key], font = c.path, group = true, radio = true, onClick = function() ns:Set(pr.key, c.key) end }
+				items[#items + 1] = { text = c.label, checked = c.key == value, font = c.path, group = true, radio = true, onClick = function() if binding then binding.set(c.key) else ns:Set(settingKey, c.key) end end }
 			end
 			items.listRows = 20   -- (1.8.0-beta22, after FlareUI) twenty at a time before it scrolls
 			ns.ShowMenu(items, btn)
@@ -788,9 +916,10 @@ function Panel:Dropdown(key, label, choices, help)
 		w.btn:SetClassic(ns.Classic and ns.Classic.IsOn and ns.Classic.IsOn() or false)
 		return w
 	end)
-	s.key, s.choices = key, choices
+	s.key, s.choices, s.binding = key, choices, binding
 	local cur
-	for _, c in ipairs(choices) do if c.key == ns.db[key] then cur = c end end
+	local value = binding and binding.get() or ns.db[key]
+	for _, c in ipairs(choices) do if c.key == value then cur = c end end
 	cur = cur or choices[1]
 	local cy = layoutRow(s, label, help, DROP_W, 22)
 	s.btn:ClearAllPoints(); s.btn:SetPoint("TOPRIGHT", s, "TOPRIGHT", 0, cy)
@@ -1371,7 +1500,9 @@ function Panel:Button(label, onClick, width)
 	b.label:SetText(label); b.onClick = onClick
 	b:SetWidth(width or math.max(80, b.label:GetStringWidth() + 20))
 	b:SetActive(false)
-	self.y = self.y + 26
+	-- (1.9.0-beta3, Shweep) clear of the line above: 4 px above and below
+	b:ClearAllPoints(); b:SetPoint("TOPLEFT", self.frame.child, "TOPLEFT", rowX, -(self.y + 4))
+	self.y = self.y + 30
 end
 -- Several buttons on one row (1.2.0): { { label, onClick }, ... }, laid out left to right.
 function Panel:Buttons(list)
@@ -1381,10 +1512,10 @@ function Panel:Buttons(list)
 		b.label:SetText(spec[1]); b.onClick = spec[2]
 		b:SetWidth(spec[3] or math.max(80, b.label:GetStringWidth() + 20))
 		b:SetActive(false)
-		b:ClearAllPoints(); b:SetPoint("TOPLEFT", self.frame.child, "TOPLEFT", rowX + x, -rowY)
+		b:ClearAllPoints(); b:SetPoint("TOPLEFT", self.frame.child, "TOPLEFT", rowX + x, -(rowY + 4))   -- (1.9.0-beta3) 4 px clear
 		x = x + b:GetWidth() + 6
 	end
-	self.y = rowY + 26
+	self.y = rowY + 30
 end
 
 function Panel:Edit(placeholder, onEnter)
@@ -1455,8 +1586,13 @@ pages.general = function(self, db)
 	self:Seg("priceSource", "Price Source", { { "auto", "Automatic" }, { "auctionator", "Auctionator" }, { "blackthornes", "Blackthornes" } },
 		"Which addon BagSmith gets auction prices from. Automatic uses the one you have, or Auctionator if you have both. " .. now)
 	-- (1.6.0) tips on BagSmith's own controls
-	self:Head("Tips")
-	self:Check("helpTips", "Show Help Tips", "Explains BagSmith's buttons, columns and marks when you point at them. Item tooltips always show.")
+	self:Head("Tooltips")   -- (1.9.0-beta2, Shweep) was "Tips"
+	-- (1.9.0-beta1, Shweep)
+	self:Check("tipInventory", "Show Inventory in Item Tooltips", "Any item's tooltip lists how many your characters on this realm have, in their bags, bank and gear, with the total.")
+	-- (1.9.0-beta2, Shweep)
+	self:Check("tipAHPrice", "Show AH Price in Item Tooltips", "Your items' tooltips show their auction house price each, and how old it is. Needs Auctionator or Blackthornes Tradeskills.")
+	-- (1.9.0-beta2, Shweep) "Show Help Tooltips" (was "Show Help Tips"), last in its card
+	self:Check("helpTips", "Show Help Tooltips", "Explains BagSmith's buttons, columns and marks when you point at them. Item tooltips always show.")
 	self:Head("Blizzard's Interface")
 	if ns.Bank and ns.Bank.supported then
 		self:Check("replaceBank", "Replace the Bank Window", "Opens your bank in a BagSmith window instead of Blizzard's.")
@@ -1485,18 +1621,28 @@ pages.look = function(self, db)
 	self:Step("rowHeight", "Row Height (List View)", 2, "%d")
 	self:Check("dense", "Compact Rows", "Shorter rows in List view")
 	-- (1.8.0, Shweep's plan of 10 Nov) the item windows' text: bags, bank, bag windows, the Loot and Disenchant Helpers
-	self:Step("textScale", "Text Size", 0.1, "%d%%", "How big the item text is in your bags, bank and individual bag windows and the Loot and Disenchant Helpers.")
+	-- (1.9.0-beta9, Shweep: "just want it to be clear what each is for") Item Text Size (was Text Size)
+	self:Step("textScale", "Item Text Size", 0.1, "%d%%", "How big the item text is in your bags, bank and individual bag windows, with their section and column headings, and in the Loot and Disenchant Helpers.")
+	-- (1.9.0-beta8, Shweep) the footer on its own: gold, pinned currencies and the bag counts
+	self:Step("footerTextScale", "Footer Text Size", 0.1, "%d%%", "How big the text is along the bottom of your bags and bank: your gold, pinned currencies and free slots.")
 	do
 		local choices = ns.Fonts and ns.Fonts:Choices() or { { key = "", label = "Default Font" } }
 		for _, c in ipairs(choices) do c.path = ns.Fonts and ns.Fonts:PathOf(c.key) end
-		self:Dropdown("fontName", "Font", choices, "The same item text in another font: BagSmith's own, the game's, or one another addon shares.")
+		-- (1.9.0-beta19) the buttons along the top, the tabs and the character picker too, at their own size
+		self:Dropdown("fontName", "Font", choices, "Your item text and the buttons along the top of your bags in another font: BagSmith's own, the game's, or one another addon shares.")
 	end
 	self:Head("Layout")
-	self:Check("splitView", "Split View (Icons View)", "Shows sections side by side in two columns. Works with By Section or By Bag when the window is wide enough.")
-	-- (1.7.0-beta2, Shweep) greyed while Split View is off
+	-- (1.9.0-beta5, Jeor's compact layout; Shweep: "a 3-way button with Full Width, Split View and Compact View") two
+	-- stored switches (splitView, compactCategories) behind one choice, like When the Main Window Opens
+	local help = { full = "Each section spans the full width of the window.",
+		split = "Sections side by side in two columns. Works with By Section or By Bag when the window is wide enough.",
+		compact = "Sections share rows, each as wide as its items need. Works with By Section." }
+	local layout = Panel.IconLayout()
+	self:Seg("iconLayout", "Icon Layout", { { "full", "Full Width" }, { "split", "Split View" }, { "compact", "Compact View" } }, help[layout])
+	-- greyed (not hidden) while Full Width leaves Recent nothing to span
 	self:Indented(function()
-		self:Check("splitViewRecentWide", "Full-Width Recent", "Recent Items spans both columns instead of sharing a row with the next section.",
-			(not db.splitView) and { disabled = true, checked = db.splitViewRecentWide } or nil)
+		self:Check("splitViewRecentWide", "Full-Width Recent", "Gives Recent Items its own full-width row instead of sharing space with other sections.",
+			layout == "full" and { disabled = true, checked = db.splitViewRecentWide } or nil)
 	end)
 	self:Check("emptySlots", "Show Empty Slots", "Shows your free bag spaces as empty squares in Icons view. Not shown in By Section.")
 end
@@ -1506,6 +1652,7 @@ pages.icons = function(self, db)
 	self:Head("Appearance")
 	self:Seg("border", "Rarity Borders", { { "all", "All" }, { "unc", "Green and Up" }, { "off", "Off" } })
 	self:Check("questFrame", "Gold Frame for Quest Items", "Quest items get a gold frame, whatever Rarity Borders is set to.")   -- (1.8.0-beta11)
+	self:Seg("borderWeight", "Icon Border Weight", { { "normal", "Normal" }, { "bold", "Bold" } })
 	self:Step("iconSize", "Icon Size (Icons View)", 2, "%d", nil, {
 		title = "Smaller icons",
 		lines = {
@@ -1584,7 +1731,7 @@ pages.automation = function(self, db)
 end
 
 pages.loothelper = function(self, db)
-	self:Head("Loot Helper")
+	self:PageHead("Loot Helper", "loothelper")
 	self:Text("When your bags are too full for your loot, the Loot Helper shows ways to make room, then picks up the rest.")
 	self:Check("makeRoom", "Show Loot Helper When Loot Won't Fit")
 	-- (1.7.0-beta4, Shweep) how the list decides, in the words its (i) uses
@@ -1632,9 +1779,10 @@ pages.loothelper = function(self, db)
 end
 
 pages.dehelper = function(self, db)
-	self:Head("Disenchant Helper")
+	self:PageHead("Disenchant Helper", "dehelper")
 	self:Text("Lists the gear in your bags worth disenchanting, with what each is worth, and takes you through it one click at a time. It never disenchants on its own.")
-	self:Text("Estimates start from typical disenchant results. After 20 disenchants of the same kind of item, BagSmith uses your own results instead. Each character keeps its own.")
+	-- (1.9.0-beta3, Shweep) shared by your characters since beta1
+	self:Text("Estimates start from typical disenchant results. After 20 disenchants of the same kind of item, BagSmith uses your own results instead. Your characters share them, so a disenchant on any of them counts for all.")
 	self:Check("deEnabled", "Disenchant Helper", "Adds the Disenchant Helper button by the Gear Sets shield. /bs de and its keybinding open it too.")
 	self:Indented(function()
 		self:Step("deMargin", "Disenchant Must Beat Selling By", 0.05, "%d%%", "Disenchanting is only recommended when the materials are worth this much more than selling.")
@@ -1659,7 +1807,7 @@ pages.dehelper = function(self, db)
 	end)
 	local learned = ns.Disenchant and ns.Disenchant:LearnedCount() or 0
 	if learned > 0 then
-		self:Text(("This character's disenchants on record: %d."):format(learned))
+		self:Text(("Disenchants on record, shared by all your characters: %d."):format(learned))   -- (1.9.0-beta1)
 		self:Button("Forget Learned Results", function(btn)
 			ns.Confirm(btn, ("Forget all %d recorded disenchants? Estimates go back to the typical results."):format(learned), function() ns.Disenchant:ResetLearned(); self:Refresh() end)
 		end)
@@ -1702,6 +1850,17 @@ pages.window = function(self, db)
 	else
 		self:Step("fixW", "Width", 20, "%d"); self:Step("fixH", "Height", 20, "%d")
 	end
+	-- (1.9.0-beta13, Shweep: "this can be a setting (Windows) default true"; beta14: his name and words, and "preset width
+	-- and height as sub-settings if checked but let players change it")
+	self:Check("globalResize", "Global Inventory: Custom Window Size", "Opens Global Inventory in a custom window size, then puts your bags back to their previous size when you leave Global Inventory.")
+	self:Indented(function()
+		local off = not db.globalResize and { disabled = true } or nil
+		self:Step("__globalW", "Width", 20, "%d", nil, nil, off)
+		self:Step("__globalH", "Height", 20, "%d", nil, nil, off)
+	end)
+	-- (1.9.0-beta1, Shweep) 1.8's count left special bags out; players choose
+	self:Seg("bagSlotCount", "Bag Slot Count", { { "exclude", "Exclude Special Bags" }, { "all", "All Free Slots" } },
+		"The free-slot count in the corner of your bags. Exclude Special Bags counts only slots anything fits in, not a quiver's or a herb bag's. Hover the count to see every bag's room either way.")
 	-- (1.7.0-beta2, Shweep)
 	self:Check("lockWindows", "Lock Windows", "Your bags, bank and individual bag windows and the Loot and Disenchant Helpers can't be moved or resized.")
 	-- (1.6.0) one Opacity card, in three parts (Shweep): what's always see-through, what dims while moving, what dims in
@@ -1849,7 +2008,7 @@ end
 
 -- Sections that fill themselves: Recent Items, Favorites and your gear sets.
 pages.dynamic = function(self, db)
-	self:Head("Dynamic Sections")
+	self:PageHead("Dynamic Sections", "dynamic")
 	self:Text("Sections that fill themselves: what you just picked up, what you starred, and your gear sets.")
 	self:Check("recentSection", "Recent Items", "What you've picked up since logging in, newest first. The items stay in their usual sections too, and Clear Recent empties the list.")
 	if db.recentSection then
@@ -1881,7 +2040,7 @@ end
 
 -- Your own sections, and moving items between sections.
 pages.custom = function(self, db)
-	self:Head("Custom Sections")
+	self:PageHead("Custom Sections", "custom")
 	self:Text("Make your own sections. Drag an item onto a section's title, or Alt+Left-click it, to move it there. Every copy of the item moves with it.")
 	self:Button("New Section...", function() ns.Sections:PromptNew() end)
 	self:Check("showEmptySections", "Show Empty Custom Sections", "Shows your sections even when they're empty, so you can drag items onto them.")
@@ -1902,7 +2061,7 @@ pages.columns = function(self, db)
 end
 -- Each window's columns: one list, ticked to show, arrows to reorder.
 local function columnsPage(self, db, bank)
-	self:Head(bank and "Bank Columns" or "Bag Columns")
+	self:PageHead(bank and "Bank Columns" or "Bag Columns", bank and "bankcols" or "bagcols")
 	self:Text((bank and "Your bank window's columns." or "Your bags window's columns (its Bank tab uses them too).")
 		.. " Tick a column to show it. Item is always shown, but you can move it. To resize columns, drag the line between two headers: the two columns beside it trade width, and Item fills the rest of the row. Double-click a line to reset both.")
 	local colsKey, orderKey, widthsKey = bank and "bankCols" or "cols", bank and "bankColOrder" or "colOrder", bank and "bankColWidths" or "colWidths"
@@ -1974,7 +2133,7 @@ pages.sheets = function(self, db)
 end
 -- Each window's tabs and saved sheets: one list, like Columns.
 local function sheetsPage(self, db, bank)
-	self:Head(bank and "Bank Sheets" or "Bag Sheets")
+	self:PageHead(bank and "Bank Sheets" or "Bag Sheets", bank and "banksheets" or "bagsheets")
 	self:Text((bank and "Your bank window's tabs." or "Your bags window's tabs.") .. " Tick a sheet to show its tab. All is always shown, but you can move it. Save your own sheets from the Filter panel.")
 	local orderKey, hiddenKey = bank and "bankTabOrder" or "tabOrder", bank and "bankHiddenTabs" or "hiddenTabs"
 	local order, hiddenList = db[orderKey], db[hiddenKey]
@@ -1999,6 +2158,79 @@ local function sheetsPage(self, db, bank)
 		function(id, delta) local o = db[orderKey]; local i = ns.IndexOf(o, id); if ns.Move(o, i, i + delta) then ns:Fire("SETTINGS_CHANGED", orderKey) end end)
 end
 pages.bagsheets = function(self, db) sheetsPage(self, db, false) end
+
+-- (1.9.0-beta6, Shweep: "adding a page to each for Global ... only add what we absolutely must ... each needs a header
+-- (with the global icon to make it stand out) explaining that these setting live outside the profile and are
+-- universal") Global Inventory's own settings, saved for the account (BagSmithDB.globalInv).
+function Panel:GlobalHead(title, page)
+	self:PageHead(title, page)
+	self:Text("For Global Inventory (the globe), on every character. These settings live outside your profiles: switching profile or character doesn't change them.")
+end
+local function globalRefresh() ns:Fire("SETTINGS_CHANGED", "globalInv"); ns:RefreshViews(true) end
+pages.globalsections = function(self, db)
+	self:GlobalHead("Global Inv Sections", "globalsections")
+	self:Seg("__globalGrp", "Open with Sections", { { "none", "All" }, { "type", "By Section" } })
+	self:Text("Global Inventory always uses BagSmith's standard sections in their standard order. Consumables and Gear aren't split, and custom sections, moved items, pinned sections, Favorites, Recent and gear sets don't appear there. Your own section settings apply to your bags and bank.")
+end
+pages.globalcols = function(self, db)
+	self:GlobalHead("Global Inv Columns", "globalcols")
+	local G = ns.Inventory:Settings()
+	self:Text("Item, Who, Where and Vendor always show, in that order. Tick other columns to show them after; the arrows reorder them.")
+	-- (1.9.0-beta7, Shweep) AH Price as in Bag Columns: tick it on or off; greyed, saying why, without a price addon
+	local function item(id, checked)
+		if id == "ah" then
+			local ok = ns.AH:Available()
+			return { id = id, label = ns.COL_LABEL[id], checked = checked, disabled = not ok,
+				tip = ok and (ns.AH:ColumnText() .. " Shows the stack's value, or \"-\" when an item hasn't been scanned. Price Source is in General.") or ns.AH.INSTALL_HINT }
+		end
+		return { id = id, label = ns.COL_LABEL[id], checked = checked }
+	end
+	local items = {}
+	for _, id in ipairs(G.colOrder) do
+		if ns.IndexOf(ns.GLOBAL_COLS, id) then items[#items + 1] = item(id, ns.IndexOf(G.cols, id) ~= nil) end
+	end
+	for _, id in ipairs(ns.GLOBAL_COLS) do
+		if not ns.IndexOf(G.colOrder, id) then table.insert(G.colOrder, id); items[#items + 1] = item(id, false) end
+	end
+	self:List(items,
+		function(id, on)
+			local i = ns.IndexOf(G.cols, id)
+			if on and not i then table.insert(G.cols, id) elseif not on and i then table.remove(G.cols, i) end
+			globalRefresh()
+		end,
+		function(id, delta)
+			-- among the columns listed here (the order also holds the fixed ones and any it doesn't offer)
+			local vis = {}
+			for _, it in ipairs(items) do vis[#vis + 1] = it.id end
+			local i = ns.IndexOf(vis, id); local j = i and i + delta
+			if not (j and vis[j]) then return end
+			local a, b = ns.IndexOf(G.colOrder, vis[i]), ns.IndexOf(G.colOrder, vis[j])
+			G.colOrder[a], G.colOrder[b] = G.colOrder[b], G.colOrder[a]
+			globalRefresh()
+		end)
+	self:Button("Reset Global Column Widths", function() G.colWidths = {}; globalRefresh() end)
+end
+pages.globalsheets = function(self, db)
+	self:GlobalHead("Global Inv Sheets", "globalsheets")
+	self:Text("Tick a tab to show it in Global Inventory. All is always shown, but you can move it. Only these built-in tabs show there: your own sheets belong to your profile. Bank shows what's in your characters' banks.")
+	local G = ns.Inventory:Settings()
+	local hidden = {}
+	for _, t in ipairs(G.hiddenTabs) do hidden[t] = true end
+	local items = {}
+	for _, id in ipairs(G.tabOrder) do
+		items[#items + 1] = { id = id, label = ns.TAB_LABEL[id] or id, checked = (id ~= "All") and not hidden[id] or nil }
+	end
+	self:List(items,
+		function(id, on)
+			if id == "All" then return end
+			local i = ns.IndexOf(G.hiddenTabs, id)
+			if on and i then table.remove(G.hiddenTabs, i) elseif not on and not i then table.insert(G.hiddenTabs, id) end
+			local V = ns.Window and ns.Window.main
+			if not on and V and ns.ui.global and V.st and V.st.sheet == id then V.st.sheet = "All" end
+			globalRefresh()
+		end,
+		function(id, delta) local i = ns.IndexOf(G.tabOrder, id); if ns.Move(G.tabOrder, i, i + delta) then globalRefresh() end end)
+end
 pages.banksheets = function(self, db) sheetsPage(self, db, true) end
 
 pages.sorting = function(self, db)
@@ -2339,7 +2571,7 @@ function Panel:Refresh()
 	for _, pool in pairs(self.pools) do for _, w in ipairs(pool) do w:Hide() end end
 	self.frame.sub:SetText("Profile: " .. ns.profileName)
 	local fn = pages[self.page] or pages.profile
-	if self.query then self:RefreshSearch(ns.db) else fn(self, ns.db) end
+	if self.query then self:RefreshSearch(ns.db) else self:MainPageTitle(self.page); fn(self, ns.db) end
 	self:CloseCard()
 	self.frame.child:SetHeight(self.y + 10)
 	self.frame.child:SetWidth(ROW_W)
@@ -2349,8 +2581,29 @@ function Panel:Refresh()
 		local need = self.y + 10 > h + 1
 		sb:SetShown(need)
 		if not need then self.scroll:SetVerticalScroll(0) end
+		self:SyncHeadShade()   -- (1.9.0-beta20)
 	end
 	if ns.Classic then ns.Classic:DressButtons(self.frame) end   -- new rows match the current skin
+end
+
+-- (1.9.0-beta10, Shweep: "Each primary area now also gets a primary header with icon beside it at top, don't add too
+-- much wasted space below") A main page's name and icon above its first section, snug against it. Pages under another
+-- already lead with theirs on their first heading.
+function Panel:MainPageTitle(page)   -- (not PageTitle: search results' page labels, below)
+	local icon = Panel.PAGE_ICON[page]
+	local label
+	for _, p in ipairs(PAGES) do if p[1] == page and not p[3] then label = p[2] end end
+	if not (icon and label) then return end
+	local t = acquire(self, "pagetitle", function(p)
+		local w = CreateFrame("Frame", nil, p); w:SetSize(ROW_W, 24)
+		w.icon = w:CreateTexture(nil, "ARTWORK"); w.icon:SetSize(18, 18); w.icon:SetPoint("LEFT", 2, 0)
+		w.text = fs(w, "GameFontNormalLarge"); w.text:SetPoint("LEFT", w.icon, "RIGHT", 7, 0)
+		return w
+	end)
+	t.page = page
+	t.icon:SetTexture(icon); Panel.IconColor(t.icon, true)
+	t.text:SetText(label); t.text:SetTextColor(Skins:Color("heading"))
+	self.y = self.y + 18
 end
 
 -- (1.8.0-beta18) Open Settings on a page, scrolled to a heading on it when one is named (What's New's links). A heading
@@ -2366,6 +2619,7 @@ function Panel:Open(page, heading)
 	if y and self.scroll then
 		local room = math.max(0, (self.frame.child:GetHeight() or 0) - (self.scroll:GetHeight() or 0))
 		self.scroll:SetVerticalScroll(math.max(0, math.min(room, y - 4)))
+		self:SyncHeadShade()   -- (1.9.0-beta20)
 	end
 	return true, y
 end
@@ -2375,6 +2629,30 @@ local origSet = ns.Set
 function ns:Set(key, value, silent)
 	if key == "__profile" then local ok, err = ns.Profiles:Use(value); if not ok then ns:Print(err) end return ok end
 	-- When the Main Window Opens: two stored switches behind one choice.
+	-- (1.9.0-beta14) Global Inventory's window size, from Settings > Windows
+	local g = GLOBAL_STEP[key]
+	if g then
+		local v = tonumber(value)
+		if not v or not ns.Inventory then return false end
+		v = math.max(g[2], math.min(g[3], math.floor(v + 0.5)))
+		ns.Inventory:Settings()[g[1]] = v
+		local V = ns.Window and ns.Window.main
+		if V and ns.ui.global then ns:Safely("globalsize:" .. V.name, function() V:ApplySize() end) end
+		ns:Fire("SETTINGS_CHANGED", "globalInv")
+		return true
+	end
+	-- (1.9.0-beta6) Global Sections' Open with Sections: Global Inventory's own, outside every profile
+	if key == "__globalGrp" then
+		if not (value == "none" or value == "type") or not ns.Inventory then return false end
+		ns.Inventory:Settings().grp = value
+		ns:Fire("SETTINGS_CHANGED", "globalInv"); ns:RefreshViews(true)
+		return true
+	end
+	-- (1.9.0-beta5) so is Icon Layout: Full Width, Split View or Compact View
+	if key == "iconLayout" then
+		origSet(self, "splitView", value == "split", true)
+		return origSet(self, "compactCategories", value == "compact", silent)
+	end
 	if key == "__openWindows" then
 		origSet(self, "bagWindows", value == "all", true)
 		return origSet(self, "reagentWindow", value == "all" or value == "reagent", silent)
@@ -2428,6 +2706,7 @@ function Panel:SetQuery(text)
 	if q and ns.KeyBinds then ns.KeyBinds:CancelCapture() end
 	self.query = q
 	if self.scroll then self.scroll:SetVerticalScroll(0) end
+	self:SyncHeadShade()   -- (1.9.0-beta20)
 	self:SyncNav()
 	self:Refresh()
 end

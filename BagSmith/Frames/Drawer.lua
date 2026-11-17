@@ -38,10 +38,14 @@ function Drawer:Create()
 	close:SetScript("OnClick", function() Drawer:Hide() end)
 	-- Classic: Blizzard's window frame (no portrait), title in the strip.
 	f.hint = fs(f); f.hint:SetPoint("TOPLEFT", 12, -34); f.hint:SetPoint("TOPRIGHT", -12, -34)
+	-- (1.9.0-beta18, Shweep: "Can't read the entire description text here and no way to expand it") the note wraps;
+	-- the list starts below it (Drawer:PlaceList)
+	f.hint:SetWordWrap(true); f.hint:SetJustifyV("TOP")
 
 	local scroll = CreateFrame("ScrollFrame", "BagSmithDrawerScroll", f, "UIPanelScrollFrameTemplate")
 	scroll:SetPoint("TOPLEFT", 8, -50)
 	scroll:SetPoint("BOTTOMRIGHT", -26, 72)
+	f.listDown = 0   -- (beta18) how far a wrapped note pushes the list down
 	local child = CreateFrame("Frame", nil, scroll)
 	child:SetSize(WIDTH - 40, 1)
 	scroll:SetScrollChild(child)
@@ -81,13 +85,13 @@ function Drawer:Create()
 	-- Its border is thicker than Modern's, so the list, its scrollbar and the
 	-- Import button move in to clear it (Modern's spots are put back after).
 	f.classicSpec = {
-		title = function() return "Currencies" end,
+		title = function() return Drawer:Title() end,
 		close = function() Drawer:Hide() end,
 		hide = { f.title, close },
 		moves = {
 			{ scroll, function()
 				scroll:ClearAllPoints()
-				scroll:SetPoint("TOPLEFT", f, "TOPLEFT", 12, -50)
+				scroll:SetPoint("TOPLEFT", f, "TOPLEFT", 12, -50 - (f.listDown or 0))
 				scroll:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -32, 78)
 			end },
 			{ add, function() add:ClearAllPoints(); add:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 20, 44) end },
@@ -139,6 +143,26 @@ local function row(f, i)
 	end)
 	r.star:SetScript("OnLeave", function() GameTooltip:Hide() end)
 	r.star:SetScript("OnClick", function(b) ns.Currency:ToggleFavorite(b:GetParent().key); Drawer:Refresh() end)
+	-- (1.9.0-beta4) In Global Inventory a row's tooltip says who has how many
+	r:EnableMouse(true)
+	r:SetScript("OnEnter", function(self)
+		if not (self.per and ns.TooltipsOK()) then return end
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddDoubleLine(self.nameText or "", "Total: " .. tostring(self.total or 0), 1, 0.82, 0, 0.55, 0.78, 1)
+		for _, p in ipairs(self.per) do
+			local cr, cg, cb = ns.ClassColor(p.class)
+			GameTooltip:AddDoubleLine((ns.Inventory and ns.Inventory.ClassIcon(p.class) or "") .. (p.name or "?"), tostring(p.count), cr, cg, cb, 1, 1, 1)
+		end
+		GameTooltip:Show()
+	end)
+	r:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	-- (1.9.0-beta18) In Global Inventory a currency more than one character has opens into a row per character
+	r:SetScript("OnMouseUp", function(self, button)
+		if button ~= "LeftButton" or not self.kids then return end
+		Drawer.open = Drawer.open or {}
+		Drawer.open[self.key] = not Drawer.open[self.key] or nil
+		Drawer:Refresh()
+	end)
 	ns.HoverWash(r.star, 0)
 	r.icon = r:CreateTexture(nil, "ARTWORK"); r.icon:SetSize(16, 16); r.icon:SetPoint("LEFT", r.star, "RIGHT", 4, 0)
 	r.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
@@ -155,36 +179,79 @@ local function row(f, i)
 	return r
 end
 
+-- (1.9.0-beta4, Shweep: "confirm whose currencies") The title names whose they are: yours, the character you're viewing,
+-- or Global Inventory's (every character's).
+function Drawer:Title()
+	if ns.ui.global and not ns.ui.owner then return "Global Currencies" end
+	local data = ns.ui.owner and BagSmithDB.cache[ns.ui.owner]
+	local name = data and data.name or (ns.DisplayName and ns:DisplayName("player")) or ""
+	local first = name:match("^(%S+)") or name
+	return first ~= "" and (first .. "'s Currencies") or "Currencies"
+end
 function Drawer:Refresh()
 	local f = self.frame
 	if not f or not f:IsShown() then return end
 	local owner = ns.ui.owner
+	local global = ns.ui.global and not owner
 	local favs, all = ns.Currency:Favorites(owner)
 	local favSet = {}
 	for _, e in ipairs(favs) do favSet[e.key] = true end
 	local main = ns.Window.main
-	f.hint:SetText(#favs > 0 and ("%d of %d pinned fit in the footer"):format(main.favShown or 0, #favs) or "Pin a currency to show it in the bag footer.")
+	f.title:SetText(self:Title())
+	if ns.Classic and ns.Classic.Retitle then ns.Classic:Retitle(f, f.title:GetText()) end
+	if global then
+		f.hint:SetText(#favs > 0 and "Pinned currencies show in Global Inventory's footer, totalled for all your characters." or "All your characters' currencies. Pin one to show it in Global Inventory's footer.")
+	else
+		f.hint:SetText(#favs > 0 and ("%d of %d pinned fit in the footer"):format(main.favShown or 0, #favs) or "Pin a currency to show it in the bag footer.")
+	end
 	f.hint:SetTextColor(Skins:Color("muted"))
+	self:PlaceList()
 
 	local y, ri, hi = 0, 0, 0
+	local ar, ag, ab = Skins:Accent()
+	local arrow = function(open) return ("|TInterface\\AddOns\\BagSmith\\Media\\%s:12:12:0:0:64:64:0:64:0:64:%d:%d:%d|t "):format(open and "ui-chev-down.tga" or "ui-chev-right.tga",
+		math.floor(ar * 255 + 0.5), math.floor(ag * 255 + 0.5), math.floor(ab * 255 + 0.5)) end
+	-- (1.9.0-beta18) a character's own row under an opened currency: indented, class icon, name in class color, count
+	local function addKid(p)
+		ri = ri + 1
+		local r = row(f, ri)
+		r.key, r.id, r.per, r.kids, r.kid = nil, nil, nil, nil, true
+		r:SetWidth(rowWidth(f) - 14)
+		if CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[p.class] then
+			r.icon:SetTexture("Interface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES"); r.icon:SetTexCoord(unpack(CLASS_ICON_TCOORDS[p.class]))
+		else
+			r.icon:SetTexture(nil)
+		end
+		r.icon:SetDesaturated(false)
+		r.name:SetText(p.name or "?"); r.name:SetTextColor(ns.ClassColor(p.class))
+		r.src:SetText("")
+		r.count:SetText(BreakUpLargeNumbers and BreakUpLargeNumbers(p.count) or p.count); r.count:SetTextColor(Skins:Color("text"))
+		r.star:Hide(); r.up:Hide(); r.down:Hide(); r.remove:Hide()
+		r:ClearAllPoints(); r:SetPoint("TOPLEFT", f.child, "TOPLEFT", 14, -y); r:Show()
+		y = y + ROW_H
+	end
 	local function addRow(e, isFav)
 		ri = ri + 1
 		local r = row(f, ri)
-		r.key, r.id = e.key, e.id
+		r.key, r.id, r.kid = e.key, e.id, nil
+		r.per, r.total, r.nameText = e.per, e.count, e.name   -- (beta4) Global Inventory's breakdown
+		r.kids = global and e.per and #e.per > 1 or nil
+		local open = r.kids and Drawer.open and Drawer.open[e.key]
 		r:SetWidth(rowWidth(f))
-		r.icon:SetTexture(e.icon)
+		r.icon:SetTexture(e.icon); r.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 		local none = e.custom and (e.count or 0) == 0   -- a tracked item you have none of: dimmed
-		r.name:SetText(e.name); r.name:SetTextColor(Skins:Color(none and "muted" or "text"))
+		r.name:SetText((r.kids and arrow(open) or "") .. e.name); r.name:SetTextColor(Skins:Color(none and "muted" or "text"))
 		r.src:SetText(e.source or ""); r.src:SetTextColor(Skins:Color("muted"))
 		r.count:SetText(BreakUpLargeNumbers and BreakUpLargeNumbers(e.count) or e.count)
 		r.count:SetTextColor(Skins:Color(none and "muted" or "text"))
 		r.icon:SetDesaturated(none and true or false)
-		r.remove:SetShown(e.custom and not isFav and not owner and true or false)
+		r.remove:SetShown(e.custom and not isFav and not owner and not global and true or false)
 		r.star.tex:SetVertexColor(isFav and 0.98 or 0.4, isFav and 0.78 or 0.4, isFav and 0.46 or 0.4)
 		r.up:SetShown(isFav and not owner); r.down:SetShown(isFav and not owner)
 		r.star:SetShown(not owner)
 		r:ClearAllPoints(); r:SetPoint("TOPLEFT", f.child, "TOPLEFT", 0, -y); r:Show()
 		y = y + ROW_H
+		if open then for _, p in ipairs(e.per) do addKid(p) end end
 	end
 	local function addHead(text, sub)
 		hi = hi + 1
@@ -208,9 +275,9 @@ function Drawer:Refresh()
 	for j = ri + 1, #f.rows do f.rows[j]:Hide() end
 	for j = hi + 1, #f.heads do f.heads[j]:Hide() end
 	f.child:SetSize(rowWidth(f), math.max(1, y))
-	f.import:SetShown(not owner)
-	f.add:SetShown(not owner); f.addHint:SetShown(not owner)
-	if owner then for _, s in ipairs(f.suggest) do s:Hide() end end
+	f.import:SetShown(not owner and not global)
+	f.add:SetShown(not owner and not global); f.addHint:SetShown(not owner and not global)
+	if owner or global then for _, s in ipairs(f.suggest) do s:Hide() end end
 	if ns.Classic and self.frame then ns.Classic:DressButtons(self.frame) end
 end
 
@@ -299,8 +366,26 @@ function Drawer:Position()
 	if side == "left" then f:SetPoint("TOPRIGHT", main, "TOPLEFT", -4, 0) else f:SetPoint("TOPLEFT", main, "TOPRIGHT", 4, 0) end
 end
 
+-- (1.9.0-beta18) the list starts below the note, however many lines it takes
+function Drawer:PlaceList()
+	local f = self.frame
+	if not f then return end
+	local h = f.hint:GetStringHeight() or 0
+	local line = 14
+	local down = math.max(0, math.floor(h - line + 0.5))
+	if down == f.listDown then return end
+	f.listDown = down
+	local sc = f.scroll
+	sc:ClearAllPoints()
+	if ns.Classic and ns.Classic.IsOn and ns.Classic.IsOn() then
+		sc:SetPoint("TOPLEFT", f, "TOPLEFT", 12, -50 - down); sc:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -32, 78)
+	else
+		sc:SetPoint("TOPLEFT", f, "TOPLEFT", 8, -50 - down); sc:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -26, 72)
+	end
+end
 function Drawer:Show()
 	self:Create()
+	self.open = nil   -- (beta18) currencies start closed each time the drawer opens
 	self:Position()
 	self.frame:Show()
 	self:Refresh()

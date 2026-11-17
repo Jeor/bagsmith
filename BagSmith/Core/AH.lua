@@ -165,7 +165,8 @@ end
 
 -- Lines added to an item's tooltip while the column is on.
 function AH:AddTooltipLines(tip, rec)
-	if not (tip and rec and self:ColumnOn()) then return end
+	-- (1.9.0-beta2, Shweep) its own setting, Show AH Price in Item Tooltips (it used to follow the AH Price column)
+	if not (tip and rec and ns.db and ns.db.tipAHPrice and self:Available()) then return end
 	if not self:Sellable(rec) then return end   -- (1.6.0-beta11) the game's tooltip already says Soulbound
 	local p = self:Price(rec)
 	if not p then

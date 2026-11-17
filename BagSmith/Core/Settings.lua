@@ -35,6 +35,11 @@ end
 ns.COLS = { { "c", "Qty" }, { "il", "iLvl" }, { "rq", "Req lvl" }, { "t", "Type" }, { "sl", "Slot" }, { "bd", "Bind" }, { "v", "Vendor" }, { "w", "Where" }, { "age", "Age" }, { "ah", "AH Price" }, { "fv", "Favorite" }, { "cc", "Currency" }, { "jk", "Junk" } }
 ns.COL_LABEL = {}
 for _, c in ipairs(ns.COLS) do ns.COL_LABEL[c[1]] = c[2] end
+ns.COL_LABEL.who = "Who"   -- (1.9.0-beta2) Global Inventory's own column (not offered in Bag Columns)
+-- (1.9.0-beta6) the columns Global Inventory can show besides its fixed ones: not Age, Favorite, Currency or Junk,
+-- which are about one character's items. (beta7, Shweep: "allow AH to be turned off ... Vendor always") Item, Who,
+-- Where and Vendor are fixed; AH Price is one of these, greyed without a price source as in Bag Columns.
+ns.GLOBAL_COLS = { "c", "il", "rq", "t", "sl", "bd", "ah" }
 ns.BASE_TABS = { "All", "Gear", "Consumables", "TradeGoods", "Quest", "Junk", "GearSets", "Bank" }
 ns.TAB_LABEL = { All = "All", Gear = "Gear", GearSets = "Gear Sets", Consumables = "Consumables", TradeGoods = "Trade Goods", Quest = "Quest", Junk = "Junk", Bank = "Bank" }
 -- Tabs the bank window doesn't have (its own Bank tab is the window itself; gear sets are equipped from your bags).
@@ -50,6 +55,7 @@ local DEFAULTS = {
 	bankGrp = "type", bankSort = "quality", bankView = "list", bankMerge = false,   -- the bank window's own
 	reagentWindow = false,     -- also show the reagent bag in its own window (set with bagWindows by "When the Main Window Opens")
 	border = "all",            -- all | unc | off
+	borderWeight = "normal",   -- normal | bold
 	rtext = true, newdot = true, dense = false,
 	-- layout
 	view = "list",             -- list | icons
@@ -59,6 +65,9 @@ local DEFAULTS = {
 	reagent = "lane",          -- inline (Mixed In) | lane (Own Section)
 	keys = true, emptySlots = true,
 	splitView = false,         -- icon view with sections: sections side by side in two columns (Sections page)
+	footerTextScale = 1,       -- (1.9.0-beta8) Footer Text Size: the footer's text, 80% to 150% (Style page)
+	globalResize = true,       -- (1.9.0-beta13) Resize for Global Inventory: its own size while it shows (Windows page)
+	compactCategories = false, -- Icons + By Section: variable-width category rows
 	splitViewRecentWide = false,   -- (1.7.0-beta2) Split View: Recent spans both columns instead of pairing
 	recentSection = true,      -- a Recent section pinned at the top of the bags window (Sections page)
 	recentWindow = "session",  -- session | 1h | 15m
@@ -69,6 +78,9 @@ local DEFAULTS = {
 	travelMode = false,        -- Travel Mode (the signpost beside the close button): toolbar hidden, search in the title row
 	travelLeaveBank = true,    -- Auto Travel Mode: off while the bank is open, back on after
 	travelLeaveGuildBank = true,   -- ... the guild bank (1.8.0-beta23)
+	tipInventory = true,   -- (1.9.0-beta1) item tooltips list your characters' counts
+	tipAHPrice = true,     -- (1.9.0-beta2) an item's tooltip shows its AH price (with a price source); was only with the AH Price column
+	bagSlotCount = "exclude",   -- (1.9.0-beta1, Shweep) the footer's free count: "exclude" special bags (1.8) or "all" free slots
 	travelLeaveAH = true,      -- ... the auction house
 	travelLeaveVendor = true,  -- ... a vendor
 	travelLeaveTaxi = true,    -- ... a flight path (back on after landing)
@@ -306,10 +318,10 @@ local validators = {
 	deResultsVersion = function(v) return finite(v) and v or nil end,
 	deOfferDeclined = function(v) return v == true or false end,
 	bankSheets = sheetsValidator,
-	skin = oneOf("modern", "classic"), border = oneOf("all", "unc", "off"),
+	skin = oneOf("modern", "classic"), border = oneOf("all", "unc", "off"), borderWeight = oneOf("normal", "bold"),
 	accent = function(v) v = type(v) == "string" and v:lower():gsub("^#", "") or ""; return v:match("^%x%x%x%x%x%x$") and v or nil end,
 	iconItemLevelColor = function(v) v = type(v) == "string" and v:lower():gsub("^#", "") or ""; return v:match("^%x%x%x%x%x%x$") and v or nil end,
-	view = oneOf("list", "icons"), side = oneOf("left", "right"),
+	view = oneOf("list", "icons"), side = oneOf("left", "right"), bagSlotCount = oneOf("exclude", "all"),
 	bagPoints = function(v)
 		if type(v) ~= "table" then return nil end
 		local out = {}
@@ -341,7 +353,7 @@ local validators = {
 	end,
 	sort = oneOf("quality", "name", "newest", "oldest", "ilvl", "off"), sizeMode = oneOf("auto", "fixed"),
 	bankGrp = oneOf("none", "type", "bag"), bankSort = oneOf("quality", "name", "newest", "oldest", "ilvl", "off"), bankView = oneOf("list", "icons"),
-	combatAlpha = num(0.05, 1), bgOpacity = num(0, 1), pinnedHighlightAlpha = num(0.05, 0.5), movingAlpha = num(0.05, 1), scale = num(0.5, 1.5), textScale = num(0.8, 1.5), fontName = function(v) if type(v) == "string" and #v <= 100 then return v end end, bagCols = num(4, 12, true), bagScale = num(0.5, 1.5), bagMaxH = num(200, 800, true), shardKeep = num(0, 40, true), maxW = num(440, 1400, true), maxH = num(300, 1200, true),
+	combatAlpha = num(0.05, 1), bgOpacity = num(0, 1), pinnedHighlightAlpha = num(0.05, 0.5), movingAlpha = num(0.05, 1), scale = num(0.5, 1.5), textScale = num(0.8, 1.5), footerTextScale = num(0.8, 1.5), fontName = function(v) if type(v) == "string" and #v <= 100 then return v end end, bagCols = num(4, 12, true), bagScale = num(0.5, 1.5), bagMaxH = num(200, 800, true), shardKeep = num(0, 40, true), maxW = num(440, 1400, true), maxH = num(300, 1200, true),
 	fixW = num(440, 1400, true), bankW = num(500, 1400, true), bankH = num(300, 1200, true), fixH = num(300, 1200, true), iconSize = num(24, 48, true), rowHeight = num(20, 32, true),
 	minimapAngle = num(0, 360), point = pointV, bankPoint = pointV, settingsPoint = pointV,
 	makeRoomPos = function(v) if v == false then return false end return pointV(v) end,
@@ -829,6 +841,40 @@ local function loadDB(saved)
 	-- (a first install) stays empty and is marked seen once loaded.
 	if type(saved) == "table" then db.whatsNewSeen = type(saved.whatsNewSeen) == "string" and saved.whatsNewSeen or "0.0.0" end
 	-- (1.8.0-beta18) The Settings pages whose "NEW" tags this account has opened, per release ({ ["1.8"] = { look = true } }).
+	-- (1.9.0-beta1) The Disenchant Helper's log, shared by your characters: results and learned materials, checked as the
+	-- per-character ones are.
+	if type(saved) == "table" and type(saved.deShared) == "table" then
+		local d = saved.deShared
+		db.deShared = { version = finite(d.version) and d.version or 0, results = deResultsValidator(d.results) or {}, materials = deMaterialsValidator(d.materials) or {} }
+	end
+	-- (1.9.0-beta4) Global Inventory's own settings (outside every profile), checked as a profile's are
+	if type(saved) == "table" and type(saved.globalInv) == "table" then
+		local g = saved.globalInv
+		local out = { allRealms = g.allRealms == true, colWidths = {}, collapsed = {}, pins = {}, ahOn = g.ahOn == true }
+		-- (1.9.0-beta13) the size you gave it there
+		if finite(g.w) and g.w >= 440 and g.w <= 1400 then out.w = math.floor(g.w + 0.5) end
+		if finite(g.h) and g.h >= 300 and g.h <= 1200 then out.h = math.floor(g.h + 0.5) end
+		if type(g.sort) == "string" and #g.sort <= 20 then out.sort = g.sort end
+		if g.grp == "type" or g.grp == "none" then out.grp = g.grp end
+		for k, w in pairs(type(g.colWidths) == "table" and g.colWidths or {}) do
+			if type(k) == "string" and #k <= 8 and finite(w) and w >= 10 and w <= 2000 then out.colWidths[k] = w end
+		end
+		for _, id in ipairs(type(g.collapsed) == "table" and g.collapsed or {}) do if type(id) == "string" and #id <= 100 then out.collapsed[#out.collapsed + 1] = id end end
+		for _, k in ipairs(type(g.pins) == "table" and g.pins or {}) do if type(k) == "string" and #k <= 40 then out.pins[#out.pins + 1] = k end end
+		-- (1.9.0-beta6) its own columns and tabs: known ids only, no repeats; a missing list starts from your bags'
+		local function ids(list, known)
+			if type(list) ~= "table" then return nil end
+			local o, seen = {}, {}
+			for _, id in ipairs(list) do if type(id) == "string" and known(id) and not seen[id] then seen[id] = true; o[#o + 1] = id end end
+			return o
+		end
+		local function isCol(id) return ns.COL_LABEL[id] ~= nil or id == "n" end
+		local function isTab(id) return ns.TAB_LABEL[id] ~= nil end
+		out.cols, out.colOrder = ids(g.cols, isCol), ids(g.colOrder, isCol)
+		out.tabOrder, out.hiddenTabs = ids(g.tabOrder, isTab), ids(g.hiddenTabs, isTab)
+		if out.tabOrder then for _, id in ipairs(ns.BASE_TABS) do if not ns.IndexOf(out.tabOrder, id) then out.tabOrder[#out.tabOrder + 1] = id end end end
+		db.globalInv = out
+	end
 	if type(saved) == "table" and type(saved.newSeen) == "table" then
 		local keep, releases = {}, 0
 		for rel, seen in pairs(saved.newSeen) do
@@ -872,6 +918,18 @@ local function loadDB(saved)
 							end
 							data[key] = good
 						end
+					end
+					-- (1.9.0-beta1) what each character wears: { slot, itemID, link, count }, anything else dropped
+					if data.equipped ~= nil then
+						local good = {}
+						if type(data.equipped) == "table" then
+							for _, r in ipairs(data.equipped) do
+								if type(r) == "table" and type(r.itemID) == "number" and type(r.slot) == "number" and (r.link == nil or type(r.link) == "string") then
+									good[#good + 1] = { slot = r.slot, itemID = r.itemID, link = r.link, count = 1 }
+								else repaired = true end
+							end
+						else repaired = true end
+						data.equipped = good
 					end
 					for _, key in ipairs({ "bags", "bankBags", "currencies" }) do
 						if data[key] ~= nil and type(data[key]) ~= "table" then data[key] = nil; repaired = true end
@@ -1117,6 +1175,30 @@ ns:On("ADDON_LOADED", function(name)
 	ns:Fire("ADDON_READY")
 	ns:Fire("PROFILE_ACTIVATED")
 end)
+
+-- (1.9.0-beta6, Shweep: Global Inventory "uses the game's defaults" for sections) While Global Inventory works out and
+-- draws its sections, these settings read as BagSmith's defaults, never your profile's: standard order, no splits,
+-- Keys and the reagent bag their own sections, no custom sections, moves or pins, and no Favorites, Recent or gear set
+-- sections (they belong to one character). Swapped in for the call only and always put back, even on an error.
+local GLOBAL_SECTIONS = { splitCons = false, splitGear = false, keys = true, reagent = "lane", customSections = {},
+	sectionMoves = {}, pinnedSections = {}, favSection = false, recentSection = false, gearSetSections = false,
+	showEmptySections = false, pinnedHighlight = false }
+function ns:WithDefaultSections(fn, ...)
+	local db = ns.db
+	if type(db) ~= "table" or ns.inDefaultSections then return fn(...) end
+	local saved = {}
+	for k, v in pairs(GLOBAL_SECTIONS) do saved[k] = db[k]; db[k] = v end
+	saved.laneOrder = db.laneOrder
+	local order = {}
+	for i, id in ipairs(DEFAULTS.laneOrder) do order[i] = id end
+	db.laneOrder = order
+	ns.inDefaultSections = true
+	local res = { pcall(fn, ...) }
+	ns.inDefaultSections = nil
+	for k, v in pairs(saved) do db[k] = v end
+	if not res[1] then error(res[2], 0) end
+	return unpack(res, 2)
+end
 
 function ns:Set(key, value, silent)
 	if DEFAULTS[key] == nil then error(("BagSmith: unknown setting %q"):format(tostring(key))) end

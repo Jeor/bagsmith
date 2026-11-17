@@ -71,6 +71,9 @@ local function frameMethods(f)
 	f.Enable = function(self) self.enabled = true end
 	f.Disable = function(self) self.enabled = false end
 	f.IsEnabled = function(self) return self.enabled ~= false end
+	-- (1.9.0-beta5) the client runs no OnEnter or OnLeave on a disabled button unless this is set: see M.enter
+	f.SetMotionScriptsWhileDisabled = function(self, on) self.motionWhileDisabled = on and true or false end
+	f.GetMotionScriptsWhileDisabled = function(self) return self.motionWhileDisabled == true end
 	f.SetScale = function(self, s) self.scale = s end
 	f.SetNormalTexture, f.SetPushedTexture, f.SetHighlightTexture = noop, noop, noop
 	f.GetHighlightTexture = function() return M.tex() end
@@ -97,7 +100,7 @@ local function frameMethods(f)
 	f.regions = {}
 	-- Regions are remembered on their frame so the look checks can read them.
 	f.CreateTexture = function(self, _, layer, _, sub) local t = M.tex(); t.parentFrame, t.layer, t.sublayer = self, layer, sub; self.regions[#self.regions + 1] = t; return t end
-	f.CreateFontString = function(self) local s = M.fs(); s.parentFrame = self; self.regions[#self.regions + 1] = s; return s end
+	f.CreateFontString = function(self, _, _, template) local s = M.fs(); s.parentFrame = self; s.fontObject = template; self.regions[#self.regions + 1] = s; return s end
 	f.icon, f.IconBorder, f.Count, f.Cooldown = M.tex(), M.tex(), M.fs(), M.tex()
 	f.NewItemTexture, f.BattlepayItemTexture, f.UpgradeIcon, f.JunkIcon = M.tex(), M.tex(), M.tex(), M.tex()
 	return f
@@ -147,7 +150,8 @@ function M.fs()
 	local s = M.tex()
 	s.SetText = function(self, t) self.text = t end
 	s.GetText = function(self) return self.text end
-	s.SetWordWrap, s.SetFontObject, s.SetNonSpaceWrap, s.SetJustifyV = noop, noop, noop, noop
+	s.SetWordWrap, s.SetNonSpaceWrap, s.SetJustifyV = noop, noop, noop
+	s.SetFontObject = function(self, o) self.fontObject = o end   -- (1.9.0-beta8) recorded: which font a text uses
 	-- 1.7.0-beta11: the justification is recorded (a fontstring given a width centers its text unless set to LEFT)
 	function s:SetJustifyH(j) self.justifyH = j end
 	function s:GetJustifyH() return self.justifyH or "CENTER" end
@@ -227,6 +231,8 @@ GameTooltip.SetHyperlink = function(self, link) self.lines = {}; self.item = { l
 function M.rebuildTooltip() if GameTooltip.item then GameTooltip.lines = {}; runTipPost() end end
 _G.Constants = { InventoryConstants = { NumBankBagSlots = 8 } }
 _G.InCombatLockdown = function() return M.combat end
+-- (1.9.0-beta21) the game's securecallfunction: CallbackHandler calls each handler through it (LibSharedMedia's notices)
+_G.securecallfunction = function(fn, ...) return fn(...) end
 _G.GetBuildInfo = function() return "1.60.1", "70009", "Sep 22 2026", 16001 end
 _G.C_AddOns = { GetAddOnMetadata = function(_, k) return ({ Version = "0.1.0", ["X-Game"] = "Camelot", ["X-Family"] = "Mainline" })[k] end }
 _G.C_Timer = { After = function(_, fn) M.timers = M.timers or {}; M.timers[#M.timers + 1] = fn end,
@@ -540,5 +546,15 @@ M.fire_ = M.fire
 
 
 _G.PixelUtil = { GetPixelToUIUnitFactor = function() return 768 / 1080 end }
+
+-- (1.9.0-beta5) the pointer moving onto a frame, as the client does it: a disabled button's OnEnter runs only with
+-- SetMotionScriptsWhileDisabled(true). Returns whether it ran.
+function M.enter(f)
+	if f.enabled == false and not f.motionWhileDisabled then return false end
+	local fn = f:GetScript("OnEnter")
+	if not fn then return false end
+	fn(f)
+	return true
+end
 
 return M

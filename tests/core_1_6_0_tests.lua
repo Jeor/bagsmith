@@ -249,15 +249,16 @@
 	local WN = n.WhatsNew
 	-- (1.7.0-beta6, by design) the 1.7 card leads now; 1.6's is second
 	-- (1.8.0-beta2, by design) the 1.8 card leads now; every older card one place down (each check kept)
-	local e = WN.ENTRIES[3]
+	-- (1.9.0-beta9, by design) the 1.9 card leads now; every older card one place down (each check kept)
+	local e = WN.ENTRIES[4]
 	local text = table.concat(e.items, " ")
 	-- (beta4, by design) a fifth bullet: Narrower Windows
 	-- (1.6.0-beta10, by design: Shweep) a sixth bullet, Smarter Disenchant Advice
 	check(e.v == "1.6.0" and e.heading == "BagSmith 1.6" and #e.items == 6, "the 1.6 card, with six bullets")
 	check(text:find("Narrower Windows:", 1, true) and text:find("440 pixels", 1, true), "and the fifth is Narrower Windows")
-	check(text:find("Blackthornes", 1, true) and text:find("Quest Starters", 1, true) and text:find("Fade While Moving", 1, true) and text:find("Show Help Tips", 1, true), "Blackthornes prices, Quest Starters, opacity, help tips")
+	check(text:find("Blackthornes", 1, true) and text:find("Quest Starters", 1, true) and text:find("Fade While Moving", 1, true) and text:find("Show Help Tooltips", 1, true), "Blackthornes prices, Quest Starters, opacity, help tooltips (named Show Help Tooltips since 1.9.0-beta2, by design)")
 	check(not text:find("\226\128\148"), "no em dashes")
-	check(WN.ENTRIES[2].v == "1.7.0" and WN.ENTRIES[4].v == "1.5.1", "after the 1.7 card, and 1.5.1's follows")
+	check(WN.ENTRIES[3].v == "1.7.0" and WN.ENTRIES[5].v == "1.5.1", "after the 1.7 card, and 1.5.1's follows")
 
 	-- ---- Icon Corners: marks other addons draw themselves (beta3: on its own line, with weight)
 	local P2 = n.SettingsPanel

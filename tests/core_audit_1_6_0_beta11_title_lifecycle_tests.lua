@@ -112,7 +112,14 @@ for _, startSkin in ipairs({'modern','classic'}) do
       check(V.charLevel==originalLevel,label..': stable level allocation')
       if travel then
        local l,r=span(V.search,V.frame);local icon=firstIcon(V)
-       check(l and r and r-l>=119.99 and r<=icon+0.01,label..': search minimum and icon clearance')
+       -- (by design since 1.9.0-beta4: with the globe back in Travel Mode a narrow row folds the search into its icon,
+       -- which must then clear the icons; a search box still keeps its minimum)
+       if V.searchFolded then
+        local _,ir=span(V.btnSearchFold,V.frame)
+        check(V.btnSearchFold:IsShown() and ir and ir<=icon+0.01,label..': search folded, its icon clear of the icons')
+       else
+        check(l and r and r-l>=119.99 and r<=icon+0.01,label..': search minimum and icon clearance')
+       end
        check(not V.charBtn:IsShown() and not V.charReset:IsShown(),label..': picker and reset hidden in Travel')
       else
        local l,r=span(V.charBtn,V.frame);local icon=firstIcon(V)

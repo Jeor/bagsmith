@@ -122,7 +122,9 @@
 				check(V.charLevel.text == (key:find("Bree") and "1" or "60") and lp[1] == "RIGHT" and lp[4] == -inset, who .. ": the level is its own text, " .. inset .. " px from the right (clear of the arrow)")
 				local np = {}
 				for i = 1, V.charBtn.label:GetNumPoints() do local pt = { V.charBtn.label:GetPoint(i) }; np[pt[1]] = pt end
-				check(V.charBtn.label.text == key:match("^(.-) %-") and np.RIGHT and np.RIGHT[2] == V.charLevel and np.RIGHT[3] == "LEFT" and V.charBtn.label.wordWrap == false,
+				-- (by design since 1.9.0-beta2: a surname shows as its initial, "First L.", when the full name doesn't fit: beta3)
+				local full = key:match("^(.-) %-")
+				check((V.charBtn.label.text == full or V.charBtn.label.text == n.ShortName(full)) and np.RIGHT and np.RIGHT[2] == V.charLevel and np.RIGHT[3] == "LEFT" and V.charBtn.label.wordWrap == false,
 					who .. ": the name ends before the level and doesn't wrap, so a long one is cut short")
 			end
 			V:SetOwner(nil); M.runTimers(); M.runTimers()
@@ -148,9 +150,15 @@
 				n.ui.filters.text = q; n:RefreshViews(true); M.runTimers(); M.runTimers()
 				sized(V, 440)
 				local who = ("%s%s, Travel Mode, %s"):format(skin, de and " with the Disenchant button" or "", q == "" and "no search" or "searching (" .. tostring(V.subText.text) .. ")")
-				local sl, sr = span(V.search, V.frame)
 				local icon = firstIcon(V)
-				check(sl and sr and sr - sl >= 120 and sr <= icon + 0.01, who .. " at 440: the search box keeps at least 120 px and ends before the icons (" .. fmt(sr and sl and sr - sl) .. " px)")
+				-- (by design since 1.9.0-beta4: with the globe back in Travel Mode, the search may fold into its icon)
+				if V.searchFolded then
+					local _, ir = span(V.btnSearchFold, V.frame)
+					check(V.btnSearchFold:IsShown() and ir and ir <= icon + 0.01, who .. " at 440: the search folds into its icon, before the other icons")
+				else
+					local sl, sr = span(V.search, V.frame)
+					check(sl and sr and sr - sl >= 120 and sr <= icon + 0.01, who .. " at 440: the search box keeps at least 120 px and ends before the icons (" .. fmt(sr and sl and sr - sl) .. " px)")
+				end
 			end
 			n.ui.filters.text = ""
 		end

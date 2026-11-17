@@ -76,7 +76,8 @@
 		local stepRow, dropRow
 		for _, w in ipairs(P.pools.step) do if w:IsShown() and w.key == "textScale" then stepRow = w end end
 		for _, w in ipairs(P.pools.dropdown) do if w:IsShown() and w.key == "fontName" then dropRow = w end end
-		check(stepRow and stepRow.value.text == "100" and stepRow.text.text == "Text Size", S .. "Style > Size: Text Size, 100%")
+		-- (by design since 1.9.0-beta9: Item Text Size, Shweep's rename)
+		check(stepRow and stepRow.value.text == "100" and stepRow.text.text == "Item Text Size", S .. "Style > Size: Item Text Size, 100%")
 		check(dropRow and dropRow.text.text == "Font" and dropRow.btn.label.text == "Default Font", S .. "and a Font dropdown showing Default Font (\"Game Font\" until 1.8.0-beta21, by design)")
 		-- (1.8.0-beta2, Shweep: "like our alt selector") Modern: the picker's chevron; Classic: the game's dropdown art
 		if skin == "classic" then

@@ -261,7 +261,8 @@ end)()
 		M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
 		local WN = n.WhatsNew
 		-- (1.8.0-beta2, by design) the 1.8 card leads now; every older card one place down (each check kept)
-		local e = WN.ENTRIES[2]
+		-- (1.9.0-beta9, by design) the 1.9 card leads now; every older card one place down (each check kept)
+		local e = WN.ENTRIES[3]
 		local heads = {}
 		for _, it in ipairs(e.items) do heads[#heads + 1] = it:match("^|cfffac775(.-):|r") end
 		if skin == "modern" then
@@ -284,7 +285,8 @@ end)()
 		check(c.bodyH <= WN.MAX_BODY and c.contentH > c.bodyH and c.scrolls, S .. "1.7 is taller than the body (at most " .. WN.MAX_BODY .. "): it scrolls (" .. c.contentH .. " in " .. c.bodyH .. ")")
 		check(bar and bar:IsShown(), S .. "with its scrollbar shown")
 		local b1 = c.lines[2]
-		check(b1 and math.abs((b1.width or 0) - (440 - 32 - 32 - 10)) < 0.5 and math.abs(c.body:GetWidth() - (440 - 32)) < 0.5, S .. "the text narrows to make room for the bar (" .. tostring(b1 and b1.width) .. ")")
+		-- (by design since 1.9.0-beta11: the card is 476 wide, was 440; since beta23: 512)
+		check(b1 and math.abs((b1.width or 0) - (512 - 32 - 32 - 10)) < 0.5 and math.abs(c.body:GetWidth() - (512 - 32)) < 0.5, S .. "the text narrows to make room for the bar (" .. tostring(b1 and b1.width) .. ")")
 		local last = c.lines[10]
 		check(last and last:IsShown() and last.text:find("Smoother Clean Up", 1, true), S .. "the ninth bullet is laid out")
 		local wheel = c.body:GetScript("OnMouseWheel")
@@ -300,7 +302,7 @@ end)()
 		local short
 		for i, en in ipairs(c.entries) do if en.v == "1.5.1" then short = i end end
 		WN:Select(short)
-		check(c:GetHeight() == h and not c.scrolls and not bar:IsShown() and c.body:GetVerticalScroll() == 0 and math.abs(c.lines[2].width - (440 - 32 - 10)) < 0.5,
+		check(c:GetHeight() == h and not c.scrolls and not bar:IsShown() and c.body:GetVerticalScroll() == 0 and math.abs(c.lines[2].width - (512 - 32 - 10)) < 0.5,
 			S .. "1.5.1 fits: the same card size, no bar, full width, at the top")
 		WN:Select(1)
 		check(c.scrolls and bar:IsShown() and c.body:GetVerticalScroll() == 0 and c:GetHeight() == h, S .. "back on 1.7: the bar again, at the top, the same size")

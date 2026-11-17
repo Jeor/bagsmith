@@ -267,7 +267,7 @@ end
 
 -- Fills the strip for the bags window. Returns the height it needs (0 = hidden).
 function BB:FillBar(bar)
-	if not self:Open() or ns.ui.owner or ns.ui.sheet == "Bank" then
+	if not self:Open() or ns.ui.owner or ns.ui.global or ns.ui.sheet == "Bank" then   -- (1.9.0-beta3) not in Global Inventory
 		for _, b in ipairs(bar.slots or {}) do b:Hide() end
 		if bar.keySlot then bar.keySlot:Hide() end
 		if bar.label then bar.label:Hide(); bar.hint:Hide() end

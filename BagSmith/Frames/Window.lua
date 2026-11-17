@@ -13,7 +13,7 @@ ns.Window = Window
 
 function Window:Create()
 	if self.main then return end
-	self.main = View.New("BagSmithFrame", { kind = "main", title = "Your Bags" })
+	self.main = View.New("BagSmithFrame", { kind = "main", title = "Bags" })
 	self.bank = View.New("BagSmithBankFrame", { kind = "bank", title = "Bank" })
 	-- Clean Up Bags When Opened: once per opening, never in combat, at the
 	-- bank, or while viewing another character's bags.
@@ -232,6 +232,17 @@ end
 -- The signpost: on or off. While Auto Travel Mode has it held off (at a
 -- vendor, say), clicking it turns it on right away.
 function ns:ToggleTravel()
+	-- (1.9.0-beta4) the signpost in Global Inventory leaves it first (Travel Mode can't show inside it)
+	-- and turns Travel Mode on (it was off, or held off by Global Inventory)
+	local m = ns.Window and ns.Window.main
+	if ns.ui.global and m and m.SetGlobal then
+		m:SetGlobal(false)
+		ns.ui.travelHold = ns.ui.travelHold or {}
+		wipe(ns.ui.travelHold)
+		if not ns.db.travelMode then ns:Set("travelMode", true, true) end
+		ns:ApplyTravel(); ns:RefreshViews(true)
+		return
+	end
 	if ns.db.travelMode and ns:TravelHeld() then
 		wipe(ns.ui.travelHold)
 	else
@@ -593,7 +604,7 @@ ns:OnSignal("CURRENCY_CHANGED", refreshFooters)
 ns:OnSignal("MONEY_CHANGED", refreshFooters)
 ns:OnSignal("SETTINGS_CHANGED", function(key)
 	if not Window.main then return end
-	if key == nil or key == "scale" or key == "sizeMode" or key == "fixW" or key == "fixH" or key == "maxW" or key == "maxH" or key == "point"
+	if key == nil or key == "scale" or key == "sizeMode" or key == "fixW" or key == "fixH" or key == "maxW" or key == "maxH" or key == "globalResize" or key == "point"
 		or key == "bagCols" or key == "bagScale" or key == "bagMaxH" or key == "iconSize" then
 		-- A profile change: small windows go to that profile's saved spots.
 		if key == nil then
@@ -622,7 +633,7 @@ ns:OnSignal("SETTINGS_CHANGED", function(key)
 end)
 -- (1.6.0-beta7, the beta6 audit's R3) which columns are shown or may be set aside, or whether AH Price can show: the
 -- bags and bank windows' narrowest width follows (View.MinWidthFor)
-local MINW_KEYS = { cols = true, colAside = true, bankCols = true, bankColAside = true }
+local MINW_KEYS = { cols = true, colAside = true, bankCols = true, bankColAside = true, footerTextScale = true, fontName = true }   -- (beta8) the footer's text too
 local function minWidths() for _, v in pairs(ns.views) do if v.big then v:ApplyMinWidth() end end end
 ns:OnSignal("SETTINGS_CHANGED", function(key) if MINW_KEYS[key] then minWidths() end end)
 ns:OnSignal("PRICE_SOURCE_CHANGED", minWidths)

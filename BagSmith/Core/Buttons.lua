@@ -23,7 +23,7 @@ Buttons.cached, Buttons.lanes = {}, {}   -- keyed by host frame
 Buttons.created = false
 
 local ICON_ROW = 20
-local COL_KEYS = { "colName", "colQty", "colLevel", "colReq", "colType", "colSlot", "colBind", "colValue", "colWhere", "colAge", "colAH" }
+local COL_KEYS = { "colName", "colWho", "colQty", "colLevel", "colReq", "colType", "colSlot", "colBind", "colValue", "colWhere", "colAge", "colAH" }
 Buttons.COL_KEYS = COL_KEYS
 
 local QCOL = {}
@@ -142,24 +142,77 @@ end
 
 Buttons.PixelSize = pixelSize   -- (1.7.3-beta3) also the resize outline's line (Frames/Outline.lua)
 
--- Leave room around the existing numeric anchors instead of moving the text
--- inward. Measure the margin in screen pixels, independent of UI/bag scale.
--- Rows keep their compact frame so dense lists do not overlap adjacent rows.
+-- Reinforce only the part of the Classic bevel outside the item artwork.
+-- Both layers share their bounds and texture coordinates at every scale.
+function Buttons:UpdateClassicBoldGeometry(b)
+	if not b.classicBoldActive then return end
+	local x, y, w, h = b.icon:GetRect()
+	if not (x and y and w and h and w > 0 and h > 0) then return end
+	local pixel = pixelSize(b)
+	-- The base frame and reinforcement share the expanded bounds. Expanding
+	-- only the reinforcement produces two bevel contours at each corner.
+	local thick = b.classicBorderOutset or 0
+	if b.boldW == w and b.boldH == h and b.boldPixel == pixel and b.boldOutset == thick then return end
+	b.boldW, b.boldH, b.boldPixel, b.boldOutset = w, h, pixel, thick
+	-- Crop four disjoint strips from the same full-frame texture.
+	local frameW, frameH = w + 2 * thick, h + 2 * thick
+	local rects = {
+		{-thick, -thick, w + 2 * thick, thick},
+		{-thick, h, w + 2 * thick, thick},
+		{-thick, 0, thick, h},
+		{w, 0, thick, h},
+	}
+	for i, rect in ipairs(rects) do
+		local part = b.classicBold[i]
+		part.boldVisible = thick > 0 and rect[3] > 0 and rect[4] > 0
+		part:ClearAllPoints()
+		part:SetPoint("BOTTOMLEFT", b.icon, "BOTTOMLEFT", rect[1], rect[2])
+		part:SetSize(math.max(pixel, rect[3]), math.max(pixel, rect[4]))
+		part:SetTexCoord((rect[1] + thick) / frameW, (rect[1] + rect[3] + thick) / frameW,
+			1 - (rect[2] + rect[4] + thick) / frameH, 1 - (rect[2] + thick) / frameH)
+		if part.boldVisible then part:Show() else part:Hide() end
+	end
+end
+
+function Buttons:DrawClassicFrame(b, frame, r, g, bl, a)
+	frame:SetVertexColor(r, g, bl, a)
+	frame:Show()
+	if not (ns.db and ns.db.borderWeight == "bold") then return end
+	if not b.classicBold then
+		b.classicBold = {}
+		for i = 1, 4 do
+			local part = b:CreateTexture(nil, "OVERLAY", nil, 2)
+			part:SetTexture("Interface\\Common\\WhiteIconFrame")
+			part:SetBlendMode("ADD")
+			if part.SetRoundLayoutToNearestPixel then part:SetRoundLayoutToNearestPixel(false) end
+			b.classicBold[i] = part
+		end
+	end
+	b.classicBoldActive = true
+	self:UpdateClassicBoldGeometry(b)
+	for _, part in ipairs(b.classicBold) do
+		part:SetVertexColor(r, g, bl, a)
+		if part.boldVisible then part:Show() else part:Hide() end
+	end
+end
+
 function Buttons:UpdateClassicBorderGeometry(b)
 	if (ns.db and ns.db.skin or "modern") ~= "classic" then return end
 	local pixel = pixelSize(b)
 	local gap = (ns.View and ns.View.C and ns.View.C.GAP) or 6
 	-- Reserve two pixels for separation and independent icon-origin rounding.
 	-- Tiny scales reduce the margin rather than joining neighboring frames.
-	local margin = math.max(0, math.min(2, math.floor((math.floor(gap / pixel) - 2) / 2)))
+	local maxMargin = ns.db and ns.db.borderWeight == "bold" and 3 or 2
+	local margin = math.max(0, math.min(maxMargin, math.floor((math.floor(gap / pixel) - 2) / 2)))
 	local outset = b.mode == "cell" and margin * pixel or 0
-	if b.classicBorderOutset == outset then return end
+	if b.classicBorderOutset == outset then self:UpdateClassicBoldGeometry(b); return end
 	for _, frame in ipairs({ b.qFrame, b.defaultFrame }) do
 		frame:ClearAllPoints()
 		frame:SetPoint("TOPLEFT", b.icon, "TOPLEFT", -outset, outset)
 		frame:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", outset, -outset)
 	end
 	b.classicBorderOutset = outset
+	self:UpdateClassicBoldGeometry(b)
 end
 
 -- Always derive from the layout's original rectangle, never from yesterday's
@@ -294,18 +347,24 @@ function Buttons:UpdateModernBorderGeometry(b)
 	local x, y, width, height = b.icon:GetRect()
 	if not (x and y and width and height) then return end
 	local pixel = pixelSize(b)
-	if b.borderX == x and b.borderY == y and b.borderW == width and b.borderH == height and b.borderPixel == pixel then return end
+	local thickness = pixel * ((ns.db and ns.db.borderWeight == "bold") and 2 or 1)
+	local outset = (ns.db and ns.db.skin == "classic" and b.mode == "row") and pixel or 0
+	if b.borderX == x and b.borderY == y and b.borderW == width and b.borderH == height and b.borderPixel == pixel
+		and b.borderThickness == thickness and b.borderOutset == outset then return end
 	b.borderX, b.borderY, b.borderW, b.borderH, b.borderPixel = x, y, width, height, pixel
+	b.borderThickness, b.borderOutset = thickness, outset
 	local left = math.floor(x / pixel + 0.5) * pixel
 	local bottom = math.floor(y / pixel + 0.5) * pixel
 	local x0, y0 = left - x, bottom - y
 	local w = math.max(2 * pixel, math.floor((x + width) / pixel + 0.5) * pixel - left)
 	local h = math.max(2 * pixel, math.floor((y + height) / pixel + 0.5) * pixel - bottom)
+	x0, y0, w, h = x0 - outset, y0 - outset, w + 2 * outset, h + 2 * outset
+	thickness = math.min(thickness, w / 2, h / 2)
 	-- Side strips exclude corners, so translucent borders never double up.
-	placeBorderEdge(b.modernBorder[1], b.icon, x0, y0 + h - pixel, w, pixel)
-	placeBorderEdge(b.modernBorder[2], b.icon, x0, y0, w, pixel)
-	placeBorderEdge(b.modernBorder[3], b.icon, x0, y0 + pixel, pixel, h - 2 * pixel)
-	placeBorderEdge(b.modernBorder[4], b.icon, x0 + w - pixel, y0 + pixel, pixel, h - 2 * pixel)
+	placeBorderEdge(b.modernBorder[1], b.icon, x0, y0 + h - thickness, w, thickness)
+	placeBorderEdge(b.modernBorder[2], b.icon, x0, y0, w, thickness)
+	placeBorderEdge(b.modernBorder[3], b.icon, x0, y0 + thickness, thickness, h - 2 * thickness)
+	placeBorderEdge(b.modernBorder[4], b.icon, x0 + w - thickness, y0 + thickness, thickness, h - 2 * thickness)
 end
 
 function Buttons:DrawModernBorder(b, r, g, bl, a)
@@ -342,8 +401,9 @@ end
 local function drawIndicatorFrame(self, b, kind)
 	local r, g, bl = ns:BagKindColor(kind)
 	local a = tonumber(ns.db["glowAlpha_" .. kind]) or 1
-	if (ns.db.skin or "modern") == "modern" then
+	if (ns.db.skin or "modern") == "modern" or (b.mode == "row" and ns.db.borderWeight == "bold") then
 		self:DrawModernBorder(b, r, g, bl, a)
+		b.qRing:Hide(); b.qFrame:Hide()
 	elseif b.mode == "row" then
 		-- (beta12) a Classic list row's thin ring, in the kind's color
 		local pixel = pixelSize(b)
@@ -354,12 +414,14 @@ local function drawIndicatorFrame(self, b, kind)
 		b.qRing:Show(); b.qFrame:Hide()
 	else
 		self:UpdateClassicBorderGeometry(b)
-		b.qFrame:SetVertexColor(r, g, bl, a)
-		b.qFrame:Show(); b.qRing:Hide()
+		self:DrawClassicFrame(b, b.qFrame, r, g, bl, a)
+		b.qRing:Hide()
 	end
 end
 
 function Buttons:ApplyQuality(b, rec)
+	b.classicBoldActive = nil
+	for _, part in ipairs(b.classicBold or {}) do part:Hide() end
 	self:UpdateIconGeometry(b)
 	self:UpdateClassicBorderGeometry(b)
 	if b.defaultFrame then b.defaultFrame:Hide() end
@@ -404,7 +466,7 @@ function Buttons:ApplyQuality(b, rec)
 		if not quest and (q < 2 or not colored) then
 			if classicCell then
 				b.qFrame:Hide(); b.qRing:Hide()
-				if b.defaultFrame then b.defaultFrame:Show() end
+				if b.defaultFrame then self:DrawClassicFrame(b, b.defaultFrame, 0.72, 0.72, 0.72, 1) end
 				return
 			end
 			-- The textured frame loses thin edges when reduced to list size.
@@ -419,8 +481,11 @@ function Buttons:ApplyQuality(b, rec)
 	elseif classicCell then
 		-- WhiteIconFrame is the clipped, silver bag outline. The template's
 		-- initial IconBorder can instead contain a dark inset frame.
-		b.qFrame:SetVertexColor(r, g, bl, 1)
-		b.qFrame:Show(); b.qRing:Hide()
+		self:DrawClassicFrame(b, b.qFrame, r, g, bl, 1)
+		b.qRing:Hide()
+	elseif ns.db and ns.db.borderWeight == "bold" then
+		b.qRing:Hide(); b.qFrame:Hide()
+		self:DrawModernBorder(b, r, g, bl, 0.95)
 	else
 		-- Classic rows use a compact ring with the same quest/rarity rules.
 		b.qRing:ClearAllPoints()
@@ -435,6 +500,7 @@ end
 local function near(a, b) return math.abs(a - b) < 0.00001 end
 function Buttons:ApplyIconCrop(b)
 	if not b.icon then return end
+	if b.globalChildIcon then return end   -- (1.9.0-beta3) a Global Inventory character row's class icon keeps its own coordinates
 	if (ns.db and ns.db.skin or "modern") == "modern" then
 		local a, c, d, e, f, g, h, i = b.icon:GetTexCoord()
 		if not (near(a, 0.08) and near(c, 0.08) and near(d, 0.08) and near(e, 0.92)
@@ -724,7 +790,7 @@ function Buttons:RefreshSkin()
 	for _, pool in pairs(self.mirrors) do for _, b in pairs(pool) do each(b) end end
 	for _, b in ipairs(self.recent) do each(b) end
 end
-ns:OnSignal("SETTINGS_CHANGED", function(key) if key == nil or key == "skin" or key == "border" or key == "questFrame" then Buttons:RefreshSkin() end end)
+ns:OnSignal("SETTINGS_CHANGED", function(key) if key == nil or key == "skin" or key == "border" or key == "questFrame" or key == "borderWeight" then Buttons:RefreshSkin() end end)
 -- The item-level setting redraws every placed button's level text in place (no layout pass needed).
 function Buttons:RefreshItemLevels()
 	local function each(b) self:ItemLevel(b, b.hasItem and b.rec or nil) end
@@ -838,7 +904,7 @@ function Buttons:ApplyColumns(b, plan, rowH)
 			fs:Show()
 		end
 		if col.key == "n" then
-			b.iconLayoutX = col.iconX
+			b.iconLayoutX, b.iconBaseX, b.nameBaseX, b.nameBaseW, b.nameShifted = col.iconX, col.iconX, col.x, col.width, nil
 			b.icon:ClearAllPoints(); b.icon:SetPoint("LEFT", b, "LEFT", col.iconX, 0)
 			Buttons:PlaceKebab(b, plan.kebab and col.kebabX or nil)
 		end
@@ -1147,10 +1213,16 @@ local function decorateCached(b)
 	addText(b)
 	b:RegisterForClicks("AnyUp")
 	b:SetScript("OnClick", function(self, button)
-		if button == "LeftButton" and IsAltKeyDown() and self.rec and ns.Sections then
+		if button == "LeftButton" and IsAltKeyDown() and self.rec and not self.rec.global and ns.Sections then
 			ns.Sections:ItemMenu(self.rec, self)
 		elseif self.rec and self.rec.link and IsModifiedClick("CHATLINK") then
 			if ChatEdit_InsertLink then ChatEdit_InsertLink(self.rec.link) end
+		elseif button == "LeftButton" and self.rec and self.rec.globalKids then
+			-- (1.9.0-beta3) Global Inventory: open or close the item's row per character
+			ns.ui.globalOpen = ns.ui.globalOpen or {}
+			local id = self.rec.itemID
+			ns.ui.globalOpen[id] = (not ns.ui.globalOpen[id]) or nil
+			ns:RefreshViews(true)
 		elseif button == "RightButton" then
 			-- (the Gear Sets sheet's display-only rows say where the item is)
 			ns:Print(self.rec and self.rec.displayWhy or "Viewing another character. Log in as them to use items.")
@@ -1298,6 +1370,8 @@ function Buttons:TemplateLeftovers(b)
 		"ilvlText", "pawnArrow", "linkMark", "linkCount", "stripe", "bagGlow" }) do if b[k] then known[b[k]] = true end end
 	for _, k in ipairs(COL_KEYS) do if b[k] then known[b[k]] = true end end
 	for _, sep in ipairs(b.seps or {}) do known[sep] = true end
+	for _, edge in ipairs(b.modernBorder or {}) do known[edge] = true end
+	for _, edge in ipairs(b.classicBold or {}) do known[edge] = true end
 	if b.GetHighlightTexture then local h = b:GetHighlightTexture(); if h then known[h] = true end end
 	local names = {}
 	for k, v in pairs(b) do if type(v) == "table" and type(k) == "string" then names[v] = names[v] or k end end
@@ -1359,7 +1433,7 @@ local function decorateMirror(b)
 		C_Container.PickupContainerItem(self.bag, self:GetID())
 	end
 	b:SetScript("OnClick", function(self, button)
-		if button == "LeftButton" and IsAltKeyDown() and self.rec and ns.Sections then ns.Sections:ItemMenu(self.rec, self) return end
+		if button == "LeftButton" and IsAltKeyDown() and self.rec and not self.rec.global and ns.Sections then ns.Sections:ItemMenu(self.rec, self) return end
 		if button == "RightButton" then
 			if self.rec then ns:Print("Right-click items in the main window to use them.") end
 			return
@@ -1496,7 +1570,24 @@ function Buttons:ItemLevel(b, rec)
 		b.ilvlText:SetText(tostring(rec.ilvl)); b.ilvlText:Show()
 	else b.ilvlText:SetText(""); b.ilvlText:Hide() end
 end
+-- (1.9.0-beta3) A Global Inventory character row: the class icon in the icon's place and the name beside it, both
+-- indented (nested under their item); a row going back to an item gets its icon's crop and places back first.
+local CHILD_INDENT = 14
+local function globalChildPlaces(b, child)
+	if b.mode ~= "row" then return end
+	if b.iconBaseX then b.iconLayoutX = b.iconBaseX + (child and CHILD_INDENT or 0) end
+	if b.nameBaseX and (child or b.nameShifted) then
+		b.colName:ClearAllPoints(); b.colName:SetPoint("LEFT", b, "LEFT", b.nameBaseX + (child and CHILD_INDENT or 0), 0)
+		b.colName:SetWidth(math.max(10, (b.nameBaseW or 100) - (child and CHILD_INDENT or 0)))
+		b.nameShifted = child or nil
+	end
+end
 function Buttons:Fill(b, rec, opts)
+	if b.globalChildIcon and not rec.globalChild then
+		b.globalChildIcon, b.modernCropActive = nil, nil
+		b.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+	end
+	globalChildPlaces(b, rec.globalChild)
 	b.rec, b.hasItem, b.readable = rec, true, rec.isReadable
 	local db = ns.db
 	self:ItemLevel(b, rec)
@@ -1530,6 +1621,20 @@ function Buttons:Fill(b, rec, opts)
 		b.colBind:SetText(ns:BindText(rec))
 		b.colValue:SetText((rec.hasNoValue or not rec.sellPrice) and "" or ns.Money(rec.sellPrice * rec.count))
 		b.colWhere:SetText(rec.where or "")
+		-- (1.9.0-beta2) Global Inventory's Who: a character in their class color, or how many characters
+		-- (beta3) an item with a row per character: a chevron, right when closed, down when open
+		local who = rec.who or ""
+		if rec.globalKids then
+			local open = ns.ui.globalOpen and ns.ui.globalOpen[rec.itemID]
+			-- (1.9.0-beta12, Shweep: "may stand out more if they are the accent color", "slightly bigger too") 12 px (was 10),
+			-- tinted with the accent through the texture's own color fields, so the text beside it keeps its color
+			local ar, ag, ab = 1, 0.82, 0
+			if ns.Skins and ns.Skins.Accent then ar, ag, ab = ns.Skins:Accent() end
+			who = ("|TInterface\\AddOns\\BagSmith\\Media\\%s:12:12:0:0:64:64:0:64:0:64:%d:%d:%d|t %s"):format(open and "ui-chev-down.tga" or "ui-chev-right.tga",
+				math.floor(ar * 255 + 0.5), math.floor(ag * 255 + 0.5), math.floor(ab * 255 + 0.5), who)
+		end
+		b.colWho:SetText(who)
+		if rec.whoClass then b.colWho:SetTextColor(ns.ClassColor(rec.whoClass)) else b.colWho:SetTextColor(0.84, 0.83, 0.79) end
 		b.colAge:SetText(ns.AgeText(rec.firstSeen))
 		-- AH Price: the stack's value from Auctionator's last scan, "-" when it has none.
 		if ns.AH:Available() then
@@ -1541,7 +1646,8 @@ function Buttons:Fill(b, rec, opts)
 		end
 	end
 	b.newDot:SetShown(db.newdot and rec.isNew or false)
-	if b.kebab and b.kebabOn and not InCombatLockdown() then b.kebab:SetShown(not rec.empty); kebabAlpha(b) end
+	-- (1.9.0-beta3, Shweep) no item menu in Global Inventory: it's read only, and the menu's actions are your character's
+	if b.kebab and b.kebabOn and not InCombatLockdown() then b.kebab:SetShown(not rec.empty and not rec.global); kebabAlpha(b) end
 	b:SetAlpha(opts and opts.dim and 0.3 or 1)
 	b.inFill = true
 	if ns.Junk then ns.Junk:Decorate(b, rec) end
@@ -1552,6 +1658,16 @@ function Buttons:Fill(b, rec, opts)
 	if ns.Corners then ns.Corners:Apply(b, true) end   -- (1.5.0) icon corners: which mark shows where
 	self:BagGlow(b, rec)   -- (1.8.0-beta5)
 	self:ApplyIconCrop(b)
+	if rec.globalChild and b.mode == "row" then
+		local c = CLASS_ICON_TCOORDS and rec.whoClass and CLASS_ICON_TCOORDS[rec.whoClass]
+		b.icon:SetTexture(c and "Interface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES" or nil)
+		if c then b.icon:SetTexCoord(c[1], c[2], c[3], c[4]) end
+		b.globalChildIcon = true
+		b.colName:SetText(rec.who or "?"); b.colName:SetTextColor(ns.ClassColor(rec.whoClass))
+		b.colName.baseColor = { ns.ClassColor(rec.whoClass) }
+		b.colWho:SetText("")
+		if b.kebab then b.kebab:Hide() end
+	end
 end
 
 

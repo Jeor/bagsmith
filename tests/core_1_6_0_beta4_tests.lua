@@ -200,13 +200,25 @@
 			n:Set("travelMode", true); MM.runTimers(); MM.runTimers()
 			V.subText:SetText("")
 			sized(V, 440)
-			local sl, sr = span(V.search, V.frame)
 			local _, tEnd = span(V.titleText, V.frame)
 			local cl = span(V.btnClean, V.frame)
-			check(sl >= tEnd and sr <= cl and sr - sl >= 120, ("%s Travel Mode at 440: the search box (%s px) sits between the title (%q) and the icons"):format(skin, fmt(sr - sl), tostring(V.titleText.text)))
-			check(V.titleText.text ~= "Your Bags (Travel Mode)", skin .. " Travel Mode at 440: the title shortens (" .. tostring(V.titleText.text) .. ")")
+			-- (by design since 1.9.0-beta4: the globe is back in Travel Mode, so at 440 the search may fold into an icon that
+			-- opens a full-width row of its own)
+			if V.searchFolded then
+				local il, ir = span(V.btnSearchFold, V.frame)
+				check(V.btnSearchFold:IsShown() and not V.search:IsShown() and il >= tEnd and ir <= cl, skin .. " Travel Mode at 440: the search folds into its icon, between the title and the icons")
+				V:OpenTravelSearch(true); MM.runTimers()
+				local sl, sr = span(V.search, V.frame)
+				check(V.search:IsShown() and sr - sl >= 120, skin .. " Travel Mode at 440: opened, the search is a full-width row (" .. fmt(sr - sl) .. " px)")
+				V.search:SetText(""); V:OpenTravelSearch(false); MM.runTimers()
+			else
+				local sl, sr = span(V.search, V.frame)
+				check(sl >= tEnd and sr <= cl and sr - sl >= 120, ("%s Travel Mode at 440: the search box (%s px) sits between the title (%q) and the icons"):format(skin, fmt(sr - sl), tostring(V.titleText.text)))
+			end
+			-- (by design since 1.9.0-beta4: with the search folded into its icon there's room for the full title)
+			check(V.searchFolded or V.titleText.text ~= "Bags (Travel Mode)", skin .. " Travel Mode at 440: the title shortens, unless the search folded (" .. tostring(V.titleText.text) .. ")")
 			sized(V, 900)
-			check(V.titleText.text == "Your Bags (Travel Mode)", skin .. " Travel Mode at 900: the full title")
+			check(V.titleText.text == "Bags (Travel Mode)", skin .. " Travel Mode at 900: the full title")
 			n:Set("travelMode", false); MM.runTimers()
 		end
 		_G.GetMoney = realMoney; n.db.fav = {}
@@ -216,13 +228,13 @@
 	-- ---- the title's forms
 	n, M, V = boot("modern")
 	local forms = V:TitleForms()
-	check(table.concat(forms, "|") == "Your Bags|Bags", "the bags window's title: Your Bags, then Bags")
+	check(table.concat(forms, "|") == "Bags", "the bags window's title: Bags (\"Your Bags\" until 1.9.0-beta2, by design)")
 	V.st.sheet = "Bank"; forms = V:TitleForms(); V.st.sheet = "All"
 	check(table.concat(forms, "|") == "Bank (Saved)|Bank", "the saved bank: Bank (Saved), then Bank")
 	n:Set("travelMode", true); M.runTimers()
-	check(table.concat(V:TitleForms(), "|") == "Your Bags (Travel Mode)|Your Bags|Bags", "Travel Mode: \"(Travel Mode)\" goes first")
+	check(table.concat(V:TitleForms(), "|") == "Bags (Travel Mode)|Bags", "Travel Mode: \"(Travel Mode)\" goes first")
 	V.title.w = 600; V:LayoutTitleRow()
-	check(V.titleText.text == "Your Bags (Travel Mode)", "with room, the full title, as before")
+	check(V.titleText.text == "Bags (Travel Mode)", "with room, the full title, as before")
 	n:Set("travelMode", false); M.runTimers()
 
 	-- ---- List view sets columns aside as it narrows
@@ -275,13 +287,13 @@
 		{ "general", "Turn off to keep Blizzard's bags on B. You can still open BagSmith from the minimap button or /bs." },
 		{ "general", "Which addon BagSmith gets auction prices from. Automatic uses the one you have, or Auctionator if you have both." },
 		{ "general", "Stops BagSmith's hello in chat when you log in." },
-		{ "look", "Shows sections side by side in two columns. Works with By Section or By Bag when the window is wide enough." },
+		{ "look", "Each section spans the full width of the window." },
 		{ "icons", "Clearing your Recent Items also removes the green dots." },
 		{ "icons", "Choose what shows in each corner of your item icons, with a backup for items the first choice doesn't apply to. In List view, item level and stack count have their own columns." },
 		{ "automation", "Sells your grey and junk-marked items when you visit a vendor. You can buy back the last 12. Like Blizzard's own Sell All Junk, it includes grey favorites." },
 		{ "automation", "Choose when BagSmith answers: always, or only while you hold Shift, Ctrl or a key you pick." },
 		{ "loothelper", "Blue and purple items always ask first, as they do in the game." },
-		{ "dehelper", "Estimates start from typical disenchant results. After 20 disenchants of the same kind of item, BagSmith uses your own results instead. Each character keeps its own." },
+		{ "dehelper", "Estimates start from typical disenchant results. After 20 disenchants of the same kind of item, BagSmith uses your own results instead. Your characters share them, so a disenchant on any of them counts for all." },
 		{ "keys", "Click Set Key and press a key. Shift, Ctrl and Alt combinations work, and Esc cancels. These are also in the game's Keybindings under BagSmith." },
 		{ "sections", "An item goes to the first of these that fits: its gear set, Junk if you marked it, Favorites if starred, the section you moved it to, or its usual section." },
 		{ "custom", "Make your own sections. Drag an item onto a section's title, or Alt+Left-click it, to move it there. Every copy of the item moves with it." },

@@ -140,6 +140,13 @@ function View:ScheduleListPlaced()
 		C_Timer.After(delay, function() if self.placeToken == token then self:EnsureListPlaced(i) end end)
 	end
 end
+-- (1.9.0-beta15) a frame's rectangle for the debug line: its size, or "stale" while the client hasn't placed it
+local function rectOf(f)
+	if not f then return "-" end
+	local ok, invalid = pcall(function() return f.IsRectValid and not f:IsRectValid() end)
+	if ok and invalid then return "stale" end
+	return ("%dx%d"):format(math.floor((f:GetWidth() or 0) + 0.5), math.floor((f:GetHeight() or 0) + 0.5))
+end
 function View:EnsureListPlaced(check)
 	local sf = self.scroll
 	if not (sf and self.frame:IsShown()) then return end
@@ -155,8 +162,23 @@ function View:EnsureListPlaced(check)
 		if not (self.frame:IsShown() and unplaced(sf)) then return end
 		self.placeTries = (self.placeTries or 0) + 1
 		self.placeReported = false
-		ns:Debug("%s: list area unplaced (check %s): placing it again", self.name, tostring(check or "?"))
+		ns:Debug("%s: list area unplaced (check %s): placing it again (header %s, footer %s, tabs %s)", self.name, tostring(check or "?"),
+			rectOf(self.header), rectOf(self.footer), rectOf(self.tabs))
+		-- (1.9.0-beta15, Shweep's /bs debug logs: in Classic the list stayed "0x0 stale" through all four checks) Placing
+		-- it again in the very same spot is no change to the client, so it never placed it. What it hangs from is
+		-- anchored again too, and the list goes 1 px off now and back on the next frame: a real change, every time.
+		-- (Modern had been rescued by an accident since beta8: the footer's first layout re-anchors the tabs it hangs from.)
+		if self.header and self.PlaceHeader then self:PlaceHeader() end
+		if self.footer and self.LayoutFooter then self.footerKey = nil; self:LayoutFooter() end
+		self.placeNudge = 1
 		self:PlaceScroll()
+		ns:NextFrame("placeback:" .. self.name, function()
+			ns:Safely("placeback" .. self.name, function()
+				self.placeNudge = nil
+				self:PlaceScroll()
+				ns:Guard("Refresh " .. (self.name or "window"), self.Refresh, self, true, "placed")
+			end)
+		end)
 		ns:Guard("Refresh " .. (self.name or "window"), self.Refresh, self, true, "placed")
 	end)
 end

@@ -620,6 +620,8 @@ function ns:SaveCache(atLogout)
 		if info then entry.bags[tostring(bag)] = { size = info.size, free = info.free, name = info.name, reagent = ns:IsReagentBag(bag) or nil, kind = info.kind } end
 	end
 	entry.items = serialize(ns.items)
+	-- (1.9.0-beta1) what this character is wearing, for the item tooltips' counts (and Global Inventory)
+	entry.equipped = ns.Inventory and ns.Inventory.Worn() or entry.equipped
 	if ns.atBank then
 		entry.bankBags = {}
 		for _, bag in ipairs(ns.BANK_BAGS) do

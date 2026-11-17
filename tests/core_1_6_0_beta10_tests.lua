@@ -128,7 +128,8 @@ end)()
 	P:Hide()
 	-- What's New: the sixth bullet
 	-- (1.8.0-beta2, by design) the 1.8 card leads now; every older card one place down (each check kept)
-	local e = n.WhatsNew.ENTRIES[3]   -- (1.7.0-beta6, by design) the 1.7 card leads now
+	-- (1.9.0-beta9, by design) the 1.9 card leads now; every older card one place down (each check kept)
+	local e = n.WhatsNew.ENTRIES[4]   -- (1.7.0-beta6, by design) the 1.7 card leads now
 	check(e.v == "1.6.0" and #e.items == 6 and e.items[6] == "|cfffac775Smarter Disenchant Advice:|r the Disenchant Helper counts the AH's cut and leans toward disenchanting while you level Enchanting (Settings > Disenchant Helper).",
 		"What's New: the 1.6 card's sixth bullet, Smarter Disenchant Advice")
 end)()

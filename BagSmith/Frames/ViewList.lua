@@ -16,6 +16,7 @@ local PAD, HEADER_H, LANE_H, GAP, COLW, COLPAD, NUMERIC, COLKEY = C.PAD, C.HEADE
 ------------------------------------------------------------------------
 function View:IsCached()
 	if ns.ui.owner then return true end
+	if self.isMain and ns.ui.global then return true end   -- (1.9.0-beta2) Global Inventory: read only
 	if self.isMain and self.st.sheet == "Bank" then return true end   -- main's Bank sheet is always the saved view
 	if self.isBank and not ns.atBank then return true end
 	return false
@@ -31,6 +32,12 @@ function View:Bags()
 end
 
 function View:Records()
+	-- (1.9.0-beta2) Global Inventory: every item on your characters (display rows)
+	-- (1.9.0-beta4) its own settings: Other Rulesets; the Bank tab (or icon) shows only what's in banks
+	if self.isMain and ns.ui.global and ns.Inventory then
+		local G = ns.Inventory:Settings()
+		return ns.Inventory:GlobalRecords(G.allRealms, self.st.sheet == "Bank" and { bank = true } or nil), nil, false
+	end
 	-- Your own Gear Sets sheet: every set's slots, worn and banked included.
 	if self.kind == "main" and self.st.sheet == "GearSets" and not ns.ui.owner and ns.GearSets and ns.GearSets:Available() then
 		return ns.GearSets:SheetRecords(), nil, false
@@ -140,7 +147,7 @@ function View:Filtered()
 	self.hiddenNow, self.hiddenSecs = hidden, secs
 	-- (the Gear Sets tab never merges: each row is one set's slot, and one
 	-- item in two sets is two rows, not a stack of two)
-	if self:Pref("mergeStacks") and self.kind ~= "bag" and self.st.sheet ~= "GearSets" then
+	if self:Pref("mergeStacks") and self.kind ~= "bag" and self.st.sheet ~= "GearSets" and not (self.isMain and ns.ui.global) then
 		-- Merge once; the total counts distinct items, not stacks.
 		local all = {}
 		for _, r in ipairs(records) do if pred(r) then all[#all + 1] = r end end
@@ -267,6 +274,19 @@ function View:ColumnPlan()
 		end
 		if not ns.IndexOf(order, "n") then table.insert(order, 1, "n") end
 	end
+	-- (1.9.0-beta2, Shweep) Global Inventory: Who and Where always, right after the item
+	local global = self.isMain and ns.ui.global
+	if global then
+		for _, k in ipairs({ "who", "w" }) do local at = ns.IndexOf(order, k); if at then table.remove(order, at) end end
+		-- (1.9.0-beta6) only the columns that mean something there (ns.GLOBAL_COLS), from Global Columns
+		for i = #order, 1, -1 do if order[i] ~= "n" and not ns.IndexOf(ns.GLOBAL_COLS, order[i]) then table.remove(order, i) end end
+		local at = ns.IndexOf(order, "n") or 0
+		table.insert(order, at + 1, "who"); table.insert(order, at + 2, "w")
+		-- (1.9.0-beta4, Shweep) and a value. (beta7, Shweep: "Vendor always") Vendor, fixed; AH Price is Global Columns'
+		local vat = ns.IndexOf(order, "v")
+		if vat then table.remove(order, vat) end
+		table.insert(order, at + 3, "v")
+	end
 	local widths, fixed = {}, 0
 	for _, key in ipairs(order) do
 		if key ~= "n" then
@@ -282,7 +302,7 @@ function View:ColumnPlan()
 		-- brings them back (nothing saved changes). Only then does what's left shrink to fit.
 		for _, key in ipairs(self:AsideOrder()) do
 			if fixed <= width - ITEM_MIN then break end
-			local at = ns.IndexOf(order, key)
+			local at = not (global and (key == "w" or key == "who" or key == "v")) and ns.IndexOf(order, key)
 			if at then
 				fixed = fixed - widths[key]; widths[key] = nil
 				table.remove(order, at); dropped[#dropped + 1] = key
@@ -311,6 +331,10 @@ function View:ColumnPlan()
 end
 
 function View:LayoutHeader(plan)
+	-- (1.9.0-beta8, Shweep) the column headings follow Text Size: their strip grows with the text, never below 20 px
+	local headerH = ns.Fonts and ns.Fonts:Grow(HEADER_H) or HEADER_H
+	if self.header:GetHeight() ~= headerH then self.header:SetHeight(headerH) end
+	for _, b in pairs(self.headerLabels or {}) do if b:GetHeight() ~= headerH then b:SetHeight(headerH) end end
 	local visible = {}
 	self.headerSeps = self.headerSeps or {}
 	self.headerGrips = self.headerGrips or {}
@@ -374,6 +398,8 @@ function View:LayoutHeader(plan)
 	if self.header:IsShown() ~= head then
 		self.header:SetShown(head)
 		if self.PlaceScroll then self:PlaceScroll() end   -- (1.5.5) Icons view reclaims the headers' room; List view gives it back
+		-- (1.9.0-beta16, Shweep's first report: "First time swapping to list it also loaded blank") checked as on opening
+		if self.frame:IsShown() and self.ScheduleListPlaced then self:ScheduleListPlaced() end
 	end
 end
 
@@ -415,6 +441,7 @@ local function onGripDown(g)
 end
 
 function View:LayoutColumnGrips(plan, narrowHeader)
+	local headerH = self.header:GetHeight() or HEADER_H   -- (1.9.0-beta8) as tall as the headings' strip
 	self.columnPlan = plan
 	-- Nothing in the header ever draws past the row's edge.
 	if self.header.SetClipsChildren and not self.headerClips then self.header:SetClipsChildren(true); self.headerClips = true end
@@ -427,7 +454,7 @@ function View:LayoutColumnGrips(plan, narrowHeader)
 			local g = grips[i]
 			if not g then
 				g = CreateFrame("Button", nil, self.header)
-				g:SetSize(10, HEADER_H)
+				g:SetSize(10, headerH)
 				g:SetFrameLevel(self.header:GetFrameLevel() + 5)
 				g.tex = g:CreateTexture(nil, "OVERLAY"); g.tex:SetTexture("Interface\\Buttons\\WHITE8X8"); g.tex:SetWidth(2)
 				g.tex:SetPoint("TOP", 0, -3); g.tex:SetPoint("BOTTOM", 0, 3)
@@ -456,7 +483,7 @@ function View:LayoutColumnGrips(plan, narrowHeader)
 			g.right = { key = right.key, w = right.colW }
 			g.colKey = right.key   -- the column to the right of the line
 			g:ClearAllPoints(); g:SetPoint("LEFT", self.header, "LEFT", right.colX - 5, 0)
-			g:SetHeight(HEADER_H)
+			g:SetHeight(headerH)
 			g:Show()
 		end
 	end
@@ -503,6 +530,20 @@ local function headerCoin(h)
 	return b
 end
 local function writeHeaderValues(infos)
+	-- Compact categories keep totals on the heading's tooltip. Specials still
+	-- use their existing notes and controls, with a full row to fit them.
+	local regular = {}
+	for _, i in ipairs(infos) do
+		local h = i.h
+		h.compactValues = i.compact and { v = i.v, ah = i.ah } or nil
+		if i.compact and not i.emptyCustom and not i.emptySet then
+			h.sub:Hide(); h.vLabel:Hide(); h.vAmt:Hide(); h.aLabel:Hide(); h.aAmt:Hide()
+			if h.valCoin then h.valCoin:Hide() end
+		else
+			regular[#regular + 1] = i
+		end
+	end
+	infos = regular
 	local anyAH = false
 	for _, i in ipairs(infos) do if i.ah then anyAH = true end end
 	-- Room the name and its count take on the left.
@@ -790,7 +831,13 @@ function View:Refresh(force, reason)
 	self.planWidth = width
 	self:WatchRowWidth()
 	self:LayoutHeader(plan)
-	local height = self:Layout(shown, all, plan, width, bagInfo, bank, cached)
+	if self.isMain then self:UpdateTotalRow(shown, plan) end   -- (1.9.0-beta8) Global Inventory's Total row
+	local height
+	if self.isMain and ns.ui.global then   -- (1.9.0-beta6) Global Inventory's sections: BagSmith's defaults
+		height = ns:WithDefaultSections(self.Layout, self, shown, all, plan, width, bagInfo, bank, cached)
+	else
+		height = self:Layout(shown, all, plan, width, bagInfo, bank, cached)
+	end
 	-- The list ends at the bottom of its last row: no padding below it, so
 	-- there is nothing to scroll past.
 	self.contentHeight = height
@@ -810,7 +857,7 @@ function View:Refresh(force, reason)
 	-- content still overflows it.
 	if self.scroll.ScrollBar then
 		local visible = self.scroll:GetHeight()
-		if self.isMain and ns.db.sizeMode == "auto" then visible = math.min(ns.db.maxH, self.autoHeight) - chrome - 4
+		if self.isMain and ns.db.sizeMode == "auto" then visible = math.min(select(2, self:SizeLimits()), self.autoHeight) - chrome - 4
 		elseif self.kind == "bag" then visible = math.min(ns.db.bagMaxH, self.autoHeight) - chrome - 4 end
 		self:UpdateBarSpace(height, visible)
 		self:SyncScrollBar()
@@ -945,6 +992,8 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 	if not cached and not mirror then for _, b in ipairs(bags) do Buttons:AttachBag(b, host) end end
 
 	local grp = self:Pref("grp")
+	local compact = iconMode and self.big and grp == "type" and db.compactCategories == true
+	self.compactCategories = compact and true or false
 	-- The reagent bag is a place, not a type: its own section applies only when
 	-- Sections is All. By Type sorts its items by type (and your moves); By
 	-- Bag shows every bag as a section anyway.
@@ -1345,19 +1394,49 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 		end
 	end
 
+	-- (1.9.0-beta3) Global Inventory's accordion: an open item's row per character goes right under it, after sorting,
+	-- so no sort can part them
+	if self.isMain and ns.ui.global and ns.ui.globalOpen and next(ns.ui.globalOpen) then
+		local open = ns.ui.globalOpen
+		for _, lane in ipairs(lanes) do
+			local out, any = {}, false
+			for _, r in ipairs(lane.items or {}) do
+				out[#out + 1] = r
+				if r.globalKids and open[r.itemID] then any = true; for _, k in ipairs(r.globalKids) do out[#out + 1] = k end end
+			end
+			if any then lane.items = out end
+		end
+	end
 	-- Icon Split View (optional, icon view): two columns of sections that fill
 	-- left to right, top to bottom; each pair is top-aligned and the row is as
 	-- tall as its taller section. Falls back to one column when a half can't
 	-- fit MIN_HALF_ICONS icons. Recent pairs like any other section.
 	local COL_GAP, MIN_HALF_ICONS = 16, 4
 	local halfW = math.floor((width - COL_GAP) / 2)
-	local twoCol = iconMode and self.big and grp ~= "none" and db.splitView
+	local twoCol = not compact and iconMode and self.big and grp ~= "none" and db.splitView
 		and math.floor((halfW + GAP) / (cell + GAP)) >= MIN_HALF_ICONS
 	self.twoColumn = twoCol and true or false
 	local recentIdx = 0
 
 	local headerInfos = {}
-	local function placeLane(lane, x0, colW, y0)
+	local shardActions = {}
+	local function hasShardAction(lane)
+		if shardActions[lane] ~= nil then return shardActions[lane] end
+		local shardHere = false
+		if not lane.recent and not cached and ns.MakeRoom and ns.MakeRoom:IsWarlock() then
+			for _, r in ipairs(lane.items) do
+				-- (1.7.2-beta1) a merged row of shards counts any of its members in an ordinary bag
+				for _, s in ipairs(r.itemID == 6265 and (r.members or { r }) or {}) do
+					if s.bag and ns.MakeRoom:BagFamily(s.bag) == 0 then shardHere = true; break end
+				end
+				if shardHere then break end
+			end
+			if shardHere then local _, can = ns.MakeRoom:Shards(); shardHere = can > 0 end
+		end
+		shardActions[lane] = shardHere
+		return shardHere
+	end
+	local function placeLane(lane, x0, colW, y0, across)
 		local y = y0
 		if lane.pinnedSection and db.pinnedHighlight then
 			pinIdx = pinIdx + 1
@@ -1371,6 +1450,11 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 			self.laneIds[#self.laneIds + 1] = lane.id
 			open = not collapsedSet[lane.id]
 			local h = Buttons:GetLane(host, laneIdx)
+			-- Pooled headers return to their natural title width outside compact mode.
+			if h.compactTitle then
+				h.text:SetWidth(0); h.text:SetWordWrap(h.compactWrap ~= false)
+				h.compactTitle, h.compactWrap = nil, nil
+			end
 			local value = 0
 			for _, r in ipairs(lane.items) do if r.sellPrice and not r.hasNoValue then value = value + r.sellPrice * r.count end end
 			h.laneId = lane.id
@@ -1402,7 +1486,7 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 			h.showAH = nil
 			-- The values are written after every header is placed, in one
 			-- format for the whole window (see writeHeaderValues above).
-			local info = { h = h, colW = colW, recent = lane.recent, emptyCustom = lane.emptyCustom, emptyHint = lane.emptyCustom and iconMode, emptySet = lane.noteOnly, setNote = lane.setNote }
+			local info = { h = h, colW = colW, recent = lane.recent, emptyCustom = lane.emptyCustom, emptyHint = lane.emptyCustom and iconMode, emptySet = lane.noteOnly, setNote = lane.setNote, compact = compact }
 			if not lane.recent then
 				info.v = value > 0 and ns.Money(value) or "-"
 				if ns.AH:Available() and ns.IndexOf(self:Pref("cols"), "ah") then
@@ -1426,12 +1510,18 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 					if ns.Sections and ns.Sections:CursorItem() then
 						if ns.Sections:DropOnSection(btn.laneId) then return end
 					end
-					if mouse == "RightButton" then if ns.Sections then ns.Sections:SectionMenu(btn.laneId, btn) end return end
+					-- (1.9.0-beta5, Shweep: "right clicking a section header in global shows a menu that makes no sense") every
+					-- entry changes your profile's sections; Global Inventory's are its own, so no menu there
+					if mouse == "RightButton" then
+						if ns.Sections and not (btn.view.isMain and ns.ui.global) then ns.Sections:SectionMenu(btn.laneId, btn) end
+						return
+					end
 					btn.view:ToggleLane(btn.laneId)
 				end)
 				h:SetScript("OnReceiveDrag", function(btn) if ns.Sections then ns.Sections:DropOnSection(btn.laneId) end end)
 				-- "All Items" (Sections: All beside Recent) isn't in Section Order, so it doesn't drag.
-				h:SetScript("OnDragStart", function(btn) if btn.laneId == "~all" then return end ns.dragLane = btn.laneId; btn:SetAlpha(0.5) end)
+				-- (1.9.0-beta5) nor in Global Inventory: a drag there would reorder your profile's sections
+				h:SetScript("OnDragStart", function(btn) if btn.laneId == "~all" or (btn.view.isMain and ns.ui.global) then return end ns.dragLane = btn.laneId; btn:SetAlpha(0.5) end)
 				h:SetScript("OnDragStop", function(btn)
 					btn:SetAlpha(1)
 					local target = ns.FrameUnderCursor("laneId")
@@ -1445,6 +1535,18 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 					if hint then
 						GameTooltip:SetOwner(btn, "ANCHOR_TOP"); ns.TipText(GameTooltip, hint, 1, 1, 1); GameTooltip:Show()
 						btn.dropLit = true; btn.accent:SetVertexColor(1, 1, 1, 1)
+						return
+					end
+					if btn.compactValues and ns.TooltipsOK() then
+						GameTooltip:SetOwner(btn, "ANCHOR_TOP")
+						ns.TipText(GameTooltip, btn.text:GetText() or "", 1, 1, 1)
+						local values = btn.compactValues
+						if values.v then ns.TipLine(GameTooltip, "V: " .. values.v, 0.9, 0.9, 0.9) end
+						if values.ah then ns.TipLine(GameTooltip, "AH: " .. values.ah, 0.9, 0.9, 0.9) end
+						if btn.laneId == "~recent" then
+							ns.TipLine(GameTooltip, "Recent items also appear in their usual sections.", nil, nil, nil, true)
+						end
+						GameTooltip:Show()
 						return
 					end
 					if not ns.HelpTipsOK() then return end
@@ -1475,6 +1577,7 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 					h.clearRecent:SetHeight(18)
 					h.clearRecent:SetScript("OnEnter", nil)
 				end
+				if compact then h.clearRecent.label:SetText("Clear Recent"); h.clearRecent:SetWidth(86) end
 				-- Right after the count: "Recent (23) [Clear Recent]".
 				h.clearRecent.tip = (db.newdot and db.newdotClearRecent) and "Empties the Recent list and clears the green dots." or "Empties the Recent list."
 				h.clearRecent:ClearAllPoints()
@@ -1484,17 +1587,7 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 				h.clearRecent:Hide()
 			end
 			-- Warlocks: Clear Shards on the section holding Soul Shards in ordinary bags.
-			local shardHere = false
-			if not lane.recent and not cached and ns.MakeRoom and ns.MakeRoom:IsWarlock() then
-				for _, r in ipairs(lane.items) do
-					-- (1.7.2-beta1) a merged row of shards counts any of its members in an ordinary bag
-					for _, s in ipairs(r.itemID == 6265 and (r.members or { r }) or {}) do
-						if s.bag and ns.MakeRoom:BagFamily(s.bag) == 0 then shardHere = true; break end
-					end
-					if shardHere then break end
-				end
-				if shardHere then local _, can = ns.MakeRoom:Shards(); shardHere = can > 0 end
-			end
+			local shardHere = hasShardAction(lane)
 			if shardHere then
 				if not h.clearShards then
 					h.clearShards = ns.TextButton(h, "Clear Shards", 86, function() ns.MakeRoom:ShowShards() end)
@@ -1536,6 +1629,17 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 			elseif h.wornTag then
 				h.wornTag:Hide()
 			end
+			if compact then
+				local actions = (h.clearRecent and h.clearRecent:IsShown() and h.clearRecent:GetWidth() + 8 or 0)
+					+ (h.clearShards and h.clearShards:IsShown() and h.clearShards:GetWidth() + 8 or 0)
+					+ (h.equipSet and h.equipSet:IsShown() and h.equipSet:GetWidth() + 8 or 0)
+					+ (h.wornTag and h.wornTag:IsShown() and h.wornTag:GetStringWidth() + 10 or 0)
+				local room = math.max(1, colW - shift - 6 - h.count:GetStringWidth() - actions - 4)
+				if h.text:GetStringWidth() > room then
+					h.compactWrap = not h.text.CanWordWrap or h.text:CanWordWrap()
+					h.text:SetWidth(room); h.text:SetWordWrap(false); h.compactTitle = true
+				end
+			end
 			h:ClearAllPoints()
 			h:SetSize(colW, LANE_H)
 			h:SetPoint("TOPLEFT", host, "TOPLEFT", x0, -y)
@@ -1557,7 +1661,7 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 				return Buttons:Get(r.bag, r.slot)
 			end
 			if iconMode then
-				local perRow = math.max(1, math.floor((colW - 2 * gutter + GAP) / (cell + GAP)))
+				local perRow = across or math.max(1, math.floor((colW - 2 * gutter + GAP) / (cell + GAP)))
 				for i, r in ipairs(lane.items) do
 					local b = buttonFor(r)
 					if b then
@@ -1601,26 +1705,58 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 		return y
 	end
 
-	local inRow, rowTop, rowBottom = false, y, y
-	for _, lane in ipairs(lanes) do
-		-- (1.7.0-beta2, Shweep) Full-Width Recent: in Split View, Recent spans both columns, a row of its own
-		if twoCol and lane.recent and db.splitViewRecentWide then
-			if inRow then y = rowBottom; inRow = false end
-			y = placeLane(lane, 0, width, y)
-		elseif not twoCol then
-			if inRow then y = rowBottom; inRow = false end
-			y = placeLane(lane, 0, width, y)
-		elseif not inRow then
-			rowTop = y
-			rowBottom = placeLane(lane, 0, halfW, rowTop)
-			inRow = true
-		else
-			rowBottom = math.max(rowBottom, placeLane(lane, halfW + COL_GAP, halfW, rowTop))
-			y = rowBottom
-			inRow = false
+	if compact then
+		-- Measure in the same font objects as the existing name and count.
+		if not self.compactMeasure then
+			self.compactMeasure = host:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontNormal"))
+			self.compactCountMeasure = host:CreateFontString(nil, "OVERLAY", ns.Fonts:Name("GameFontHighlightSmall"))
+			self.compactMeasure:Hide(); self.compactCountMeasure:Hide()
 		end
+		local boxes = {}
+		for i, lane in ipairs(lanes) do
+			local n = 0
+			for _, r in ipairs(lane.items) do
+				if not r.empty then n = n + 1 end
+			end
+			self.compactMeasure:SetText(lane.label)
+			self.compactCountMeasure:SetText(lane.pinnedSection and ("(%d)   |TInterface\\AddOns\\BagSmith\\Media\\ui-pin.tga:12:12|t Pinned"):format(n) or ("(%d)"):format(n))
+			boxes[i] = { count = #lane.items,
+				minWidth = 20 + self.compactMeasure:GetStringWidth() + 6 + self.compactCountMeasure:GetStringWidth() + 4 + (hasShardAction(lane) and 94 or 0) + (lane.recent and 94 or 0),
+				fullWidth = (lane.recent and db.splitViewRecentWide) or lane.gearSet or lane.noteOnly or lane.emptyCustom }
+		end
+		local planned = ns.CompactCategories.Rows(boxes, width, cell, GAP, gutter, COL_GAP, LANE_H + 4 + 2 + 8)
+		ns.CompactCategories.Justify(planned, boxes, width, cell, GAP, gutter, COL_GAP)   -- (1.9.0-beta6) rows fill the width
+		for rowIndex, row in ipairs(planned) do
+			if rowIndex > 1 then y = y + 8 end
+			local x, bottom = 0, y
+			for _, p in ipairs(row) do
+				bottom = math.max(bottom, placeLane(lanes[p.index], x, p.width, y, p.across))
+				x = x + p.width + COL_GAP
+			end
+			y = bottom
+		end
+	else
+		local inRow, rowTop, rowBottom = false, y, y
+		for _, lane in ipairs(lanes) do
+			-- (1.7.0-beta2, Shweep) Full-Width Recent: in Split View, Recent spans both columns, a row of its own
+			if twoCol and lane.recent and db.splitViewRecentWide then
+				if inRow then y = rowBottom; inRow = false end
+				y = placeLane(lane, 0, width, y)
+			elseif not twoCol then
+				if inRow then y = rowBottom; inRow = false end
+				y = placeLane(lane, 0, width, y)
+			elseif not inRow then
+				rowTop = y
+				rowBottom = placeLane(lane, 0, halfW, rowTop)
+				inRow = true
+			else
+				rowBottom = math.max(rowBottom, placeLane(lane, halfW + COL_GAP, halfW, rowTop))
+				y = rowBottom
+				inRow = false
+			end
+		end
+		if inRow then y = rowBottom end
 	end
-	if inRow then y = rowBottom end
 	for i = pinIdx + 1, #pinPool do pinPool[i]:Hide() end
 	writeHeaderValues(headerInfos)
 	self.animate = false

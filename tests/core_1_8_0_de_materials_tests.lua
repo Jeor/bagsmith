@@ -14,7 +14,7 @@
 	local NEW, NEW2, CLOTH = 90001, 90002, 2589   -- two materials a server added (not in the table), and Linen Cloth
 	local function deepcopy(t) if type(t) ~= "table" then return t end local o = {}; for k, v in pairs(t) do o[k] = deepcopy(v) end return o end
 	local lootNow, clock = {}, 1000
-	local function boot(charDB, extra)
+	local function boot(charDB, extra, accountDB)
 		package.loaded.mock = nil
 		local M = require("mock")
 		-- (1.8.0-beta17, by design) item GUIDs in Forever's form: the loot source is the item's own GUID
@@ -23,7 +23,9 @@
 		-- past the shipped table: an uncommon helm at 112 (the table's uncommon brackets end at 99)
 		M.put(0, 3, { id = 7010, guid = "Item-6796-0-4000000000007010", name = "Starforged Helm", q = 2, count = 1, class = 4, subclass = 4, price = 900, ilvl = 112, equip = "INVTYPE_HEAD" })
 		_G.BagSmithCharDB = charDB or { version = 1, firstSeen = {} }
-		_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = { skin = "modern", deEnabled = true } } }
+		-- (1.9.0-beta1, by design) the learned results live in the account's save, shared by your characters: a reload
+		-- carries it as the game does (accountDB), a fresh boot starts it empty
+		_G.BagSmithDB = accountDB or { version = 2, chars = {}, cache = {}, profiles = { Default = { skin = "modern", deEnabled = true } } }
 		_G.IsSpellKnown = function(id) return id == DEID end
 		_G.GetSpellInfo = function(id) if id == DEID then return "Disenchant" end end
 		_G.RegisterStateDriver = function() end
@@ -83,7 +85,7 @@
 	M.fire("LOOT_READY"); M.fire("LOOT_OPENED")
 	local log = DE:Log()["2:3:a"]
 	check(log.mats[10940] == 3 and log.mats[NEW] == 1 and log.seen[NEW] == 1, "the window's new material is recorded with the cast, once across LOOT_READY and LOOT_OPENED")
-	check(DE:LearnedMaterials()[NEW] == true and n.cdb.deMaterials[NEW] == true and not DE:LearnedMaterials()[10940], "and learned, by item ID, per character (a shipped one isn't stored)")
+	check(DE:LearnedMaterials()[NEW] == true and BagSmithDB.deShared.materials[NEW] == true and not DE:LearnedMaterials()[10940], "and learned, by item ID, shared by your characters since 1.9.0-beta1 (a shipped one isn't stored)")
 	check(DE.session.mats[NEW] == 1, "the sitting's haul counts it too")
 	check(DE:SessionSummary():find("item 90001 x1", 1, true), "a material the game hasn't named yet reads as its item number")
 	M.fire("LOOT_CLOSED")
@@ -249,7 +251,7 @@
 
 	-- ---- what was learned survives a reload, and the chat counts it from the first cast
 	local saved = deepcopy(_G.BagSmithCharDB)
-	M, n = boot(saved)
+	M, n = boot(saved, nil, deepcopy(_G.BagSmithDB))
 	DE = n.Disenchant
 	check(DE:LearnedMaterials()[NEW] == true and DE:LearnedMaterials()[NEW2] == true and DE:Log()["f:2:111:a"].n == 20, "learned materials and the fallback key's results survive a reload")
 	DE:Show(); DE:Refresh()

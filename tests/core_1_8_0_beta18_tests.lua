@@ -1,3 +1,8 @@
+-- (by design since 1.9.0-beta1) these sets test the NEW-tag mechanism with 1.8's list, which the panel's own list (each
+-- release's) replaced
+local NEW18 = { release = "1.8", pages = { look = true, icons = true, profile = true },
+	heads = { ["Special Bag Slot Indicators"] = "icons", ["Shared Between Characters"] = "profile" },
+	keys = { textScale = "look", fontName = "look", questFrame = "icons" } }
 ;(function()
 	-- ======== 1.8.0-beta18 (Shweep): What's New's directions are links; Settings marks what's new ========
 	-- A "Settings > Page > Heading" in a bullet shows in soft blue and opens Settings there; the 1.8 card's titles
@@ -7,6 +12,7 @@
 	_G.BagSmithCharDB = { version = 1, firstSeen = {} }
 	_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = {} } }
 	local n = M.loadAddon("BagSmith")
+	n.SettingsPanel.NEW = NEW18
 	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
 	local WN, P = n.WhatsNew, n.SettingsPanel
 	local L = WN.Linkify
@@ -17,8 +23,9 @@
 	check(t:find("|Hbagsmith:settings:icons:Special Bag Slot Indicators|hSettings > Item Icons > Special Bag Slot Indicators|h|r.", 1, true), "a heading of several words")
 	t = L("(you can turn it off in Settings > Item Icons). In Classic")
 	check(t:find("|Hbagsmith:settings:icons:|hSettings > Item Icons|h|r). In Classic", 1, true), "a page alone, in brackets")
-	t = L("Turn on Ask Before Destroying in Settings > Automations & Actions > Loot Helper. Want blue")
-	check(t:find("|Hbagsmith:settings:loothelper:|hSettings > Automations & Actions > Loot Helper|h|r. Want blue", 1, true), "a sub-page: opens the sub-page")
+	-- (by design since 1.9.0-beta22, Shweep: "rename to Automations"; was "Automations & Actions")
+	t = L("Turn on Ask Before Destroying in Settings > Automations > Loot Helper. Want blue")
+	check(t:find("|Hbagsmith:settings:loothelper:|hSettings > Automations > Loot Helper|h|r. Want blue", 1, true), "a sub-page: opens the sub-page")
 	t = L("Settings > Profile > Shared Between Characters.")
 	check(t:find("|Hbagsmith:settings:profile:Shared Between Characters|h", 1, true), "Shared Between Characters")
 	t = L("Links are in Settings > About & Support.")
@@ -84,6 +91,7 @@ end)()
 	_G.BagSmithCharDB = { version = 1, firstSeen = {} }
 	_G.BagSmithDB = { version = 2, chars = {}, cache = {}, profiles = { Default = {} } }
 	local n = M.loadAddon("BagSmith")
+	n.SettingsPanel.NEW = NEW18
 	n.version = "1.8.0-beta18"
 	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
 	local P = n.SettingsPanel
@@ -123,6 +131,7 @@ end)()
 	M = require("mock")
 	_G.BagSmithDB = saved
 	n = M.loadAddon("BagSmith")
+	n.SettingsPanel.NEW = NEW18
 	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers()
 	local ns18 = BagSmithDB.newSeen and BagSmithDB.newSeen["1.8"]
 	check(ns18 and ns18.look == true and ns18.profile == true and ns18.bad == nil and ns18["no spaces"] == nil, "kept: the pages seen; dropped: anything else")

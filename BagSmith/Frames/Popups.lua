@@ -395,6 +395,14 @@ function Popups:BuildFilters(view)
 	local newC = checkbox(host, "New Items Only", function(on) Popups.view.st.filters.new = on; ns:RefreshViews(true) end)
 	newC:SetPoint("TOPLEFT", FPAD, y + 2); newC.groupKey = "new"
 	f.checks[#f.checks + 1] = newC
+	-- (1.9.0-beta4, Shweep) Global Inventory only: your characters on other rulesets too (hidden by default)
+	local realmsC = checkbox(host, "Include Other Rulesets", function(on)
+		if ns.Inventory then ns.Inventory:Settings().allRealms = on end
+		ns:RefreshViews(true)
+	end)
+	realmsC:SetPoint("TOPLEFT", FPAD + 150, y + 2); realmsC.groupKey = "allRealms"
+	f.checks[#f.checks + 1] = realmsC
+	f.realmsCheck = realmsC
 	y = y - ROWH - 4
 
 	-- Age window: two single-digit fields, whole hours 0 to 9.
@@ -613,6 +621,9 @@ function Popups:SyncFilters()
 	local filters = v.st.filters
 	for _, c in ipairs(f.checks) do
 		if c.groupKey == "new" then c:SetChecked(filters.new)
+		elseif c.groupKey == "allRealms" then
+			c:SetChecked(ns.Inventory and ns.Inventory:Settings().allRealms or false)
+			c:SetShown((v.isMain and ns.ui.global) and true or false)
 		else c:SetChecked(filters[c.groupKey][c.key] and true or false) end
 	end
 	self.syncing = true
@@ -717,8 +728,10 @@ function Popups:FillCharacters()
 				r:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.06)
 				ns.HoverWash(r, 0.06)   -- Modern: a clearer hover
 				r.icon = r:CreateTexture(nil, "ARTWORK"); r.icon:SetSize(16, 16); r.icon:SetPoint("LEFT", 6, 0)
-				r.name = fs(r); r.name:SetPoint("LEFT", r.icon, "RIGHT", 6, 0); r.name:SetPoint("RIGHT", -60, 0)
-				r.lvl = fs(r, nil, "RIGHT"); r.lvl:SetPoint("RIGHT", -6, 0); r.lvl:SetWidth(54)
+				-- (1.9.0-beta19, Shweep: "the alt dropdown") the chosen Font at the game's size, as the picker's button
+				local face = ns.View and ns.View.FaceFont and ns.View.FaceFont() or nil
+				r.name = fs(r, face); r.name:SetPoint("LEFT", r.icon, "RIGHT", 6, 0); r.name:SetPoint("RIGHT", -60, 0)
+				r.lvl = fs(r, face, "RIGHT"); r.lvl:SetPoint("RIGHT", -6, 0); r.lvl:SetWidth(54)
 				r:SetScript("OnClick", function(btn) ns.Window.main:SetOwner(btn.isMe and nil or btn.key); f:Hide() end)
 				f.rows[i] = r
 			end

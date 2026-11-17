@@ -1,3 +1,60 @@
+## 1.9.0
+
+New:
+- Global Inventory: the globe beside Travel Mode shows every item on your characters on this ruleset in one list, with
+  who has it and where (bags, bank, worn), one row per item with everyone's count together. Click an item more than
+  one character has to see each character's row (class icon and name first). The Bank tab or icon shows only what's
+  in banks, and the Filter panel can include your characters on other rulesets. Vendor and AH Price columns (AH Price
+  with a price source) show what everything is worth, and a Total row at the bottom adds them up for what's shown.
+  Buttons that don't apply there are greyed out, and hovering one says why. Its footer shows your characters' gold,
+  free slots and its own pinned currencies together. It uses BagSmith's standard sections, and keeps its own sort,
+  columns, tabs, column widths and pins for your whole account, apart from your profiles: see Global Inv Sections,
+  Global Inv Columns and Global Inv Sheets in Settings. It opens in its own window size, 750 by 620 to start (set it
+  in Settings > Windows > Global Inventory: Custom Window Size, or drag the corner while it's open). Read only;
+  closing BagSmith or the globe again brings your bags back as they were, size included.
+- The currency drawer says whose currencies it shows. In Global Inventory it lists every character's, with totals, and
+  pins there are Global Inventory's own. Click a currency more than one character has to see who has how many; hover a
+  pinned one in the footer for the same.
+- Travel Mode: when the window is too narrow for the search box in the title row, it folds into a search icon; click it
+  for a full-width search row.
+- Item tooltips show your inventory: any item's tooltip (your bags, the auction house, a vendor, a chat link, loot)
+  lists how many your characters on this realm have, in their bags, bank and gear, with the total. You're listed
+  first. Turn it off in Settings > General > Tooltips (Show Inventory in Item Tooltips).
+- Hover your gold in the bags window to see each of your characters' gold on this realm and the total. Hold Shift for
+  your whole account.
+- Your characters share what the Disenchant Helper learns: every disenchant on any of them improves the estimates for
+  all of them. Each character's results so far are added in once.
+- Bag Slot Count (Settings > Windows): count only the slots anything fits in (Exclude Special Bags, as in 1.8) or every
+  free slot (All Free Slots).
+- Icon Border Weight (Settings > Item Icons): Normal or Bold item borders, in both looks and both views. Thanks to
+  Jeor!
+- Footer Text Size (Settings > Style, under Size): make the text along the bottom of your bags and bank (gold, pinned
+  currencies, free slots) bigger or smaller, from 80% to 150%, on its own.
+- Icon Layout (Settings > Style): Full Width, Split View, or the new Compact View, where sections share rows, each as
+  wide as its items need (Icons view, By Section; hover a section's title for its value). Full-Width Recent works with
+  Split View and Compact View. In Compact View each row of sections fills the window's width, and each section's
+  icons spread across the room it has. Thanks to Jeor!
+Changed:
+- Settings > General > Tooltips (was Tips): Show Inventory in Item Tooltips, Show AH Price in Item Tooltips (its own
+  setting now, no longer tied to the AH Price column) and Show Help Tooltips (was Show Help Tips).
+- The bags window's title reads Bags, and the character picker shows a surname as its initial ("Shweepy T.") when the
+  full name doesn't fit, to make room in the title row.
+- Settings: text and buttons sit clear of the line above them; the window is a little taller, with room for the new
+  Global Inv pages; every page has an icon beside its name, in your accent color; each main page opens with its name
+  and icon; and a line marks the bottom of the header, with a soft shadow under it once you scroll down a page.
+- Text Size is now Item Text Size, and covers the column headings above the list too.
+- In the Modern look, the footer's gold and buttons sit centered between its line and the bottom of the window.
+- The Disenchant Helper's estimate for green items up to level 15 follows what they give on WoW Forever: more often an
+  essence, and no shard.
+- Settings: the Automations & Actions page is now called Automations, and in the page list the arrows sit right after
+  the page names, so the NEW tags line up.
+- The Font you pick (Settings > Style) also shows on the buttons along the top of your bags (Sections, Sort, Merge
+  Stacks, Filter), the sheet tabs and the character picker and its list, at their usual size.
+Fixed:
+- The Font list shows every font again, BagSmith's own included, and the one you pick takes effect straight away.
+  Before, a font only showed up once the game had drawn it somewhere else first. A font another addon brings now stays
+  in use after a reload too, instead of falling back to the default until you changed a font setting.
+
 ## 1.8.0
 
 New:

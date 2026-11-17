@@ -12,7 +12,8 @@ local needs,complete=MR:QuestObjectives()
 check(complete and #needs==0,'documented behavior: unseen quests under collapsed header are absent')
 check(not MR:NeededForQuest('Linen Cloth',needs),'collapsed-before-first-read objective cannot protect a material')
 -- (1.8.0-beta2, by design) the 1.8 card leads now; every older card one place down (each check kept)
-local first=n.WhatsNew.ENTRIES[2]
+-- (1.9.0-beta9, by design) the 1.9 card leads now; every older card one place down (each check kept)
+local first=n.WhatsNew.ENTRIES[3]
 check(first.v=='1.7.0','reviewing draft 1.7 card')
 print('FIRST BULLET: '..first.items[1])
 check(not first.items[1]:find('never offers what you still need for a quest',1,true) or first.items[1]:find('collapsed',1,true),'draft first bullet must qualify unconditional quest protection')

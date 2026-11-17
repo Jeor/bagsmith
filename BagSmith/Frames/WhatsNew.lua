@@ -24,6 +24,20 @@ ns.WhatsNew = WN
 -- Newest first. Only notable releases get an entry; keep a handful of short
 -- bullets that say what it is and where to turn it on.
 WN.ENTRIES = {
+	-- (1.9.0-beta9) the 1.9 card: Shweep approved the draft (16 Nov: "make sure the wording of it is easy to understand
+	-- and does not sound like AI")
+	{ v = "1.9.0", heading = "BagSmith 1.9", items = {
+		-- (beta10, Shweep: "realm" to "ruleset", a more human last sentence; the second bullet about tooltips and alts;
+		-- beta20, Shweep approved: currencies in the drawer, the same as items)
+		"|cfffac775Global Inventory:|r click the globe at the top of your bags to see everything your characters on this ruleset are carrying, in one list. It shows who has each item and where it is: bags, bank or worn. Click an item more than one character has to see how many each of them has, and the same goes for currencies in the currency drawer. Down at the bottom, the Total tells you what it's all worth.",
+		"|cfffac775Alts in Your Tooltips:|r item tooltips now show how many you and your alts have, and where: bags, bank or worn. That's any item tooltip, whether the item is in your bags, at the auction house, at a vendor or in a chat link. Hover your gold to see each alt's gold too. Don't want the counts? Turn them off in Settings > General > Tooltips.",
+		"|cfffac775Compact View:|r in Icons view, sections can now share rows, each only as wide as it needs, so more fits on screen. Pick Full Width, Split View or Compact View in Settings > Style > Layout. Thanks to Jeor!",
+		"|cfffac775Shared Disenchanting:|r what one of your characters learns from disenchanting now helps all of them.",
+		-- (beta20, Shweep approved: "yeah these are good") the fonts with it: the header's buttons, and every font listed
+		"|cfffac775Text and Fonts:|r make your gold, pinned currencies and free slots bigger or smaller on their own, in Settings > Style > Size. The font you pick there now shows on the buttons along the top of your bags too, and every font you have now shows up in the list.",
+		"|cfffac775Bolder Borders:|r give your item icons thicker borders in Settings > Item Icons > Appearance. Thanks to Jeor!",
+		"|cfffac775Count Every Free Slot:|r your free-slot count leaves out quivers, herb bags and other special bags. Prefer the full count? Change Bag Slot Count in Settings > Windows > Main Window.",
+	} },
 	-- (1.8.0-beta2) the 1.8 card: Shweep approved the draft (15 Nov) with BagSmith's own fonts added
 	{ v = "1.8.0", heading = "BagSmith 1.8", items = {
 		-- (1.8.0-beta8, Shweep: friendlier wording for all four; beta18: titles renamed, Quick Tip removed, and each
@@ -56,13 +70,13 @@ WN.ENTRIES = {
 		"|cfffac775Blackthornes Tradeskills Prices:|r BagSmith can now take auction prices from Blackthornes Tradeskills as well as Auctionator. It uses whichever you have; with both, pick one in Settings > General > Price Source.",
 		"|cfffac775Quest Starters:|r an item that begins a quest now wears a yellow \"!\" in the top left of its icon until you accept the quest. You can move it to another corner in Settings > Item Icons.",
 		"|cfffac775See-Through Windows:|r turn down Background Opacity to let the world show through your bags' frame (or the whole window), and turn on Fade While Moving to dim your bags while you run. Both are in Settings > Windows > Opacity.",
-		"|cfffac775Fewer Tips:|r know your way around? Turn off Show Help Tips in Settings > General to stop the tooltips on BagSmith's buttons and columns. Item tooltips stay.",
+		"|cfffac775Fewer Tips:|r know your way around? Turn off Show Help Tooltips in Settings > General to stop the tooltips on BagSmith's buttons and columns. Item tooltips stay.",
 		"|cfffac775Narrower Windows:|r your bags can now be as narrow as 440 pixels. Drag the corner in: the toolbar folds into a few small buttons, and List view sets a few columns aside until there's room for them again (you choose which in Settings > Bag Columns).",
 		"|cfffac775Smarter Disenchant Advice:|r the Disenchant Helper counts the AH's cut and leans toward disenchanting while you level Enchanting (Settings > Disenchant Helper).",
 	} },
 	{ v = "1.5.1", heading = "BagSmith 1.5.1", items = {
 		"|cfffac775Faster Destroying:|r when the Loot Helper helps you make room, choosing an item and pressing Destroy now removes it right away. Blue and epic items, and anything whose quality the game hasn't shown yet, still ask first, just like the game does. Junk is still one click.",
-		"|cfffac775Your Choice:|r prefer to be asked every time? Turn on Ask Before Destroying in Settings > Automations & Actions > Loot Helper. Want blue and epic items gone at once too? Untick Always Ask for Rare or Better.",
+		"|cfffac775Your Choice:|r prefer to be asked every time? Turn on Ask Before Destroying in Settings > Automations > Loot Helper. Want blue and epic items gone at once too? Untick Always Ask for Rare or Better.",
 		"|cfffac775Smoother Looting:|r after you make room, the Loot Helper takes one item at a time and waits for each to land in your bags, so it no longer runs into \"your bags are full\". Loot with no price gets suggestions too.",
 	} },
 	{ v = "1.5.0", heading = "BagSmith 1.5", items = {
@@ -84,9 +98,9 @@ WN.ENTRIES = {
 	} },
 	{ v = "1.2.0", heading = "BagSmith 1.2", items = {
 		"|cfffac775Disenchant Helper:|r enchanters, this one's for you. A new window lists the gear in your bags worth disenchanting, shows what it sells for, what it's worth on the AH, and what its materials should bring, and tells you which is the better call. Then it walks you through the pile one click at a time (or one press of a keybinding). Skip what you want to keep, Exclude for things it should stop asking about, and it learns from your own results as you go. Find it beside the Gear Sets shield once it's on, or say yes when BagSmith offers it to a character with Enchanting.",
-		"|cfffac775Fewer Yes/No Boxes:|r tired of confirming every bind-on-equip piece you put on? BagSmith can click Yes for you on the kinds of box you choose, only after your own BagSmith actions unless you widen it, with a key to hold if you'd rather be asked. Off by default, under Automations & Actions.",
+		"|cfffac775Fewer Yes/No Boxes:|r tired of confirming every bind-on-equip piece you put on? BagSmith can click Yes for you on the kinds of box you choose, only after your own BagSmith actions unless you widen it, with a key to hold if you'd rather be asked. Off by default, under Automations.",
 		"|cfffac775Mail and Trade:|r right-click a merged stack at the mailbox or in a trade window and the rest of its stacks follow, the way they already did at the bank.",
-		"|cfffac775Settings:|r the Loot Helper and the Disenchant Helper have their own pages under Automations & Actions.",
+		"|cfffac775Settings:|r the Loot Helper and the Disenchant Helper have their own pages under Automations.",
 	} },
 	{ v = "1.1.0", heading = "BagSmith 1.1", items = {
 		"|cfffac775Item Level on Icons:|r want to see gear levels at a glance? Turn on Show Item Level (ilvl) on Icons in Settings > Style > Items. Weapons and armor will show their item level in the corner of their icon, in a color you choose, so it's easy to tell apart from a stack count.",
@@ -121,8 +135,8 @@ WN.ENTRIES = {
 	} },
 	{ v = "0.13.0", heading = "BagSmith 0.13", items = {
 		"|cfffac775Bag Bar:|r gain access to your Bag Bar from within BagSmith. A new button beside the bag counts in the bottom right brings it up. You can also hide Blizzard's Bag Bar in Settings > General.",
-		"|cfffac775Sell Junk + Mark as Junk:|r mark any item as junk in the new Junk column (or with a keybinding) and it sells along with your greys. You can also sell junk automatically at vendors: Settings > Automations & Actions.",
-		"|cfffac775Loot Helper:|r when your bags are too full for loot or a quest reward, it suggests what to combine, clean up or destroy, then finishes the looting for you. Settings > Automations & Actions.",
+		"|cfffac775Sell Junk + Mark as Junk:|r mark any item as junk in the new Junk column (or with a keybinding) and it sells along with your greys. You can also sell junk automatically at vendors: Settings > Automations.",
+		"|cfffac775Loot Helper:|r when your bags are too full for loot or a quest reward, it suggests what to combine, clean up or destroy, then finishes the looting for you. Settings > Automations.",
 		"|cfffac775Favorites and Track as Currency:|r star items to pin them in a Favorites section at the top, and use the wallet column (or Add Item in the currency drawer) to track any item as a currency.",
 		"|cfffac775Profile Sharing:|r copy your profile as a code to keep or share, or import someone else's. Settings > Profile.",
 		"|cfffac775Keybindings:|r BagSmith has its own section in the game's Keybindings, plus Settings > Keybindings for Mark as Junk, Favorite Item and the rest.",
@@ -130,7 +144,7 @@ WN.ENTRIES = {
 	} },
 	{ v = "0.12.0", heading = "BagSmith 0.12", items = {
 		"|cfffac775Travel Mode:|r a compact, on-the-go view for when you're out adventuring. Click the signpost next to the close button and the toolbar and filters tuck away, leaving your items and search. Click it again anytime to get your full inventory tools back.",
-		"|cfffac775Auto Travel Mode:|r if you want, Travel Mode can switch off on its own when it's time to manage your bags (at the bank, the auction house or a vendor, or while you're on a flight path) and back on when you're done. Choose which in Settings > Automations & Actions.",
+		"|cfffac775Auto Travel Mode:|r if you want, Travel Mode can switch off on its own when it's time to manage your bags (at the bank, the auction house or a vendor, or while you're on a flight path) and back on when you're done. Choose which in Settings > Automations.",
 	} },
 	{ v = "0.11.0", heading = "BagSmith 0.11", items = {
 		"|cfffac775Recent Items:|r what you picked up since logging in, at the top of your bags (also kept in their usual sections). On by default; Settings > Dynamic Sections.",
@@ -141,7 +155,9 @@ WN.ENTRIES = {
 }
 WN.MAX_SHOWN = 5   -- releases with a tab (five fit on one row in both skins)
 WN.URL = "https://www.curseforge.com/wow/addons/bagsmith/files/all"
-local WIDTH, PAD, LOGO = 440, 16, 32   -- 440 since 0.14: bullets wrap less, the card is shorter
+-- 440 since 0.14: bullets wrap less, the card is shorter; (1.9.0-beta11, Shweep: "5-10% wider") 476, about 8% more;
+-- (1.9.0-beta23, Shweep: "extend What's New about 5-10% in width") 512, about 7.5% more
+local WIDTH, PAD, LOGO = 512, 16, 32
 
 -- "0.11.0-beta2" -> { 0, 11, 0 }; a beta counts as its release.
 local function parse(v)
