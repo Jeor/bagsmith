@@ -1,3 +1,11 @@
+## 2.0.0-alpha2
+
+- Compact options drawer: grouping and sort menus, checkbox details and stack merging, consistent segmented choices.
+- All Settings stays at the bottom. A slim scrollbar and edge shading replace the scroll hint.
+- The drawer uses the bag border and background opacity; tool rows and the search filter are quieter.
+- Compact categories share the tallest header in each row so their first item rows align; pinned backgrounds grow with them.
+- Shorter divider lines and Clear Recent at the right of its header.
+
 ## 2.0.0-alpha1
 
 Jeor visual preview, based on upstream 1.9.0-beta18.

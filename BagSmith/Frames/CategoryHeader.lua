@@ -50,10 +50,55 @@ function H.Apply(i)
 		local left=math.min(width-4,titleWidth+10)
 		local right=math.max(left,width-(text~='' and valueWidth+14 or 4))
 		h.line:SetPoint('TOPLEFT',h,'TOPLEFT',left,-base/2)
-		h.line:SetWidth(math.max(1,right-left))
+		h.line:SetWidth(math.max(1,math.min(180,right-left)))
 	end
 	h.sub:SetShown(text~=''); h.line:Show()
 	h:SetHeight(height)
 	i.v2=true
 	return height
+end
+
+-- The row is rendered once. Only shorter headings and their item offsets need
+-- adjusting; secure item buttons are already owned by this out-of-combat layout.
+function H.AlignRow(spans, used, host)
+	local tallest, bottom=0,0
+	for _,span in ipairs(spans) do
+		if span.header then tallest=math.max(tallest,span.header:GetHeight()) end
+	end
+	for _,span in ipairs(spans) do
+		local delta=span.header and tallest-span.header:GetHeight() or 0
+		if delta>0 then
+			span.header:SetHeight(tallest)
+			for index=span.first,span.last do
+				local b=used[index]
+				if b~=span.header then
+					local point,relative,relativePoint,x,y=b:GetPoint(1)
+					if relative==host and point=='TOPLEFT' then
+						b:ClearAllPoints(); b:SetPoint(point,relative,relativePoint,x,y-delta)
+					end
+				end
+			end
+			if span.pin then span.pin:SetHeight(span.pin:GetHeight()+delta) end
+		end
+		bottom=math.max(bottom,span.bottom+delta)
+	end
+	return bottom
+end
+function H.Finish(infos)
+	for _,i in ipairs(infos) do
+		if i.v2 and i.recent and i.h.clearRecent then
+			local h,b=i.h,i.h.clearRecent
+			b:ClearAllPoints(); b:SetPoint('TOPRIGHT',h,'TOPRIGHT',-4,-4)
+			if not b.v2Quiet then
+				local paint=b.SetActive
+				b.SetActive=function(self,on) paint(self,on); self:SetBackdropColor(0,0,0,0); self:SetBackdropBorderColor(0,0,0,0) end
+				b.v2Quiet=true
+			end
+			b:SetActive(false); h.sub:Hide()
+			local left=(h.textX or 20)+h.text:GetStringWidth()+6+h.count:GetStringWidth()+10
+			local room=i.colW-b:GetWidth()-12-left
+			h.line:ClearAllPoints(); h.line:SetPoint('TOPLEFT',h,'TOPLEFT',left,-13)
+			h.line:SetWidth(math.max(1,math.min(180,room))); h.line:SetShown(room>=16)
+		end
+	end
 end

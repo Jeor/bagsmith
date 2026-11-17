@@ -19,3 +19,11 @@ Use `python tools/run_tests.py --shipping-ui <test-files.lua>` to run existing b
 ## In-game review
 
 This is an alpha, not an in-game-validated release. Test both skin palettes, compact/split/standard and List/Icons, long custom section names, large text, vendor/AH/count visibility, bank and Global Inventory, Travel Mode, short windows, screen edges, section drag/drop and combat. Compare against `approved-mockup.png`. The live installed addon is not changed by building this branch.
+
+## Alpha2 refinement
+
+The drawer now uses grouping/sort dropdowns and checkbox rows for stack merging and category details. All Settings remains fixed below the scrollable content; a slim scrollbar and edge shading indicate overflow. The frame follows the bag skin and background opacity. View/Layout choices share their sizing, tool rows are tighter, and the search filter is smaller.
+
+Compact categories reserve the tallest heading in each row before finalizing item offsets. This aligns first item rows without dropping vendor/AH metadata, and expands pinned backgrounds accordingly. Dividers are capped at 180 UI pixels. Clear Recent sits on the right; its divider reserves that action's space.
+
+The separate BagSmithTest installation is updated without touching saved settings or regular BagSmith. Alpha1 was backed up before replacement. In-game screenshots remain the visual acceptance check.

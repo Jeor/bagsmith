@@ -1731,11 +1731,17 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 		ns.CompactCategories.Justify(planned, boxes, width, cell, GAP, gutter, COL_GAP)   -- (1.9.0-beta6) rows fill the width
 		for rowIndex, row in ipairs(planned) do
 			if rowIndex > 1 then y = y + 8 end
-			local x, bottom = 0, y
+			local x, bottom, spans = 0, y, {}
 			for _, p in ipairs(row) do
-				bottom = math.max(bottom, placeLane(lanes[p.index], x, p.width, y, p.across))
+				local first, previousHeader, previousPin = #used+1, #headerInfos, pinIdx
+				local laneBottom = placeLane(lanes[p.index], x, p.width, y, p.across)
+				bottom = math.max(bottom, laneBottom)
+				spans[#spans+1] = { first=first, last=#used, bottom=laneBottom,
+					header=#headerInfos>previousHeader and headerInfos[#headerInfos].h or nil,
+					pin=pinIdx>previousPin and pinPool[pinIdx] or nil }
 				x = x + p.width + COL_GAP
 			end
+			if self.visualRefresh then bottom=ns.CategoryHeader.AlignRow(spans,used,host) end
 			y = bottom
 		end
 	else
@@ -1762,6 +1768,7 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 	end
 	for i = pinIdx + 1, #pinPool do pinPool[i]:Hide() end
 	writeHeaderValues(headerInfos)
+	if self.visualRefresh then ns.CategoryHeader.Finish(headerInfos) end
 	self.animate = false
 	self:HideUnused(usedSet, host)
 	self.used = used

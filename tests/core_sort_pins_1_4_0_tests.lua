@@ -29,19 +29,29 @@
 	-- ---- Sort: Off
 	local n, M = boot()
 	local V = n.Window.main
+	local function chooseSort(value)
+		if V.visualRefresh then
+			local menu, show = nil, n.ShowMenu
+			n.ShowMenu=function(items) menu=items end
+			V.btnSort:GetScript("OnClick")(V.btnSort)
+			n.ShowMenu=show
+			for _,entry in ipairs(menu or {}) do if entry.text:lower()==value then entry.onClick(); return end end
+			error("Sort menu omitted "..value)
+		else V.btnSort:GetScript("OnClick")(V.btnSort) end
+	end
 	V:SetPref("grp", "none"); V:SetPref("view", "list"); V:SetPref("sort", "quality"); n:RefreshViews(true); M.runTimers()
 	check(order(V)[1] == "Azure Ring", "(control) by quality the rare ring leads")
 	-- the button walks the modes and ends on Off
 	V:SetPref("sort", "oldest"); V:SyncTools()
-	V.btnSort:GetScript("OnClick")(V.btnSort); M.runTimers()
-	check(V:Pref("sort") == "off" and V.btnSort.label.text == "Sort: Off", "after Oldest the Sort button reaches Off, and says so")
+	chooseSort("off"); M.runTimers()
+	check(V:Pref("sort") == "off" and V.btnSort.label.text == (V.visualRefresh and "Off" or "Sort: Off"), "after Oldest the Sort button reaches Off, and says so")
 	check(table.concat(order(V), ",") == "Linen Cloth,Tough Jerky,Azure Ring,Wool Cloth,Broken Fang", "Off shows items in bag order, slot by slot (" .. table.concat(order(V), ",") .. ")")
-	V.btnSort:GetScript("OnClick")(V.btnSort); M.runTimers()
+	chooseSort("quality"); M.runTimers()
 	check(V:Pref("sort") == "quality", "and the next click goes back to Quality")
 	-- a column click sorts for the moment; choosing Off clears it
 	V:SetPref("sort", "oldest"); n:SortByColumn(V.st, "n"); n:RefreshViews(true); M.runTimers()
 	check(V.st.colSort ~= nil, "(a column sort is active)")
-	V.btnSort:GetScript("OnClick")(V.btnSort); M.runTimers()
+	chooseSort("off"); M.runTimers()
 	check(V.st.colSort == nil and V:Pref("sort") == "off", "choosing Off clears the column sort")
 	-- the setting and its validators
 	check(n:Set("sort", "off") ~= false and n.db.sort == "off", "Off is a valid default sort")

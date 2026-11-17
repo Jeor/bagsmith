@@ -7,6 +7,7 @@ M.sizes[0] = 40
 for i = 1, 20 do
  M.put(0, i, {id=82000+i, name='Sample '..i, q=1, class=i<=12 and 0 or 7, subclass=0, price=123, count=2})
 end
+M.put(0,21,{id=83001,name='Valuable Gear',q=3,class=4,subclass=0,price=99999999,count=2})
 _G.BagSmithCharDB = {version=1, firstSeen={}}
 _G.BagSmithDB = {version=2, chars={}, cache={}, profiles={Default={skin='modern', view='icons', grp='type', sizeMode='fixed', fixW=720, recentSection=false, mergeStacks=false, compactCategories=true}}}
 local n = M.loadAddon('BagSmith')
@@ -22,12 +23,18 @@ V.optionsToggle:GetScript('OnClick')(V.optionsToggle)
 check(V.optionsDrawer:IsShown(), 'bag button opens drawer')
 check(V.frame:GetWidth()==w and V.frame:GetHeight()==h, 'opening drawer does not resize inventory')
 check(V.btnSort:GetParent()==V.optionsContent, 'original sort action lives in drawer')
-check(V.btnSettings:GetParent()==V.optionsContent, 'settings moved out of title bar')
+check(V.btnSettings:GetParent()==V.optionsDrawer, 'settings moved out of title bar')
 check(not V.tools:IsShown(), 'old toolbar is hidden')
 V.optionsToggle:GetScript('OnClick')(V.optionsToggle)
 check(not V.optionsDrawer:IsShown(), 'bag button closes drawer')
 local oldSort = V:Pref('sort')
-V.btnSort:GetScript('OnClick')(V.btnSort); M.runTimers()
+local entries
+local oldMenu=n.ShowMenu
+n.ShowMenu=function(items) entries=items end
+V.btnSort:GetScript('OnClick')(V.btnSort)
+check(entries and #entries==6,'sorting opens a menu instead of cycling')
+if entries then entries[2].onClick() end
+n.ShowMenu=oldMenu; M.runTimers()
 check(V:Pref('sort')~=oldSort, 'sort action still changes sorting')
 local function checkHeaders(label)
  local count = 0
@@ -41,6 +48,22 @@ local function checkHeaders(label)
  check(count>=2,label..': categories remain visible')
 end
 checkHeaders('compact')
+local rows,wrapped={},false
+for _,h in ipairs(V.used or {}) do
+ if h.laneId and h.text and h:IsShown() then
+  local top=h.points[1][5]
+  wrapped=wrapped or h:GetHeight()>26
+  for _,b in ipairs(V.used) do
+   if b.rec and b.inLane==h.laneId then
+    local firstY=b.points[1][5]
+    if rows[top] then check(rows[top]==firstY,'compact first item rows align with wrapped metadata') else rows[top]=firstY end
+    break
+   end
+  end
+ end
+end
+check(wrapped,'alignment fixture includes wrapped category metadata')
+
 n:Set('compactCategories',false); n:Set('splitView',true); M.runTimers(); M.runTimers()
 checkHeaders('split')
 V:SetGlobal(true); M.runTimers(); M.runTimers()
@@ -67,7 +90,7 @@ check(short<tall,'pooled heading returns to one line at wide widths')
 for _,skin in ipairs({'classic','modern'}) do
  n:Set('skin',skin); M.runTimers(); M.runTimers(); V:Refresh(true)
  check(V.optionsToggle:IsShown() and not V.tools:IsShown(),skin..': new chrome survives skin change')
- check(V.btnSettings:GetParent()==V.optionsContent,skin..': tools remain in drawer')
+ check(V.btnSettings:GetParent()==V.optionsDrawer,skin..': tools remain in drawer')
  checkHeaders(skin)
 end
 n:Set('travelMode',true); M.runTimers(); M.runTimers(); V:SyncTools()
@@ -75,6 +98,11 @@ check(not V.btnLanesTravel:IsShown(),'Travel Mode does not leak its old title co
 check(V.btnBags.bgColor and V.btnBags.bgColor[4]==0,'footer counters are unboxed')
 for _,b in ipairs(V.grpSegBtns) do b:SetActive(b.active); check(b:GetFrameLevel()>=V.optionsContent:GetFrameLevel(),'drawer controls paint above their parent') end
 n:Set('travelMode',false); M.runTimers(); M.runTimers()
+check(V.optionsContent:GetHeight()<650,'options fit into a substantially shorter panel')
+check(V.btnGrpMenu:GetParent()==V.optionsContent and V.btnGrpMenu:IsShown(),'grouping uses its dropdown')
+for _,b in ipairs(V.grpSegBtns) do check(not b:IsShown(),'old vertical grouping choices are hidden') end
+for _,b in ipairs(V.optionsDetails) do check(b.optionsCheck~=nil,'category options use checkboxes') end
+check(V.optionsScrollbar~=nil,'overflow has a usable scrollbar')
 local B=n.Window.bank
 check(B.optionsDrawer~=nil,'bank also has its own drawer')
 local before=V:Pref('sort')
@@ -92,7 +120,28 @@ SlashCmdList.BAGSMITH('v2')
 check(n.db.visualRefresh==true,'preview can be restored')
 V.optionsToggle:GetScript('OnClick')(V.optionsToggle); V:Hide()
 check(not V.optionsDrawer:IsShown(),'closing bag closes its drawer')
+
+check(type(n.CategoryHeader.AlignRow)=='function','compact layout aligns heading heights per row')
+if n.CategoryHeader.AlignRow then
+ local host=CreateFrame('Frame')
+ local h1,h2=CreateFrame('Frame',nil,host),CreateFrame('Frame',nil,host)
+ h1:SetHeight(26); h2:SetHeight(48)
+ local a,b=CreateFrame('Button',nil,host),CreateFrame('Button',nil,host)
+ a:SetPoint('TOPLEFT',host,'TOPLEFT',0,-30); b:SetPoint('TOPLEFT',host,'TOPLEFT',100,-52)
+ local pin=host:CreateTexture(); pin.SetHeight=function(self,value) self.h=value end; pin:SetHeight(76)
+ local bottom=n.CategoryHeader.AlignRow({{header=h1,first=1,last=1,bottom=76,pin=pin},{header=h2,first=2,last=2,bottom=100}}, {a,b}, host)
+ check(h1:GetHeight()==48 and h2:GetHeight()==48,'row shares the tallest heading')
+ check(a.points[1][5]==-52 and b.points[1][5]==-52,'first item baselines align without moving the taller group')
+ check(bottom==100 and pin:GetHeight()==98,'row extent and pinned background include the extra header space')
+end
+local recent=CreateFrame('Frame')
+recent.text=recent:CreateFontString(); recent.text:SetText('Recent')
+recent.count=recent:CreateFontString(); recent.count:SetText('(6)')
+recent.line=recent:CreateTexture(); recent.sub=recent:CreateFontString()
+recent.clearRecent=n.TextButton(recent,'Clear Recent',86,function() end)
+n.CategoryHeader.Finish({{v2=true,recent=true,h=recent,colW=150}})
+check(not recent.line:IsShown(),'narrow Recent header does not draw a divider through its action')
+check(recent.clearRecent.points[1][1]=='TOPRIGHT','Clear Recent stays on the right')
 check((n.errors or 0)==0,'no addon errors')
 
 end)()
-
