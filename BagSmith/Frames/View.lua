@@ -192,6 +192,7 @@ View.GLOBAL_WHY = {
 	gearSets = "Gear sets belong to the character you're playing.",
 	bagWindows = "Bag windows show the bags of the character you're playing.",
 	bagBar = "The bag bar shows the bags of the character you're playing.",
+	byBag = "Global Inventory brings all your characters' bags together, so it groups items by section.",   -- (beta17)
 }
 function View.GlobalOff(b, off, name, reason)
 	if not b then return end
@@ -726,15 +727,20 @@ function View:Build()
 			return sync
 		end
 		self.syncGrp = seg("Sections", { { "none", "All", 38 }, { "type", "By Section", 64 }, { "bag", "By Bag", 54 } }, function() return self:Pref("grp") end, function(v) self:SetPref("grp", v) end)
+		self.grpSegBtns = self.segBoxes[#self.segBoxes].btns   -- (1.9.0-beta17) By Bag, greyed in Global Inventory
 		self.toolItems[#self.toolItems].hideAt = 3
 		-- (1.6.0) For narrow windows: Sections as one button with a menu (from the fourth step), then, at the fifth,
 		-- Sort drops "Sort:", and Merge Stacks and List / Icons become icons.
 		self.btnGrpMenu = textButton(tools, "", 88, function(b)
 			local cur, items = self:Pref("grp"), {}
 			for _, it in ipairs(View.GRP_CHOICES) do
-				items[#items + 1] = { text = it[2], checked = cur == it[1], onClick = function()
-					self:SetPref("grp", it[1]); self.syncGrp(); self:SyncTools(); ns:RefreshViews(true)
-				end }
+				-- (1.9.0-beta17, Shweep: "By Bag needs to be disabled / greyed out and needs tooltip") not in Global Inventory
+				local off = it[1] == "bag" and self.isMain and ns.ui.global
+				items[#items + 1] = { text = it[2], checked = cur == it[1], disabled = off or nil,
+					tipNote = off and View.GLOBAL_OFF or nil, tip = off and View.GLOBAL_WHY.byBag or nil,
+					onClick = function()
+						self:SetPref("grp", it[1]); self.syncGrp(); self:SyncTools(); ns:RefreshViews(true)
+					end }
 			end
 			ns.ShowMenu(items, b)
 		end)
@@ -1758,6 +1764,10 @@ function View:SyncTools()
 	View.GlobalOff(self.btnMergeIcon, gbl, "Merge Stacks", View.GLOBAL_WHY.merge)
 	for _, b in ipairs(self.viewSegBtns or {}) do
 		View.GlobalOff(b, gbl and b.value == "icons", "Icons View", View.GLOBAL_WHY.icons)
+	end
+	-- (1.9.0-beta17) and By Bag (Global Inventory shows By Bag as By Section)
+	for _, b in ipairs(self.grpSegBtns or {}) do
+		View.GlobalOff(b, gbl and b.value == "bag", "By Bag", View.GLOBAL_WHY.byBag)
 	end
 	View.GlobalOff(self.btnViewIcon, gbl, "Icons View", View.GLOBAL_WHY.icons)
 	if self.btnReagent then self.btnReagent:SetActive(sr and true or false) end

@@ -170,8 +170,19 @@ function ns.ShowMenu(items, anchor, keepPlace)
 					ns.ShowMenu(m.items, nil, true)
 					return
 				end
+				if not self.fn and self.tipText then return end   -- (1.9.0-beta17) a greyed entry with a tip: nothing to do
 				local fn = self.fn; m:Hide(); if fn then fn() end
 			end)
+			-- (1.9.0-beta17) an entry's tip on hover (it.tip, with it.tipNote above it), greyed entries included
+			r:SetScript("OnEnter", function(self)
+				if not (self.tipText and ns.TooltipsOK()) then return end
+				GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+				ns.TipText(GameTooltip, self.tipTitle or "")
+				if self.tipNote then ns.TipLine(GameTooltip, self.tipNote, 1, 0.82, 0) end
+				ns.TipLine(GameTooltip, self.tipText, 0.8, 0.8, 0.8, true)
+				GameTooltip:Show()
+			end)
+			r:SetScript("OnLeave", function(self) if self.tipText then GameTooltip:Hide() end end)
 			m.rows[i] = r
 		end
 		r:ClearAllPoints(); r:SetPoint("TOPLEFT", pad, -y); r:SetPoint("TOPRIGHT", -pad, -y)
@@ -217,7 +228,8 @@ function ns.ShowMenu(items, anchor, keepPlace)
 			end
 			r.radio = it.radio and true or nil
 			r.fn = (not it.disabled and not it.title) and it.onClick or nil
-			r:EnableMouse(r.fn ~= nil)
+			r.tipTitle, r.tipNote, r.tipText = it.text, it.tipNote, it.tip
+			r:EnableMouse(r.fn ~= nil or it.tip ~= nil)
 			if it.color then r.text:SetTextColor(it.color[1], it.color[2], it.color[3])
 			elseif it.title then r.text:SetTextColor(Skins:Accent())
 			elseif it.disabled then r.text:SetTextColor(unpack(s.muted))
