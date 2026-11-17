@@ -59,7 +59,7 @@ function select(key, label, values) {
   return `<label class="select-label">${label}<select data-setting="${key}">${values.map(([v, t]) => `<option value="${v}" ${state[key] === v ? "selected" : ""}>${t}</option>`).join("")}</select></label>`;
 }
 let sidebarConcept = "compact";
-try { sidebarConcept = localStorage.getItem("bagsmith-sidebar-concept") === "original" ? "original" : "compact"; } catch {}
+try { const saved = localStorage.getItem("bagsmith-sidebar-concept"); if (["original", "compact", "minimal"].includes(saved)) sidebarConcept = saved; } catch {}
 const openOptionSections = new Set();
 function options() {
   for (const details of $("options").querySelectorAll("details[data-section]")) {
@@ -115,7 +115,7 @@ function options() {
   );
   if (bagGrouping) bagGrouping.disabled = state.global;
   $("drawer").dataset.concept = sidebarConcept;
-  if (sidebarConcept === "compact") {
+  if (sidebarConcept !== "original") {
     const host = $("options");
     const view = host.querySelector("fieldset");
     view.classList.add("view-choice");
@@ -158,10 +158,25 @@ function options() {
     disclosure("details", "Category details", [...categoryDetails.querySelectorAll("label")], categoryDetails);
     categoryDetails.remove();
     host.lastElementChild.classList.add("sidebar-tools");
+    if (sidebarConcept === "minimal") {
+      view.querySelector('[data-value="icons"]').textContent = "Grid";
+      view.querySelector('[data-value="list"]').textContent = "List";
+      const choices = layout.querySelector(".segment");
+      const menu = document.createElement("details");
+      menu.className = "layout-menu";
+      const selected = state.view === "list" && state.layout === "compact" ? "Standard" : state.layout[0].toUpperCase() + state.layout.slice(1);
+      menu.innerHTML = `<summary aria-label="Layout: ${selected}">${selected}<span aria-hidden="true">⌄</span></summary>`;
+      menu.append(choices);
+      layout.append(menu);
+      const tools = host.lastElementChild;
+      disclosure("tools", "Tools", [...tools.querySelectorAll("button")], tools);
+      tools.remove();
+    }
   }
   if (restoreSetting) {
     const candidates = [...$("options").querySelectorAll("[data-setting]")];
-    candidates.find(el => el.dataset.setting === restoreSetting && el.dataset.value === restoreValue)?.focus({preventScroll: true});
+    if (sidebarConcept === "minimal" && restoreSetting === "layout") $("options").querySelector(".layout-menu summary")?.focus({preventScroll: true});
+    else candidates.find(el => el.dataset.setting === restoreSetting && el.dataset.value === restoreValue)?.focus({preventScroll: true});
   }
   $("settings").innerHTML = icon("cog") + "All Settings";
 }
@@ -749,4 +764,13 @@ $("sidebar-concept").addEventListener("change", event => {
   try { localStorage.setItem("bagsmith-sidebar-concept", sidebarConcept); } catch {}
   set("drawer", true);
   $("options").scrollTop = 0;
+});
+
+document.addEventListener("click", event => {
+  const menu = $("options").querySelector(".layout-menu");
+  if (menu && !menu.contains(event.target)) menu.open = false;
+});
+document.addEventListener("keydown", event => {
+  const menu = $("options").querySelector(".layout-menu[open]");
+  if (event.key === "Escape" && menu) { menu.open = false; menu.querySelector("summary").focus(); }
 });

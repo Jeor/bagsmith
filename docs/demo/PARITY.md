@@ -36,3 +36,7 @@ List rows now follow the addon defaults: 26px row height, 20px icons, 2.5% white
 ### Sidebar concept comparison
 
 The workshop Sidebar selector switches between Original and Compact Preview, retaining the same inventory settings. The concept preference is saved in this browser. Compact Preview provides visual layout buttons, inline grouping, and native keyboard-accessible Sorting & stacking / Category details disclosures. Tools remain directly accessible. List mode omits Compact because it duplicates Standard in that view. Opening either concept dismisses the currency drawer. Verified both concepts at desktop and mobile widths, disclosure state during edits, preference persistence, and currency switching.
+
+### Minimal sidebar and original category headers
+
+Minimal is a third comparison option, retaining existing settings and saving its preference. Text-only view buttons, an on-demand layout preview menu, inline grouping and collapsed Tools reduce persistent decoration. The layout menu supports keyboard activation, Escape and outside-click dismissal. All concepts now use the original-style BagSmith category bands with gold headings and left accent rails, retaining category counts, values and collapse behavior. Verified desktop/mobile and existing interaction regression checks.
