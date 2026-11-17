@@ -29,12 +29,26 @@ local SEARCH_W = 200   -- NAV_W fits the longest page name, "Automations & Actio
 -- only while that page or one of its sub-pages is open.
 local PAGES = {
 	{ "general", "General" }, { "look", "Style" }, { "icons", "Item Icons" }, { "window", "Windows" },
-	{ "sections", "Sections" }, { "dynamic", "Dynamic Sections", "sections" }, { "custom", "Custom Sections", "sections" }, { "globalsections", "Global Sections", "sections" },
-	{ "columns", "Columns" }, { "bagcols", "Bag Columns", "columns" }, { "bankcols", "Bank Columns", "columns" }, { "globalcols", "Global Columns", "columns" },
-	{ "sheets", "Sheets" }, { "bagsheets", "Bag Sheets", "sheets" }, { "banksheets", "Bank Sheets", "sheets" }, { "globalsheets", "Global Sheets", "sheets" },
+	{ "sections", "Sections" }, { "dynamic", "Dynamic Sections", "sections" }, { "custom", "Custom Sections", "sections" }, { "globalsections", "Global Inv Sections", "sections" },
+	{ "columns", "Columns" }, { "bagcols", "Bag Columns", "columns" }, { "bankcols", "Bank Columns", "columns" }, { "globalcols", "Global Inv Columns", "columns" },
+	{ "sheets", "Sheets" }, { "bagsheets", "Bag Sheets", "sheets" }, { "banksheets", "Bank Sheets", "sheets" }, { "globalsheets", "Global Inv Sheets", "sheets" },
 	{ "sorting", "Sorting & Filters" }, { "automation", "Automations & Actions" }, { "loothelper", "Loot Helper", "automation" }, { "dehelper", "Disenchant Helper", "automation" },
 	{ "keys", "Keybindings" }, { "plugins", "Plugins" }, { "profile", "Profile" }, { "advanced", "Advanced" },
 }
+-- (1.9.0-beta8, Shweep: "in each's header in settings and in the settings left hand can each also get their icon") the
+-- sub-pages' icons, one color like the text, before the name in the list and in the page's heading
+local MEDIA_PATH = "Interface\\AddOns\\BagSmith\\Media\\"
+Panel.PAGE_ICON = {
+	dynamic = MEDIA_PATH .. "ui-dynamic.tga", custom = MEDIA_PATH .. "ui-sliders.tga", globalsections = MEDIA_PATH .. "ui-globe.tga",
+	bagcols = MEDIA_PATH .. "mark.tga", bankcols = MEDIA_PATH .. "ui-bank.tga", globalcols = MEDIA_PATH .. "ui-globe.tga",
+	bagsheets = MEDIA_PATH .. "mark.tga", banksheets = MEDIA_PATH .. "ui-bank.tga", globalsheets = MEDIA_PATH .. "ui-globe.tga",
+	loothelper = MEDIA_PATH .. "ui-pouch.tga", dehelper = MEDIA_PATH .. "ui-disenchant.tga",
+}
+-- a page's first heading, with its icon
+function Panel:PageHead(text, page)
+	local icon = Panel.PAGE_ICON[page]
+	return self:Head(text, icon and { headIcon = icon, noIcon = true } or nil)
+end
 -- (1.8.0-beta18) What's New's "Settings > ..." links find their page by its name here (About & Support too).
 function Panel:PageLabels()
 	if not self.labels then
@@ -207,7 +221,15 @@ function Panel:Create()
 	for i, page in ipairs(PAGES) do
 		local b = CreateFrame("Button", nil, nav)
 		b:SetHeight(26)   -- (placed by SyncNav: sub-pages show only under the open page)
-		b.text = fs(b); b.text:SetPoint("LEFT", page[3] and 24 or 10, 0); b.text:SetText(page[2])
+		b.text = fs(b); b.text:SetText(page[2])
+		local icon = Panel.PAGE_ICON[page[1]]
+		if icon then
+			b.icon = b:CreateTexture(nil, "ARTWORK"); b.icon:SetSize(14, 14); b.icon:SetTexture(icon)
+			b.icon:SetPoint("LEFT", page[3] and 22 or 8, 0)
+			b.text:SetPoint("LEFT", b.icon, "RIGHT", 5, 0)
+		else
+			b.text:SetPoint("LEFT", page[3] and 24 or 10, 0)
+		end
 		b.parent = page[3]
 		if HAS_SUBS[page[1]] then
 			-- A page with sub-pages: a small arrow, right when folded, down when open.
@@ -330,9 +352,15 @@ function Panel:SyncNav()
 		end
 		local on = b.page == self.page and not self.query   -- (no page is current while searching)
 		b.text:SetTextColor(unpack(on and s.heading or s.muted))
+		if b.icon then b.icon:SetVertexColor(unpack(on and s.heading or s.muted)) end
 		-- (beta18) at the right of the page's row, as FlareUI has it
 		newTag(b, self:NewPage(b.page), b, 0)
-		if b.newTag and b.newTag:IsShown() then newTag(b, true, b, (NAV_W - 10) - 12 - tagWidth(b.newTag)) end
+		if b.newTag and b.newTag:IsShown() then
+			local x = (NAV_W - 10) - 12 - tagWidth(b.newTag)
+			-- (1.9.0-beta8) a sub-page whose name reaches the tag shows none here: its page above and its heading say NEW
+			local textEnd = (b.icon and ((b.parent and 22 or 8) + 14 + 5) or (b.parent and 24 or 10)) + (b.text:GetStringWidth() or 0)
+			if b.parent and textEnd + 6 > x then newTag(b, false) else newTag(b, true, b, x) end
+		end
 		if on then b.bar:SetVertexColor(Skins:Accent()); b.bar:Show() else b.bar:Hide() end
 	end
 	-- (1.5.4) Place them: full spacing when they fit above About & Support, tighter when not, and when even the tight
@@ -498,6 +526,17 @@ function Panel:Head(text, info)
 		return w
 	end)
 	h.text:SetText(text); h.text:SetTextColor(Skins:Color("heading")); h.line:SetColorTexture(Skins:Color("line"))
+	-- (1.9.0-beta8) a sub-page's icon before its first heading
+	h.text:ClearAllPoints()
+	if info and info.headIcon then
+		if not h.icon then h.icon = h:CreateTexture(nil, "ARTWORK"); h.icon:SetSize(16, 16) end
+		h.icon:SetTexture(info.headIcon); h.icon:SetVertexColor(Skins:Color("heading"))
+		h.icon:ClearAllPoints(); h.icon:SetPoint("BOTTOMLEFT", 2, 6); h.icon:Show()
+		h.text:SetPoint("BOTTOMLEFT", 2 + 16 + 6, 6)
+	else
+		if h.icon then h.icon:Hide() end
+		h.text:SetPoint("BOTTOMLEFT", 2, 6)
+	end
 	if info and not info.noIcon then
 		if not h.info then h.info = ns.Why.InfoButton(h) end
 		h.info.title, h.info.lines = info.title, info.lines
@@ -506,7 +545,7 @@ function Panel:Head(text, info)
 	elseif h.info then
 		h.info:Hide()
 	end
-	local tagX = (h.text:GetStringWidth() or 0) + 6 + ((h.info and h.info:IsShown()) and 20 or 0)
+	local tagX = (h.text:GetStringWidth() or 0) + 6 + ((h.info and h.info:IsShown()) and 20 or 0)   -- (from the text)
 	newTag(h, self:IsNew("heads", text), h.text, tagX)   -- (beta18)
 	self.y = self.y + 40
 	-- The card for this sub-section starts just under the heading's line.
@@ -1613,7 +1652,7 @@ pages.automation = function(self, db)
 end
 
 pages.loothelper = function(self, db)
-	self:Head("Loot Helper")
+	self:PageHead("Loot Helper", "loothelper")
 	self:Text("When your bags are too full for your loot, the Loot Helper shows ways to make room, then picks up the rest.")
 	self:Check("makeRoom", "Show Loot Helper When Loot Won't Fit")
 	-- (1.7.0-beta4, Shweep) how the list decides, in the words its (i) uses
@@ -1661,7 +1700,7 @@ pages.loothelper = function(self, db)
 end
 
 pages.dehelper = function(self, db)
-	self:Head("Disenchant Helper")
+	self:PageHead("Disenchant Helper", "dehelper")
 	self:Text("Lists the gear in your bags worth disenchanting, with what each is worth, and takes you through it one click at a time. It never disenchants on its own.")
 	-- (1.9.0-beta3, Shweep) shared by your characters since beta1
 	self:Text("Estimates start from typical disenchant results. After 20 disenchants of the same kind of item, BagSmith uses your own results instead. Your characters share them, so a disenchant on any of them counts for all.")
@@ -1882,7 +1921,7 @@ end
 
 -- Sections that fill themselves: Recent Items, Favorites and your gear sets.
 pages.dynamic = function(self, db)
-	self:Head("Dynamic Sections")
+	self:PageHead("Dynamic Sections", "dynamic")
 	self:Text("Sections that fill themselves: what you just picked up, what you starred, and your gear sets.")
 	self:Check("recentSection", "Recent Items", "What you've picked up since logging in, newest first. The items stay in their usual sections too, and Clear Recent empties the list.")
 	if db.recentSection then
@@ -1914,7 +1953,7 @@ end
 
 -- Your own sections, and moving items between sections.
 pages.custom = function(self, db)
-	self:Head("Custom Sections")
+	self:PageHead("Custom Sections", "custom")
 	self:Text("Make your own sections. Drag an item onto a section's title, or Alt+Left-click it, to move it there. Every copy of the item moves with it.")
 	self:Button("New Section...", function() ns.Sections:PromptNew() end)
 	self:Check("showEmptySections", "Show Empty Custom Sections", "Shows your sections even when they're empty, so you can drag items onto them.")
@@ -1935,7 +1974,7 @@ pages.columns = function(self, db)
 end
 -- Each window's columns: one list, ticked to show, arrows to reorder.
 local function columnsPage(self, db, bank)
-	self:Head(bank and "Bank Columns" or "Bag Columns")
+	self:PageHead(bank and "Bank Columns" or "Bag Columns", bank and "bankcols" or "bagcols")
 	self:Text((bank and "Your bank window's columns." or "Your bags window's columns (its Bank tab uses them too).")
 		.. " Tick a column to show it. Item is always shown, but you can move it. To resize columns, drag the line between two headers: the two columns beside it trade width, and Item fills the rest of the row. Double-click a line to reset both.")
 	local colsKey, orderKey, widthsKey = bank and "bankCols" or "cols", bank and "bankColOrder" or "colOrder", bank and "bankColWidths" or "colWidths"
@@ -2007,7 +2046,7 @@ pages.sheets = function(self, db)
 end
 -- Each window's tabs and saved sheets: one list, like Columns.
 local function sheetsPage(self, db, bank)
-	self:Head(bank and "Bank Sheets" or "Bag Sheets")
+	self:PageHead(bank and "Bank Sheets" or "Bag Sheets", bank and "banksheets" or "bagsheets")
 	self:Text((bank and "Your bank window's tabs." or "Your bags window's tabs.") .. " Tick a sheet to show its tab. All is always shown, but you can move it. Save your own sheets from the Filter panel.")
 	local orderKey, hiddenKey = bank and "bankTabOrder" or "tabOrder", bank and "bankHiddenTabs" or "hiddenTabs"
 	local order, hiddenList = db[orderKey], db[hiddenKey]
@@ -2036,19 +2075,18 @@ pages.bagsheets = function(self, db) sheetsPage(self, db, false) end
 -- (1.9.0-beta6, Shweep: "adding a page to each for Global ... only add what we absolutely must ... each needs a header
 -- (with the global icon to make it stand out) explaining that these setting live outside the profile and are
 -- universal") Global Inventory's own settings, saved for the account (BagSmithDB.globalInv).
-Panel.GLOBE = "|TInterface\\AddOns\\BagSmith\\Media\\ui-globe.tga:14:14|t "
-function Panel:GlobalHead(title)
-	self:Head(Panel.GLOBE .. title)
+function Panel:GlobalHead(title, page)
+	self:PageHead(title, page)
 	self:Text("For Global Inventory (the globe), on every character. These settings live outside your profiles: switching profile or character doesn't change them.")
 end
 local function globalRefresh() ns:Fire("SETTINGS_CHANGED", "globalInv"); ns:RefreshViews(true) end
 pages.globalsections = function(self, db)
-	self:GlobalHead("Global Sections")
+	self:GlobalHead("Global Inv Sections", "globalsections")
 	self:Seg("__globalGrp", "Open with Sections", { { "none", "All" }, { "type", "By Section" } })
 	self:Text("Global Inventory always uses BagSmith's standard sections in their standard order. Consumables and Gear aren't split, and custom sections, moved items, pinned sections, Favorites, Recent and gear sets don't appear there. Your own section settings apply to your bags and bank.")
 end
 pages.globalcols = function(self, db)
-	self:GlobalHead("Global Columns")
+	self:GlobalHead("Global Inv Columns", "globalcols")
 	local G = ns.Inventory:Settings()
 	self:Text("Item, Who, Where and Vendor always show, in that order. Tick other columns to show them after; the arrows reorder them.")
 	-- (1.9.0-beta7, Shweep) AH Price as in Bag Columns: tick it on or off; greyed, saying why, without a price addon
@@ -2086,7 +2124,7 @@ pages.globalcols = function(self, db)
 	self:Button("Reset Global Column Widths", function() G.colWidths = {}; globalRefresh() end)
 end
 pages.globalsheets = function(self, db)
-	self:GlobalHead("Global Sheets")
+	self:GlobalHead("Global Inv Sheets", "globalsheets")
 	self:Text("Tick a tab to show it in Global Inventory. All is always shown, but you can move it. Only these built-in tabs show there: your own sheets belong to your profile. Bank shows what's in your characters' banks.")
 	local G = ns.Inventory:Settings()
 	local hidden = {}

@@ -79,9 +79,10 @@ end)()
 	-- Settings > Columns > Global Columns
 	local P = n.SettingsPanel
 	P:Show(); P:ShowPage("globalcols")
+	-- (by design since 1.9.0-beta8: "Global Inv Columns", the globe its own icon beside the heading, not in its text)
 	local head
-	for _, h in ipairs(P.pools.head) do if h:IsShown() and tostring(h.text.text):find("Global Columns", 1, true) then head = h.text.text end end
-	check(head and head:find("ui%-globe%.tga"), "Global Columns' heading, with the globe")
+	for _, h in ipairs(P.pools.head) do if h:IsShown() and tostring(h.text.text):find("Global Inv Columns", 1, true) then head = h end end
+	check(head and head.icon and head.icon:IsShown() and tostring(head.icon.texture):find("ui%-globe%.tga"), "Global Inv Columns' heading, with the globe")
 	local said = false
 	for _, w in ipairs(P.pools.text or {}) do if w:IsShown() and tostring(w.text and w.text.text or w.text):find("outside your profiles", 1, true) then said = true end end
 	check(said, "saying these live outside your profiles")

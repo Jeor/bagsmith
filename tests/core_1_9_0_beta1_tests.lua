@@ -194,6 +194,8 @@ end)()
 	for _, b in ipairs(P.navButtons) do if b.newTag and b.newTag:IsShown() then tags[#tags + 1] = b.page end end
 	table.sort(tags)
 	-- (by design since 1.9.0-beta5) and Style, for Icon Layout; (beta6) Sections, Columns and Sheets, for their Global pages
-	check(table.concat(tags, ",") == "columns,general,globalcols,globalsections,globalsheets,icons,look,sections,sheets,window", "NEW beside General, Item Icons, Style, Windows, Sections, Columns, Sheets and the Global pages: " .. table.concat(tags, ","))
+	-- (by design since 1.9.0-beta8) the Global Inv pages' longer names, with their icons, reach the tag: their pages
+	-- above and their headings show NEW instead
+	check(table.concat(tags, ",") == "columns,general,icons,look,sections,sheets,window", "NEW beside General, Item Icons, Style, Windows, Sections, Columns and Sheets: " .. table.concat(tags, ","))
 	check((n.errors or 0) == 0, "no errors")
 end)()
