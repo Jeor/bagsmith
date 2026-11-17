@@ -1,5 +1,5 @@
 ;(function()
-	-- ======== 1.9.0-beta5 (Shweep, 17 Nov): Global Inventory, simpler ========
+	-- ======== 1.9.0-beta5 (Shweep, 16 Nov): Global Inventory, simpler ========
 	-- "What if we just only have the accordion view and simplify this": beta4's All Rows is gone. "disabled buttons, tabs
 	-- etc, need tooltips explaining not available in global inventory": Merge Stacks, Icons, Gear Sets (its tab shown,
 	-- not hidden), the bag bar and the bag windows are greyed, each saying so and why, and the game runs a disabled
