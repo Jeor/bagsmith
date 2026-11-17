@@ -50,7 +50,8 @@ Changed:
   Stacks, Filter), the sheet tabs and the character picker and its list, at their usual size.
 Fixed:
 - The Font list shows every font again, BagSmith's own included, and the one you pick takes effect straight away.
-  Before, a font only showed up once the game had drawn it somewhere else first.
+  Before, a font only showed up once the game had drawn it somewhere else first. A font another addon brings now stays
+  in use after a reload too, instead of falling back to the default until you changed a font setting.
 
 ## 1.8.0
 

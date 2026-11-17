@@ -75,8 +75,24 @@ function Fonts:ShareMore()
 	end
 end
 if ns.On then
-	ns:On("PLAYER_LOGIN", function() Fonts:ShareMore() end)
+	ns:On("PLAYER_LOGIN", function()
+		Fonts:ShareMore()
+		-- (1.9.0-beta21) every addon has loaded: a chosen font one of them shares is there now
+		if ns.db and type(ns.db.fontName) == "string" and ns.db.fontName ~= "" then Fonts:Apply() end
+	end)
 	ns:On("PLAYER_ENTERING_WORLD", function() Fonts:ShareMore() end)   -- (a no-op once shared)
+end
+-- (1.9.0-beta21, Shweep: "will expressway show up if another addon loads it in?") Most addons load after BagSmith, which
+-- makes its fonts as it loads: a saved choice of a font another addon shares found nothing then, and stayed the game's
+-- face until a font setting changed. LibSharedMedia says when a font is shared: the chosen one goes on as it arrives
+-- (a load-on-demand addon's too), and once more at login (above).
+do
+	local lib = lsm()
+	if lib and lib.RegisterCallback then
+		pcall(lib.RegisterCallback, Fonts, "LibSharedMedia_Registered", function(_, mediatype, key)
+			if mediatype == "font" and ns.db and key == ns.db.fontName then Fonts:Apply() end
+		end)
+	end
 end
 
 -- (1.8.0-beta2) Whether the client can load a font file. (1.8.0-beta22, Shweep's /run on Forever) Each file is asked on
