@@ -46,6 +46,11 @@ Changed:
 - In the Modern look, the footer's gold and buttons sit centered between its line and the bottom of the window.
 - The Disenchant Helper's estimate for green items up to level 15 follows what they give on WoW Forever: more often an
   essence, and no shard.
+- The Font you pick (Settings > Style) also shows on the buttons along the top of your bags (Sections, Sort, Merge
+  Stacks, Filter), the sheet tabs and the character picker and its list, at their usual size.
+Fixed:
+- The Font list shows every font again, BagSmith's own included, and the one you pick takes effect straight away.
+  Before, a font only showed up once the game had drawn it somewhere else first.
 
 ## 1.8.0
 

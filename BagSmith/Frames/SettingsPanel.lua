@@ -1591,7 +1591,8 @@ pages.look = function(self, db)
 	do
 		local choices = ns.Fonts and ns.Fonts:Choices() or { { key = "", label = "Default Font" } }
 		for _, c in ipairs(choices) do c.path = ns.Fonts and ns.Fonts:PathOf(c.key) end
-		self:Dropdown("fontName", "Font", choices, "The same item text in another font: BagSmith's own, the game's, or one another addon shares.")
+		-- (1.9.0-beta19) the buttons along the top, the tabs and the character picker too, at their own size
+		self:Dropdown("fontName", "Font", choices, "Your item text and the buttons along the top of your bags in another font: BagSmith's own, the game's, or one another addon shares.")
 	end
 	self:Head("Layout")
 	-- (1.9.0-beta5, Jeor's compact layout; Shweep: "a 3-way button with Full Width, Split View and Compact View") two

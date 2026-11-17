@@ -221,21 +221,64 @@ end
 -- character's.
 local function globalOn() return ns.ui and ns.ui.global and not ns.ui.owner end
 Currency.GlobalOn = globalOn
+-- (1.9.0-beta19, Shweep: "Currency is not showing everyone's currency... linen cloth") An item counted as a currency
+-- (a carried token, or one tracked with Track as Currency) is counted in each character's bags and bank as saved, the
+-- way Global Inventory's list counts it: a character's saved currencies hold only the items tracked, and held, when they
+-- last logged out. Wallet currencies come from each character's saved wallet, as before.
+local function itemID(key) return type(key) == "string" and tonumber(key:match("^i:(%d+)$")) or nil end
 function Currency:Global(all)
-	local byKey, out = {}, {}
-	for _, c in ipairs(ns.Inventory and ns.Inventory:CharKeys(all) or {}) do
-		local list = c.isMe and self:List() or self:List(c.key)
-		for _, e in ipairs(list or {}) do
-			if (tonumber(e.count) or 0) > 0 then
-				local g = byKey[e.key]
-				if not g then
-					g = { key = e.key, id = e.id, name = e.name, icon = e.icon, quality = e.quality, source = e.source, count = 0, per = {} }
-					byKey[e.key] = g; out[#out + 1] = g
-				end
-				g.count = g.count + e.count
-				g.per[#g.per + 1] = { name = c.name, class = c.class, count = e.count }
+	local chars = ns.Inventory and ns.Inventory:CharKeys(all) or {}
+	local lists, proto = {}, {}   -- each character's list; the first entry seen for each key (its name, icon, source)
+	local items = {}   -- itemID -> true: every item any character lists as a currency
+	for i, c in ipairs(chars) do
+		lists[i] = (c.isMe and self:List() or self:List(c.key)) or {}
+		for _, e in ipairs(lists[i]) do
+			if e.key and not proto[e.key] then proto[e.key] = e end
+			local id = itemID(e.key)
+			if id then items[id] = true end
+		end
+	end
+	-- what each character holds of those items: bags and bank as saved (yours as your own list reads them)
+	local function held(c)
+		local h, srcs = {}, nil
+		if c.isMe then
+			srcs = { ns.items, ns.bankScanned and ns.bankItems or (ns.SavedBank and ns:SavedBank()) }
+		else
+			local data = c.data or {}
+			srcs = { data.items, data.bank }
+		end
+		for j = 1, 2 do
+			for _, r in ipairs(type(srcs[j]) == "table" and srcs[j] or {}) do
+				local id = type(r) == "table" and tonumber(r.itemID)
+				if id and items[id] then h[id] = (h[id] or 0) + (tonumber(r.count) or 1) end
 			end
 		end
+		return h
+	end
+	local byKey, out = {}, {}
+	local function add(c, e, count)
+		local g = byKey[e.key]
+		if not g then
+			g = { key = e.key, id = e.id, name = e.name, icon = e.icon, quality = e.quality, source = e.source, count = 0, per = {} }
+			byKey[e.key] = g; out[#out + 1] = g
+		end
+		g.count = g.count + count
+		g.per[#g.per + 1] = { name = c.name, class = c.class, count = count }
+	end
+	for i, c in ipairs(chars) do
+		local h = held(c)
+		local done = {}
+		for _, e in ipairs(lists[i]) do
+			local id = itemID(e.key)
+			local n = id and (h[id] or 0) or (tonumber(e.count) or 0)
+			if e.key then done[e.key] = true end
+			if n > 0 then add(c, e, n) end
+		end
+		-- one another character lists, this one holds but doesn't list (not tracked, or none, at its last save)
+		local extra = {}
+		for id, n in pairs(h) do if n > 0 and not done["i:" .. id] then extra[#extra + 1] = id end end
+		table.sort(extra)
+		for _, id in ipairs(extra) do add(c, proto["i:" .. id], h[id]) end
 	end
 	table.sort(out, function(a, b) return (a.name or "") < (b.name or "") end)
 	return out

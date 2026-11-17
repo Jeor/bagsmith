@@ -728,8 +728,10 @@ function Popups:FillCharacters()
 				r:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.06)
 				ns.HoverWash(r, 0.06)   -- Modern: a clearer hover
 				r.icon = r:CreateTexture(nil, "ARTWORK"); r.icon:SetSize(16, 16); r.icon:SetPoint("LEFT", 6, 0)
-				r.name = fs(r); r.name:SetPoint("LEFT", r.icon, "RIGHT", 6, 0); r.name:SetPoint("RIGHT", -60, 0)
-				r.lvl = fs(r, nil, "RIGHT"); r.lvl:SetPoint("RIGHT", -6, 0); r.lvl:SetWidth(54)
+				-- (1.9.0-beta19, Shweep: "the alt dropdown") the chosen Font at the game's size, as the picker's button
+				local face = ns.View and ns.View.FaceFont and ns.View.FaceFont() or nil
+				r.name = fs(r, face); r.name:SetPoint("LEFT", r.icon, "RIGHT", 6, 0); r.name:SetPoint("RIGHT", -60, 0)
+				r.lvl = fs(r, face, "RIGHT"); r.lvl:SetPoint("RIGHT", -6, 0); r.lvl:SetWidth(54)
 				r:SetScript("OnClick", function(btn) ns.Window.main:SetOwner(btn.isMe and nil or btn.key); f:Hide() end)
 				f.rows[i] = r
 			end

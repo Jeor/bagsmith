@@ -84,10 +84,23 @@ end
 -- one, so every file the game hadn't drawn yet looked missing (BagSmith's own fonts, FlareUI's, Morpheus...) and stayed
 -- so all session, and choosing one did nothing. The game's own answer decides: a file it can't load leaves the text
 -- with no font. Only a yes is remembered, so a no is asked again. A client that can't be asked takes the file as usable.
+-- (1.9.0-beta19, Shweep: "we lost fonts", after FlareUI 6.10.1) That probe never worked for a font the game hadn't drawn:
+-- a font file loads only when a drawn text asks for it (until then SetFont answers false), and a hidden or blank text's
+-- request never loads it. So the list held only the fonts already on screen somewhere (1.8's showed the rest once
+-- another addon had drawn them). Now the client says whether it has the file (C_UIFileAsset.IsKnownFile, as FlareUI asks
+-- on Forever); the probe stays only for a client without it.
 local usable, probes = {}, {}
 function Fonts:Usable(path)
 	if type(path) ~= "string" or path == "" then return false end
 	if usable[path] then return true end
+	local A = _G.C_UIFileAsset
+	if type(A) == "table" and type(A.IsKnownFile) == "function" then
+		local ok, known = pcall(A.IsKnownFile, path)
+		if ok then
+			if known then usable[path] = true; return true end
+			return false
+		end
+	end
 	if not (UIParent and UIParent.CreateFontString) then return true end
 	local probe = probes[path]
 	if not probe then
@@ -143,13 +156,19 @@ function Fonts:PathOf(key)
 	return path and self:Usable(path) and path or nil
 end
 
+-- One of BagSmith's font objects in the chosen face (or the game's) at a size. (1.9.0-beta19, Shweep's /run on Forever) A
+-- font object takes a file the game hasn't drawn yet (SetFont answers nil and reads it back): the texts made from it ask
+-- for the file as they draw. Only a refusal (an error, or false) puts the game's face back.
+local function setFace(f, gamePath, size, flags)
+	local path = Fonts:Path()
+	local ok, res = pcall(f.SetFont, f, path or gamePath, size, flags or "")
+	if path and (not ok or res == false) then pcall(f.SetFont, f, gamePath, size, flags or "") end   -- (the game's face)
+end
 local function apply(template)
 	local b = base[template]
 	local f = _G["BagSmithFont_" .. template]
 	if not (b and f and f.SetFont) then return end
-	local size = math.max(6, math.floor(b[2] * Fonts:Scale() + 0.5))
-	local ok = pcall(f.SetFont, f, Fonts:Path() or b[1], size, b[3] or "")
-	if not ok then pcall(f.SetFont, f, b[1], size, b[3] or "") end   -- (a file the game can't read: the game's face)
+	setFace(f, b[1], math.max(6, math.floor(b[2] * Fonts:Scale() + 0.5)), b[3])
 end
 
 -- The BagSmith copy of one of the game's templates, made on first use; the template itself when a copy can't be made.
@@ -202,21 +221,45 @@ local function applyFooter(template)
 	local b = base[template]
 	local f = _G["BagSmithFooterFont_" .. template]
 	if not (b and f and f.SetFont) then return end
-	local size = math.max(6, math.floor(b[2] * Fonts:FooterScale() + 0.5))
-	local ok = pcall(f.SetFont, f, Fonts:Path() or b[1], size, b[3] or "")
-	if not ok then pcall(f.SetFont, f, b[1], size, b[3] or "") end
+	setFace(f, b[1], math.max(6, math.floor(b[2] * Fonts:FooterScale() + 0.5)), b[3])
+end
+-- A copy of a game template under another name, its color and shadow taken from the game's.
+local function makeCopy(name, template)
+	local game = _G[template]
+	local f = _G[name] or CreateFont(name)
+	if game and game.GetTextColor and f.SetTextColor then f:SetTextColor(game:GetTextColor()) end
+	if game and game.GetShadowColor and f.SetShadowColor then f:SetShadowColor(game:GetShadowColor()) end
+	if game and game.GetShadowOffset and f.SetShadowOffset then f:SetShadowOffset(game:GetShadowOffset()) end
+	return f
 end
 function Fonts:FooterName(template)
 	if self:Name(template) == template then return template end   -- (no copy can be made: the game's)
 	local name = "BagSmithFooterFont_" .. template
 	if not footerMade[template] then
-		local game = _G[template]
-		local f = _G[name] or CreateFont(name)
-		if game and game.GetTextColor and f.SetTextColor then f:SetTextColor(game:GetTextColor()) end
-		if game and game.GetShadowColor and f.SetShadowColor then f:SetShadowColor(game:GetShadowColor()) end
-		if game and game.GetShadowOffset and f.SetShadowOffset then f:SetShadowOffset(game:GetShadowOffset()) end
+		makeCopy(name, template)
 		footerMade[template] = true
 		applyFooter(template)
+	end
+	return name
+end
+
+-- (1.9.0-beta19, Shweep: "can we get font working in header buttons (both styles) and the alt dropdown") The chosen face
+-- at the game's own size (BagSmithFaceFont_<template>), for the toolbar's buttons and labels, the sheet tabs and the
+-- character picker: they're fixed sizes, so Item Text Size stays off them.
+local faceMade = {}
+local function applyOwnSize(template)
+	local b = base[template]
+	local f = _G["BagSmithFaceFont_" .. template]
+	if not (b and f and f.SetFont) then return end
+	setFace(f, b[1], b[2], b[3])
+end
+function Fonts:FaceName(template)
+	if self:Name(template) == template then return template end   -- (no copy can be made: the game's)
+	local name = "BagSmithFaceFont_" .. template
+	if not faceMade[template] then
+		makeCopy(name, template)
+		faceMade[template] = true
+		applyOwnSize(template)
 	end
 	return name
 end
@@ -226,6 +269,7 @@ function Fonts:FooterGrow(px) return math.floor((px or 0) * math.max(1, self:Foo
 function Fonts:Apply()
 	for template in pairs(base) do apply(template) end
 	for template in pairs(footerMade) do applyFooter(template) end
+	for template in pairs(faceMade) do applyOwnSize(template) end
 	ns:Fire("FONTS_CHANGED")
 end
 

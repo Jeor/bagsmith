@@ -124,6 +124,13 @@ local function fontString(parent, template, justify)
 	s:SetWordWrap(false)
 	return s
 end
+-- (1.9.0-beta19, Shweep: "can we get font working in header buttons (both styles) and the alt dropdown") the chosen
+-- Font at the game's own size (Fonts:FaceName): the toolbar's buttons and labels, the sheet tabs, the character picker
+local function faceFont(template)
+	template = template or "GameFontHighlightSmall"
+	return ns.Fonts and ns.Fonts.FaceName and ns.Fonts:FaceName(template) or template
+end
+View.FaceFont = faceFont
 
 ------------------------------------------------------------------------
 -- Modern hover: one style for every button. Classic leaves hover to
@@ -588,7 +595,8 @@ function View:Build()
 		self.charIcon:SetPoint("LEFT", 6, 0)
 		-- (1.6.0-beta11, Shweep: "feel free to ellipse names") the level stands on its own at the right, before the arrow, and
 		-- the name takes what's left, cut short with "..." in a narrow picker; the level is never cut
-		self.charLevel = fontString(self.charBtn, "GameFontHighlightSmall", "RIGHT")
+		self.charBtn.label:SetFontObject(faceFont())   -- (1.9.0-beta19)
+		self.charLevel = fontString(self.charBtn, faceFont(), "RIGHT")
 		self.charLevel:SetPoint("RIGHT", self.charBtn, "RIGHT", -View.PICKER_ARROW, 0)
 		self.charLevel:SetTextColor(0.56, 0.55, 0.51)
 		self.charBtn.label:ClearAllPoints()
@@ -636,6 +644,7 @@ function View:Build()
 			end)
 		end
 		self.btnFilter = textButton(f, "Filter", 64, function() ns.Popups:ToggleFilters(self) end)
+		self.btnFilter.label:SetFontObject(faceFont())   -- (1.9.0-beta19)
 		self.btnFilter:SetHeight(TOOL_H - 4)
 		self.btnFilter:SetPoint("LEFT", search, "RIGHT", 6, 0)
 
@@ -656,7 +665,7 @@ function View:Build()
 		-- their own separate buttons with clear space around them.
 		local function seg(label, items, get, set)
 			local btns = {}
-			local lbl = fontString(tools, "GameFontHighlightSmall")
+			local lbl = fontString(tools, faceFont())   -- (1.9.0-beta19: the chosen Font, as the buttons)
 			lbl:SetText(label); lbl:SetTextColor(0.56, 0.55, 0.51)
 			self.toolItems[#self.toolItems + 1] = { frame = lbl, width = lbl:GetStringWidth(), gap = 6, isLabel = true }
 			-- One bordered container holds the segments; thin dividers separate
@@ -677,7 +686,7 @@ function View:Build()
 				b:SetSize(w, 18)
 				b:SetPoint("LEFT", box, "LEFT", sx, 0)
 				b:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-				b.label = fontString(b, "GameFontHighlightSmall", "CENTER"); b.label:SetPoint("CENTER"); b.label:SetText(it[2])
+				b.label = fontString(b, faceFont(), "CENTER"); b.label:SetPoint("CENTER"); b.label:SetText(it[2])
 				b.value = it[1]
 				b:SetScript("OnClick", function() set(it[1]); for _, o in ipairs(btns) do o:SetActive(get() == o.value) end; ns:RefreshViews(true) end)
 				if i < #items then
@@ -745,6 +754,7 @@ function View:Build()
 			ns.ShowMenu(items, b)
 		end)
 		self.btnGrpMenu.tip = "Sections"
+		self.btnGrpMenu.label:SetFontObject(faceFont())   -- (1.9.0-beta19)
 		self.btnGrpMenu.tipSub = "Show all your items together, by section, or by bag"
 		self.btnGrpMenu.label:ClearAllPoints()
 		self.btnGrpMenu.label:SetPoint("LEFT", 8, 0); self.btnGrpMenu.label:SetPoint("RIGHT", -18, 0)
@@ -763,6 +773,7 @@ function View:Build()
 			self:SetPref("sort", modes[i % #modes + 1])
 			self:SyncTools(); ns:RefreshViews(true)
 		end)
+		self.btnSort.label:SetFontObject(faceFont())   -- (1.9.0-beta19)
 		self.toolItems[#self.toolItems + 1] = { frame = self.btnSort, width = 96, gap = 8, w4 = 72 }
 		local function toggleMerge()
 			-- (1.9.0-beta5, Shweep) greyed in Global Inventory, which already shows each item once (beta4's All Rows is gone)
@@ -770,6 +781,7 @@ function View:Build()
 			self:SetPref("mergeStacks", not self:Pref("mergeStacks")); self:SyncTools(); ns:RefreshViews(true)
 		end
 		self.btnMerge = textButton(tools, "Merge Stacks", 92, toggleMerge)
+		self.btnMerge.label:SetFontObject(faceFont())   -- (1.9.0-beta19)
 		self.btnMerge.tip = "Combine stacks of the same item into one, with the total count: one row in List view, one icon in Icons"
 		self.toolItems[#self.toolItems + 1] = { frame = self.btnMerge, width = 92, gap = 12, compactText = "Merge", fullText = "Merge Stacks", compactWidth = 56, hideAt = 4 }
 		self.btnMergeIcon = iconButton(tools, MEDIA .. "ui-merge.tga", "Merge Stacks", toggleMerge)
@@ -1118,6 +1130,8 @@ function View:ToolsTotal(level)
 end
 function View:LayoutTools()
 	if not self.toolItems then return end
+	-- (1.9.0-beta19) the group labels in the chosen Font: measured again (a font change lays the header out anew)
+	for _, it in ipairs(self.toolItems) do if it.isLabel and it.frame.GetStringWidth then it.width = it.frame:GetStringWidth() end end
 	local avail = self.tools:GetWidth()
 	local level = 0
 	-- (1.5.5) A width that reads 0 (or nearly) isn't known yet (a window built while closed): it isn't "too narrow",
@@ -1887,6 +1901,7 @@ function View:UpdateTabs()
 			ns.ShowMenu(items, b)
 		end)
 		self.tabMore.tip = "More Sheets"
+		self.tabMore.label:SetFontObject(faceFont())   -- (1.9.0-beta19)
 		self.tabMore.tipSub = "The tabs that don't fit, and New Sheet..."
 	end
 	local addBtn, editBtn = self.tabAdd, self.tabEdit
@@ -1894,9 +1909,11 @@ function View:UpdateTabs()
 		if not self.tabAddTab then
 			self.tabAddTab = textButton(self.tabs, "+", 34, function() ns.Popups:OpenFilters(self, "new") end)
 			self.tabAddTab.tip = self.tabAdd.tip
+			self.tabAddTab.label:SetFontObject(faceFont())   -- (1.9.0-beta19)
 			self.tabAddTab:SetClassic(true, ns.Classic.TabTemplate())
 			self.tabEditTab = textButton(self.tabs, "", 34, function() ns.Popups:OpenFilters(self, "edit", self.st.sheet) end)
 			self.tabEditTab.tip = self.tabEdit.tip
+			self.tabEditTab.label:SetFontObject(faceFont())   -- (1.9.0-beta19)
 			self.tabEditTab:SetClassic(true, ns.Classic.TabTemplate())
 			local holder = self.tabEditTab.classic or self.tabEditTab
 			local pen = holder:CreateTexture(nil, "OVERLAY")
@@ -1941,6 +1958,7 @@ function View:UpdateTabs()
 		local b = self.tabButtons[i]
 		if not b then
 			b = textButton(self.tabs, "", 60, function(btn) self:SetSheet(btn.sheet) end)
+			b.label:SetFontObject(faceFont())   -- (1.9.0-beta19)
 			b:SetHeight(TAB_H - 2)
 			if self.classicApplied then b:SetClassic(true, ns.Classic.TabTemplate()) end
 			b:RegisterForDrag("LeftButton")
@@ -2392,6 +2410,10 @@ function ns:ApplyWindowLock()
 end
 ns:OnSignal("SETTINGS_CHANGED", function(key) if key == nil or key == "lockWindows" then ns:ApplyWindowLock() end end)
 ns:OnSignal("SETTINGS_CHANGED", function(key) if key == "bagSlotCount" then ns:RefreshViews(true) end end)   -- (1.9.0-beta1) the footer's count
+-- (1.9.0-beta19) a font change: each window's header laid out again, its group labels measured in the new face
+ns:OnSignal("FONTS_CHANGED", function()
+	for _, v in pairs(ns.views or {}) do if v.toolItems and v.tools then v:LayoutTools() end end
+end)
 
 -- A Clean Up rearranges the bags on purpose, for some seconds: the windows don't hold their layout under the pointer
 -- meanwhile, and lay out once more when it's done (1.4.1).
