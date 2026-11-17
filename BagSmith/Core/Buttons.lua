@@ -1626,7 +1626,12 @@ function Buttons:Fill(b, rec, opts)
 		local who = rec.who or ""
 		if rec.globalKids then
 			local open = ns.ui.globalOpen and ns.ui.globalOpen[rec.itemID]
-			who = ("|TInterface\\AddOns\\BagSmith\\Media\\%s:10:10|t %s"):format(open and "ui-chev-down.tga" or "ui-chev-right.tga", who)
+			-- (1.9.0-beta12, Shweep: "may stand out more if they are the accent color", "slightly bigger too") 12 px (was 10),
+			-- tinted with the accent through the texture's own color fields, so the text beside it keeps its color
+			local ar, ag, ab = 1, 0.82, 0
+			if ns.Skins and ns.Skins.Accent then ar, ag, ab = ns.Skins:Accent() end
+			who = ("|TInterface\\AddOns\\BagSmith\\Media\\%s:12:12:0:0:64:64:0:64:0:64:%d:%d:%d|t %s"):format(open and "ui-chev-down.tga" or "ui-chev-right.tga",
+				math.floor(ar * 255 + 0.5), math.floor(ag * 255 + 0.5), math.floor(ab * 255 + 0.5), who)
 		end
 		b.colWho:SetText(who)
 		if rec.whoClass then b.colWho:SetTextColor(ns.ClassColor(rec.whoClass)) else b.colWho:SetTextColor(0.84, 0.83, 0.79) end
