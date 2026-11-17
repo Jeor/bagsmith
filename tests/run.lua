@@ -8826,7 +8826,8 @@ end)()
 	check(byKey.dense and byKey.iconLayout and byKey.emptySlots, "Compact Rows, Split View and Show Empty Slots are on the Style page")
 	local rowsInCards = 0
 	for kind, pool in pairs(P.pools) do
-		if kind ~= "head" and kind ~= "card" and kind ~= "sep" then for _, w in ipairs(pool) do if w:IsShown() then rowsInCards = rowsInCards + 1 end end end
+		-- (1.9.0-beta10, by design) a main page's title sits above its cards, like a heading
+		if kind ~= "head" and kind ~= "card" and kind ~= "sep" and kind ~= "pagetitle" then for _, w in ipairs(pool) do if w:IsShown() then rowsInCards = rowsInCards + 1 end end end
 	end
 	check(#seps == rowsInCards - #cards, "a hairline between every two rows inside a card (" .. #seps .. " for " .. rowsInCards .. " rows in " .. #cards .. " cards)")
 	for _, t in ipairs(seps) do if t.color and t.color[4] > 0.6 then ok = false end end
@@ -8877,7 +8878,7 @@ end)()
 		local cardW = nil
 		for _, c in ipairs(S.pools.card) do if c:IsShown() then cardW = c:GetWidth() end end
 		for kind, pool in pairs(S.pools) do
-			if kind ~= "card" and kind ~= "sep" and kind ~= "head" then
+			if kind ~= "card" and kind ~= "sep" and kind ~= "head" and kind ~= "pagetitle" then   -- (1.9.0-beta10, by design: the title is above the cards)
 				for _, w in ipairs(pool) do
 					if w:IsShown() and w.points[1] and w.points[1][2] == S.frame.child then
 						local x, wdt = w.points[1][4], w:GetWidth()
@@ -9925,8 +9926,9 @@ end)()
 	local byText = {}
 	for _, b in ipairs(P.navButtons) do byText[b.text.text] = b end
 	check(byText["Sections"] and byText["Dynamic Sections"] and byText["Custom Sections"] and not byText["Standard Sections"]
-		-- (1.9.0-beta8, by design) a sub-page's name follows its icon, which takes the indent (beta9: 18, was 22)
-		and byText["Sections"].text.points[1][2] == 10 and byText["Dynamic Sections"].icon.points[1][2] == 18 and byText["Custom Sections"].icon.points[1][2] == 18
+		-- (1.9.0-beta8, by design) a sub-page's name follows its icon, which takes the indent (beta9: 18, was 22);
+		-- (beta10) a main page's too, its icon at 8
+		and byText["Sections"].icon.points[1][2] == 8 and byText["Sections"].text.points[1][2] == byText["Sections"].icon and byText["Dynamic Sections"].icon.points[1][2] == 18 and byText["Custom Sections"].icon.points[1][2] == 18
 		and byText["Dynamic Sections"].text.points[1][2] == byText["Dynamic Sections"].icon,
 		"the list says Sections, with Dynamic and Custom Sections indented under it")
 	-- the Item column: checked, dimmed, explains itself

@@ -50,6 +50,7 @@
 # footer child, main.8.1, so the footer's other children are numbered one higher. Nothing else changed (checked).
 #   1.9.0-beta2  the globe (Global Inventory) in the title row, between the divider and Travel Mode: checked to differ only by its insertion (later siblings renumbered), then re-recorded
 # 1.9.0-beta8 (Shweep: the footer "rides high"): footer 6 px lower (12 -> 6), its line raised 6 px to stay where it was; the only difference in all three scenarios, checked against beta7's snapshot
+# 1.9.0-beta10 (Shweep's main-page icons): each main page in the Settings list gains its icon (settings.3.N.r2, the accent at 0.65, the open page's at 1.00); an arrow after it renumbers r2 to r3, unchanged. The only differences, in all three scenarios, then re-recorded
 title | w=nil h=26 shown=true | TOPLEFT,window,TOPLEFT,12,-12 ; TOPRIGHT,window,TOPRIGHT,-12,-12
 scroll | w=nil h=nil shown=true | TOPLEFT,header,BOTTOMLEFT,0,-2 ; BOTTOMRIGHT,tabs,TOPRIGHT,0,4
 tabs | w=nil h=22 shown=true | BOTTOMLEFT,window,BOTTOMLEFT,12,40 ; BOTTOMRIGHT,window,BOTTOMRIGHT,-12,40
@@ -214,23 +215,36 @@ look settings.2.r3 text=0.56,0.55,0.51,1.00
 look settings.2.1.r1 color=0.62,0.60,0.55,1.00
 look settings.3.r1 color=0.23,0.22,0.20,1.00
 look settings.3.1.r1 text=0.56,0.55,0.51,1.00
+look settings.3.1.r2 color=0.98,0.78,0.46,0.65
 look settings.3.2.r1 text=0.93,0.91,0.88,1.00
 look settings.3.2.r2 color=0.98,0.78,0.46,1.00
+look settings.3.2.r3 color=0.98,0.78,0.46,1.00
 look settings.3.3.r1 text=0.56,0.55,0.51,1.00
+look settings.3.3.r2 color=0.98,0.78,0.46,0.65
 look settings.3.4.r1 text=0.56,0.55,0.51,1.00
+look settings.3.4.r2 color=0.98,0.78,0.46,0.65
 look settings.3.5.r1 text=0.56,0.55,0.51,1.00
-look settings.3.5.r2 color=0.56,0.55,0.51,1.00
+look settings.3.5.r2 color=0.98,0.78,0.46,0.65
+look settings.3.5.r3 color=0.56,0.55,0.51,1.00
 look settings.3.6.r1 text=0.56,0.55,0.51,1.00
-look settings.3.6.r2 color=0.56,0.55,0.51,1.00
+look settings.3.6.r2 color=0.98,0.78,0.46,0.65
+look settings.3.6.r3 color=0.56,0.55,0.51,1.00
 look settings.3.7.r1 text=0.56,0.55,0.51,1.00
-look settings.3.7.r2 color=0.56,0.55,0.51,1.00
+look settings.3.7.r2 color=0.98,0.78,0.46,0.65
+look settings.3.7.r3 color=0.56,0.55,0.51,1.00
 look settings.3.8.r1 text=0.56,0.55,0.51,1.00
+look settings.3.8.r2 color=0.98,0.78,0.46,0.65
 look settings.3.9.r1 text=0.56,0.55,0.51,1.00
-look settings.3.9.r2 color=0.56,0.55,0.51,1.00
+look settings.3.9.r2 color=0.98,0.78,0.46,0.65
+look settings.3.9.r3 color=0.56,0.55,0.51,1.00
 look settings.3.10.r1 text=0.56,0.55,0.51,1.00
+look settings.3.10.r2 color=0.98,0.78,0.46,0.65
 look settings.3.11.r1 text=0.56,0.55,0.51,1.00
+look settings.3.11.r2 color=0.98,0.78,0.46,0.65
 look settings.3.12.r1 text=0.56,0.55,0.51,1.00
+look settings.3.12.r2 color=0.98,0.78,0.46,0.65
 look settings.3.13.r1 text=0.56,0.55,0.51,1.00
+look settings.3.13.r2 color=0.98,0.78,0.46,0.65
 look settings.4 bg=0.15,0.14,0.13,1.00 border=0.23,0.22,0.20,1.00
 look settings.4.r1 text=0.56,0.55,0.51,1.00
 look settings.5 bg=0.15,0.14,0.13,1.00 border=0.23,0.22,0.20,1.00
