@@ -9925,8 +9925,8 @@ end)()
 	local byText = {}
 	for _, b in ipairs(P.navButtons) do byText[b.text.text] = b end
 	check(byText["Sections"] and byText["Dynamic Sections"] and byText["Custom Sections"] and not byText["Standard Sections"]
-		-- (1.9.0-beta8, by design) a sub-page's name follows its icon, which takes the indent (22)
-		and byText["Sections"].text.points[1][2] == 10 and byText["Dynamic Sections"].icon.points[1][2] == 22 and byText["Custom Sections"].icon.points[1][2] == 22
+		-- (1.9.0-beta8, by design) a sub-page's name follows its icon, which takes the indent (beta9: 18, was 22)
+		and byText["Sections"].text.points[1][2] == 10 and byText["Dynamic Sections"].icon.points[1][2] == 18 and byText["Custom Sections"].icon.points[1][2] == 18
 		and byText["Dynamic Sections"].text.points[1][2] == byText["Dynamic Sections"].icon,
 		"the list says Sections, with Dynamic and Custom Sections indented under it")
 	-- the Item column: checked, dimmed, explains itself
@@ -10390,7 +10390,7 @@ end)()
 	check(e.v == "1.0.0" and e.heading == "BagSmith 1.0" and #e.items >= 2 and #e.items <= 8, "the 1.0 entry follows")
 	check(text:find("Thank you:", 1, true) and text:find("Discord", 1, true) and text:find("Plugins:", 1, true) and text:find("Coming soon, BagSmith Gamepad Plugin:", 1, true) and text:find("alpha testing", 1, true) and text:find("testers", 1, true),
 		"it thanks the players, invites them to the Discord, introduces plugins, and announces the Gamepad companion as coming soon with testers wanted at beta")
-	local e15 = WN.ENTRIES[11]
+	local e15 = WN.ENTRIES[12]   -- (1.9.0-beta9, by design: one place down)
 	local text15 = table.concat(e15.items, " ")
 	check(e15.v == "0.15.0" and e15.heading == "BagSmith 0.15" and #e15.items >= 5 and #e15.items <= 8 and text15:find("Gear Sets:", 1, true) and text15:find("Settings Search:", 1, true) and text15:find("Recent Items:", 1, true) and text15:find("Tidier Settings:", 1, true),
 		"the 0.15 entry follows, covering gear sets, Settings search, Recent Items and the reorganized Settings")
