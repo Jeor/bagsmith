@@ -68,6 +68,7 @@ function View:Pref(key)
 			if key == "sort" and G.sort then return G.sort end
 			if key == "grp" then local g = G.grp or ns.db.grp; return (g == "bag") and "type" or g end
 			if key == "colWidths" then return G.colWidths end
+			if key == "cols" or key == "colOrder" then return G[key] end   -- (1.9.0-beta6) Global Columns
 		end
 	end
 	if SHEET_KEYS[key] then
@@ -1842,12 +1843,14 @@ function View:UpdateTabs()
 	local rowH = self.classicApplied and 30 or TAB_H
 	local db = ns.db
 	local hidden = {}
-	for _, t in ipairs(self.isBank and db.bankHiddenTabs or db.hiddenTabs) do hidden[t] = true end
+	-- (1.9.0-beta6, Shweep: Global Sheets) Global Inventory's own tabs: the built-in ones, its own choice and order
+	local G = self.isMain and ns.ui.global and ns.Inventory and ns.Inventory:Settings()
+	for _, t in ipairs(G and G.hiddenTabs or (self.isBank and db.bankHiddenTabs or db.hiddenTabs)) do hidden[t] = true end
 	-- No equipment sets on this client: no Gear Sets tab.
 	if not (ns.GearSets and ns.GearSets:Available()) then hidden.GearSets = true end
 	-- (1.9.0-beta5, Shweep: "Can we show Gear Sets tab just disabled?") in Global Inventory: shown, greyed (beta4 hid it)
 	local gbl = self.isMain and ns.ui.global and true or false
-	local order = self.isBank and db.bankTabOrder or db.tabOrder
+	local order = G and G.tabOrder or (self.isBank and db.bankTabOrder or db.tabOrder)
 	-- Each tab's width: its label plus padding (Classic's art needs less than it had: 12 px, not 16).
 	self.tabMeasure = self.tabMeasure or self.tabs:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 	local pad = self.classicApplied and 12 or 16
@@ -1878,7 +1881,7 @@ function View:UpdateTabs()
 			for _, id in ipairs(self.tabFolded or {}) do
 				items[#items + 1] = { text = ns.TAB_LABEL[id] or id, checked = self.st.sheet == id, onClick = function() self:SetSheet(id) end }
 			end
-			items[#items + 1] = { text = "New Sheet...", gap = true, onClick = function() ns.Popups:OpenFilters(self, "new") end }
+			if not (self.isMain and ns.ui.global) then items[#items + 1] = { text = "New Sheet...", gap = true, onClick = function() ns.Popups:OpenFilters(self, "new") end } end
 			ns.ShowMenu(items, b)
 		end)
 		self.tabMore.tip = "More Sheets"
@@ -1939,7 +1942,8 @@ function View:UpdateTabs()
 			b:SetHeight(TAB_H - 2)
 			if self.classicApplied then b:SetClassic(true, ns.Classic.TabTemplate()) end
 			b:RegisterForDrag("LeftButton")
-			b:SetScript("OnDragStart", function(btn) ns.dragTab = btn.sheet; btn:SetAlpha(0.5) end)
+			-- (1.9.0-beta6) not in Global Inventory: its tab order is set in Settings > Sheets > Global Sheets
+			b:SetScript("OnDragStart", function(btn) if self.isMain and ns.ui.global then return end ns.dragTab = btn.sheet; btn:SetAlpha(0.5) end)
 			b:SetScript("OnDragStop", function(btn)
 				btn:SetAlpha(1)
 				local target = ns.FrameUnderCursor("sheet")
@@ -1989,8 +1993,11 @@ function View:UpdateTabs()
 		addBtn:Hide()
 	else
 		more:Hide()
-		place(addBtn, x + 2, addW); addBtn:Show()
-		x = x + addW + 4
+		-- (1.9.0-beta6) Global Inventory shows the built-in tabs only: no New Sheet there
+		if G then addBtn:Hide() else
+			place(addBtn, x + 2, addW); addBtn:Show()
+			x = x + addW + 4
+		end
 	end
 	editBtn:SetShown(isCustom)
 	if isCustom then place(editBtn, x, editW) end
@@ -2207,7 +2214,12 @@ function View:SetGlobal(on)
 		if ns.ui.owner then self:SetOwner(nil) end
 		ns.ui.global = true
 		ns.ui.travelHold.global = true
-		if self.st.sheet == "Bank" or self.st.sheet == "GearSets" then self.st.sheet = "All" end
+		-- (1.9.0-beta6) a custom sheet, or a tab hidden in Global Inventory, goes to All too; a custom sheet's filters are
+		-- set aside with it and come back on leaving
+		local G = ns.Inventory and ns.Inventory:Settings()
+		if not ns.TAB_LABEL[self.st.sheet] then self.globalSaved.filters = self.st.filters; self.st.filters = ns.EmptyFilters() end
+		if self.st.sheet == "Bank" or self.st.sheet == "GearSets" or not ns.TAB_LABEL[self.st.sheet]
+			or (G and ns.IndexOf(G.hiddenTabs, self.st.sheet)) then self.st.sheet = "All" end
 		if self.st.filters then self.st.filters.text = "" end
 		if self.search then self.search:SetText("") end
 		self:FreshLayout()
@@ -2220,6 +2232,7 @@ function View:SetGlobal(on)
 		local s = self.globalSaved or {}
 		self.globalSaved = nil
 		if s.sheet then self.st.sheet = s.sheet end
+		if s.filters then self.st.filters = s.filters end
 		if self.st.filters then self.st.filters.text = s.text or "" end
 		if self.search then self.search:SetText(s.text or ""); if self.search.ClearFocus then self.search:ClearFocus() end end
 		self:FreshLayout()
@@ -2232,6 +2245,7 @@ end
 
 function View:SetSheet(id)
 	if self.isMain and ns.ui.global and id == "GearSets" then return end   -- (1.9.0-beta4) your character's sets
+	if self.isMain and ns.ui.global and not ns.TAB_LABEL[id] then return end   -- (1.9.0-beta6) built-in tabs only there
 	local wasCustom = not ns.TAB_LABEL[self.st.sheet]
 	self.st.sheet = id
 	local custom

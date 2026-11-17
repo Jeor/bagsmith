@@ -278,6 +278,8 @@ function View:ColumnPlan()
 	local global = self.isMain and ns.ui.global
 	if global then
 		for _, k in ipairs({ "who", "w" }) do local at = ns.IndexOf(order, k); if at then table.remove(order, at) end end
+		-- (1.9.0-beta6) only the columns that mean something there (ns.GLOBAL_COLS), from Global Columns
+		for i = #order, 1, -1 do if order[i] ~= "n" and not ns.IndexOf(ns.GLOBAL_COLS, order[i]) then table.remove(order, i) end end
 		local at = ns.IndexOf(order, "n") or 0
 		table.insert(order, at + 1, "who"); table.insert(order, at + 2, "w")
 		-- (1.9.0-beta4, Shweep) and a value: the AH Price with a price source, else the Vendor value
@@ -823,7 +825,12 @@ function View:Refresh(force, reason)
 	self.planWidth = width
 	self:WatchRowWidth()
 	self:LayoutHeader(plan)
-	local height = self:Layout(shown, all, plan, width, bagInfo, bank, cached)
+	local height
+	if self.isMain and ns.ui.global then   -- (1.9.0-beta6) Global Inventory's sections: BagSmith's defaults
+		height = ns:WithDefaultSections(self.Layout, self, shown, all, plan, width, bagInfo, bank, cached)
+	else
+		height = self:Layout(shown, all, plan, width, bagInfo, bank, cached)
+	end
 	-- The list ends at the bottom of its last row: no padding below it, so
 	-- there is nothing to scroll past.
 	self.contentHeight = height

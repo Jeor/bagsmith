@@ -6,10 +6,10 @@ New:
   one character has to see each character's row (class icon and name first). The Bank tab or icon shows only what's
   in banks, the Filter panel can include your characters on other rulesets, and a value column and the title say what
   it's all worth (vendor, and AH with a price source). Buttons that don't apply there are greyed out, and hovering one
-  says why. Its footer shows your
-  characters' gold, free slots and its own pinned currencies together. It keeps its own sort, sections, column widths
-  and pins for your whole account, apart from your profiles. Read only; closing BagSmith or the globe again brings
-  your bags back as they were.
+  says why. Its footer shows your characters' gold, free slots and its own pinned currencies together. It uses
+  BagSmith's standard sections, and keeps its own sort, columns, tabs, column widths and pins for your whole account,
+  apart from your profiles: see Global Sections, Global Columns and Global Sheets in Settings. Read only; closing
+  BagSmith or the globe again brings your bags back as they were.
 - The currency drawer says whose currencies it shows. In Global Inventory it lists every character's, with totals (hover
   one for who has how many), and pins there are Global Inventory's own.
 - Travel Mode: when the window is too narrow for the search box in the title row, it folds into a search icon; click it
@@ -27,13 +27,14 @@ New:
   Jeor!
 - Icon Layout (Settings > Style): Full Width, Split View, or the new Compact View, where sections share rows, each as
   wide as its items need (Icons view, By Section; hover a section's title for its value). Full-Width Recent works with
-  Split View and Compact View. Thanks to Jeor!
+  Split View and Compact View, and each row of sections stretches to fill the window. Thanks to Jeor!
 Changed:
 - Settings > General > Tooltips (was Tips): Show Inventory in Item Tooltips, Show AH Price in Item Tooltips (its own
   setting now, no longer tied to the AH Price column) and Show Help Tooltips (was Show Help Tips).
 - The bags window's title reads Bags, and the character picker shows a surname as its initial ("Shweepy T.") when the
   full name doesn't fit, to make room in the title row.
-- Settings: text and buttons sit clear of the line above them.
+- Settings: text and buttons sit clear of the line above them, and the window is a little taller, with room for the new
+  Global pages.
 - The Disenchant Helper's estimate for green items up to level 15 follows what they give on WoW Forever: more often an
   essence, and no shard.
 

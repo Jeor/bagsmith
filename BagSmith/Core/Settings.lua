@@ -36,6 +36,9 @@ ns.COLS = { { "c", "Qty" }, { "il", "iLvl" }, { "rq", "Req lvl" }, { "t", "Type"
 ns.COL_LABEL = {}
 for _, c in ipairs(ns.COLS) do ns.COL_LABEL[c[1]] = c[2] end
 ns.COL_LABEL.who = "Who"   -- (1.9.0-beta2) Global Inventory's own column (not offered in Bag Columns)
+-- (1.9.0-beta6) the columns Global Inventory can show besides its fixed ones (Item, Who, Where and the value): not Age,
+-- Favorite, Currency or Junk, which are about one character's items
+ns.GLOBAL_COLS = { "c", "il", "rq", "t", "sl", "bd", "v" }
 ns.BASE_TABS = { "All", "Gear", "Consumables", "TradeGoods", "Quest", "Junk", "GearSets", "Bank" }
 ns.TAB_LABEL = { All = "All", Gear = "Gear", GearSets = "Gear Sets", Consumables = "Consumables", TradeGoods = "Trade Goods", Quest = "Quest", Junk = "Junk", Bank = "Bank" }
 -- Tabs the bank window doesn't have (its own Bank tab is the window itself; gear sets are equipped from your bags).
@@ -852,6 +855,18 @@ local function loadDB(saved)
 		end
 		for _, id in ipairs(type(g.collapsed) == "table" and g.collapsed or {}) do if type(id) == "string" and #id <= 100 then out.collapsed[#out.collapsed + 1] = id end end
 		for _, k in ipairs(type(g.pins) == "table" and g.pins or {}) do if type(k) == "string" and #k <= 40 then out.pins[#out.pins + 1] = k end end
+		-- (1.9.0-beta6) its own columns and tabs: known ids only, no repeats; a missing list starts from your bags'
+		local function ids(list, known)
+			if type(list) ~= "table" then return nil end
+			local o, seen = {}, {}
+			for _, id in ipairs(list) do if type(id) == "string" and known(id) and not seen[id] then seen[id] = true; o[#o + 1] = id end end
+			return o
+		end
+		local function isCol(id) return ns.COL_LABEL[id] ~= nil or id == "n" end
+		local function isTab(id) return ns.TAB_LABEL[id] ~= nil end
+		out.cols, out.colOrder = ids(g.cols, isCol), ids(g.colOrder, isCol)
+		out.tabOrder, out.hiddenTabs = ids(g.tabOrder, isTab), ids(g.hiddenTabs, isTab)
+		if out.tabOrder then for _, id in ipairs(ns.BASE_TABS) do if not ns.IndexOf(out.tabOrder, id) then out.tabOrder[#out.tabOrder + 1] = id end end end
 		db.globalInv = out
 	end
 	if type(saved) == "table" and type(saved.newSeen) == "table" then
@@ -1154,6 +1169,30 @@ ns:On("ADDON_LOADED", function(name)
 	ns:Fire("ADDON_READY")
 	ns:Fire("PROFILE_ACTIVATED")
 end)
+
+-- (1.9.0-beta6, Shweep: Global Inventory "uses the game's defaults" for sections) While Global Inventory works out and
+-- draws its sections, these settings read as BagSmith's defaults, never your profile's: standard order, no splits,
+-- Keys and the reagent bag their own sections, no custom sections, moves or pins, and no Favorites, Recent or gear set
+-- sections (they belong to one character). Swapped in for the call only and always put back, even on an error.
+local GLOBAL_SECTIONS = { splitCons = false, splitGear = false, keys = true, reagent = "lane", customSections = {},
+	sectionMoves = {}, pinnedSections = {}, favSection = false, recentSection = false, gearSetSections = false,
+	showEmptySections = false, pinnedHighlight = false }
+function ns:WithDefaultSections(fn, ...)
+	local db = ns.db
+	if type(db) ~= "table" or ns.inDefaultSections then return fn(...) end
+	local saved = {}
+	for k, v in pairs(GLOBAL_SECTIONS) do saved[k] = db[k]; db[k] = v end
+	saved.laneOrder = db.laneOrder
+	local order = {}
+	for i, id in ipairs(DEFAULTS.laneOrder) do order[i] = id end
+	db.laneOrder = order
+	ns.inDefaultSections = true
+	local res = { pcall(fn, ...) }
+	ns.inDefaultSections = nil
+	for k, v in pairs(saved) do db[k] = v end
+	if not res[1] then error(res[2], 0) end
+	return unpack(res, 2)
+end
 
 function ns:Set(key, value, silent)
 	if DEFAULTS[key] == nil then error(("BagSmith: unknown setting %q"):format(tostring(key))) end

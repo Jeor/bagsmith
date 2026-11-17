@@ -230,6 +230,18 @@ function Inv:Settings()
 		BagSmithDB.globalInv = g
 	end
 	g.colWidths, g.collapsed, g.pins = g.colWidths or {}, g.collapsed or {}, g.pins or {}
+	-- (1.9.0-beta6, Shweep: Global Columns and Global Sheets) its own columns (which, and their order) and its own tabs
+	-- (which, and their order; the built-in ones only), started from your bags' the first time
+	local d = ns.db or {}
+	local function copy(t) local o = {}; for i, v in ipairs(type(t) == "table" and t or {}) do o[i] = v end return o end
+	if not g.cols then g.cols = copy(d.cols) end
+	if not g.colOrder then g.colOrder = copy(d.colOrder) end
+	if not g.tabOrder then
+		g.tabOrder = {}
+		for _, id in ipairs(type(d.tabOrder) == "table" and d.tabOrder or ns.BASE_TABS or {}) do if ns.TAB_LABEL and ns.TAB_LABEL[id] then g.tabOrder[#g.tabOrder + 1] = id end end
+		for _, id in ipairs(ns.BASE_TABS or {}) do if not ns.IndexOf(g.tabOrder, id) then g.tabOrder[#g.tabOrder + 1] = id end end
+	end
+	g.hiddenTabs = g.hiddenTabs or {}
 	return g
 end
 -- Your characters: { key, name, class, isMe, data }, this realm's (every realm's with all), you first.
@@ -316,6 +328,11 @@ function Inv:GlobalRecords(all, only)
 		for _, p in ipairs(self.PLACES) do if g.places[p] then labels[#labels + 1] = self.PLACE_LABEL[p] end end
 		rec.where = table.concat(labels, ", ")
 		rec.displayWhy = "In Global Inventory: every item on your characters, read only."
+		-- (1.9.0-beta6) its section by BagSmith's defaults: no character's moves, splits or junk marks
+		if ns.Sections then
+			local cat = ns:WithDefaultSections(function() return ns.Sections:OwnCategory(rec) end) or rec.cat
+			rec.cat = ns.PARENT_CAT[cat] or cat   -- a split section saved with the item: its parent (no splits there)
+		end
 		-- (1.9.0-beta3, Shweep) the accordion: an item more than one character has opens into a row per character (their
 		-- class icon and name first, indented; their count and places)
 		if #g.charList > 1 then

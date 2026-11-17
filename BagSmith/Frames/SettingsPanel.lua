@@ -23,15 +23,15 @@ end
 -- always in sync with the profile; widgets are pooled by type.
 ------------------------------------------------------------------------
 -- (1.8.0-beta6, Shweep) the page side 15% wider: 510 px beside the page list, now 587 (the window 680 to 757)
-local NAV_W, WIN_W, WIN_H = 170, 757, 560
+local NAV_W, WIN_W, WIN_H = 170, 757, 588   -- (1.9.0-beta6, Shweep) 5% taller (was 560): the Global sub-pages
 local SEARCH_W = 200   -- NAV_W fits the longest page name, "Automations & Actions"
 -- A third field names the page an entry sits under: it's listed (indented)
 -- only while that page or one of its sub-pages is open.
 local PAGES = {
 	{ "general", "General" }, { "look", "Style" }, { "icons", "Item Icons" }, { "window", "Windows" },
-	{ "sections", "Sections" }, { "dynamic", "Dynamic Sections", "sections" }, { "custom", "Custom Sections", "sections" },
-	{ "columns", "Columns" }, { "bagcols", "Bag Columns", "columns" }, { "bankcols", "Bank Columns", "columns" },
-	{ "sheets", "Sheets" }, { "bagsheets", "Bag Sheets", "sheets" }, { "banksheets", "Bank Sheets", "sheets" },
+	{ "sections", "Sections" }, { "dynamic", "Dynamic Sections", "sections" }, { "custom", "Custom Sections", "sections" }, { "globalsections", "Global Sections", "sections" },
+	{ "columns", "Columns" }, { "bagcols", "Bag Columns", "columns" }, { "bankcols", "Bank Columns", "columns" }, { "globalcols", "Global Columns", "columns" },
+	{ "sheets", "Sheets" }, { "bagsheets", "Bag Sheets", "sheets" }, { "banksheets", "Bank Sheets", "sheets" }, { "globalsheets", "Global Sheets", "sheets" },
 	{ "sorting", "Sorting & Filters" }, { "automation", "Automations & Actions" }, { "loothelper", "Loot Helper", "automation" }, { "dehelper", "Disenchant Helper", "automation" },
 	{ "keys", "Keybindings" }, { "plugins", "Plugins" }, { "profile", "Profile" }, { "advanced", "Advanced" },
 }
@@ -52,7 +52,8 @@ end
 -- Text Size, Font, Gold Frame for Quest Items).
 Panel.NEW = {
 	release = "1.9",
-	pages = { general = true, window = true, icons = true, look = true },
+	pages = { general = true, window = true, icons = true, look = true, sections = true, columns = true, sheets = true,
+		globalsections = true, globalcols = true, globalsheets = true },
 	heads = {},
 	keys = { tipInventory = "general", tipAHPrice = "general", bagSlotCount = "window", borderWeight = "icons", iconLayout = "look" },
 }
@@ -639,6 +640,7 @@ function Panel:Seg(key, label, options, help, below, extra)
 		local current
 		if key == "__openWindows" then current = ns.db.bagWindows and "all" or (ns.db.reagentWindow and "reagent" or "main")
 		elseif key == "iconLayout" then current = Panel.IconLayout()
+		elseif key == "__globalGrp" then current = ns.Inventory and ns.Inventory:Settings().grp or "type"
 		else current = ns.db[key] end
 		b:SetActive(current == opt[1])
 		b:Show()
@@ -2030,6 +2032,72 @@ local function sheetsPage(self, db, bank)
 		function(id, delta) local o = db[orderKey]; local i = ns.IndexOf(o, id); if ns.Move(o, i, i + delta) then ns:Fire("SETTINGS_CHANGED", orderKey) end end)
 end
 pages.bagsheets = function(self, db) sheetsPage(self, db, false) end
+
+-- (1.9.0-beta6, Shweep: "adding a page to each for Global ... only add what we absolutely must ... each needs a header
+-- (with the global icon to make it stand out) explaining that these setting live outside the profile and are
+-- universal") Global Inventory's own settings, saved for the account (BagSmithDB.globalInv).
+Panel.GLOBE = "|TInterface\\AddOns\\BagSmith\\Media\\ui-globe.tga:14:14|t "
+function Panel:GlobalHead(title)
+	self:Head(Panel.GLOBE .. title)
+	self:Text("For Global Inventory (the globe), on every character. These settings live outside your profiles: switching profile or character doesn't change them.")
+end
+local function globalRefresh() ns:Fire("SETTINGS_CHANGED", "globalInv"); ns:RefreshViews(true) end
+pages.globalsections = function(self, db)
+	self:GlobalHead("Global Sections")
+	self:Seg("__globalGrp", "Open with Sections", { { "none", "All" }, { "type", "By Section" } })
+	self:Text("Global Inventory always uses BagSmith's standard sections in their standard order. Consumables and Gear aren't split, and custom sections, moved items, pinned sections, Favorites, Recent and gear sets don't appear there. Your own section settings apply to your bags and bank.")
+end
+pages.globalcols = function(self, db)
+	self:GlobalHead("Global Columns")
+	local G = ns.Inventory:Settings()
+	local val = ns.AH:Available() and "ah" or "v"
+	self:Text(("Item, Who, Where and %s always show, in that order. Tick other columns to show them after; the arrows reorder them."):format(val == "ah" and "AH Price" or "Vendor"))
+	local items = {}
+	for _, id in ipairs(G.colOrder) do
+		if ns.IndexOf(ns.GLOBAL_COLS, id) and id ~= val then items[#items + 1] = { id = id, label = ns.COL_LABEL[id], checked = ns.IndexOf(G.cols, id) ~= nil } end
+	end
+	for _, id in ipairs(ns.GLOBAL_COLS) do
+		if id ~= val and not ns.IndexOf(G.colOrder, id) then table.insert(G.colOrder, id); items[#items + 1] = { id = id, label = ns.COL_LABEL[id], checked = false } end
+	end
+	self:List(items,
+		function(id, on)
+			local i = ns.IndexOf(G.cols, id)
+			if on and not i then table.insert(G.cols, id) elseif not on and i then table.remove(G.cols, i) end
+			globalRefresh()
+		end,
+		function(id, delta)
+			-- among the columns listed here (the order also holds the fixed ones and any it doesn't offer)
+			local vis = {}
+			for _, it in ipairs(items) do vis[#vis + 1] = it.id end
+			local i = ns.IndexOf(vis, id); local j = i and i + delta
+			if not (j and vis[j]) then return end
+			local a, b = ns.IndexOf(G.colOrder, vis[i]), ns.IndexOf(G.colOrder, vis[j])
+			G.colOrder[a], G.colOrder[b] = G.colOrder[b], G.colOrder[a]
+			globalRefresh()
+		end)
+	self:Button("Reset Global Column Widths", function() G.colWidths = {}; globalRefresh() end)
+end
+pages.globalsheets = function(self, db)
+	self:GlobalHead("Global Sheets")
+	self:Text("Tick a tab to show it in Global Inventory. All is always shown, but you can move it. Only these built-in tabs show there: your own sheets belong to your profile. Bank shows what's in your characters' banks.")
+	local G = ns.Inventory:Settings()
+	local hidden = {}
+	for _, t in ipairs(G.hiddenTabs) do hidden[t] = true end
+	local items = {}
+	for _, id in ipairs(G.tabOrder) do
+		items[#items + 1] = { id = id, label = ns.TAB_LABEL[id] or id, checked = (id ~= "All") and not hidden[id] or nil }
+	end
+	self:List(items,
+		function(id, on)
+			if id == "All" then return end
+			local i = ns.IndexOf(G.hiddenTabs, id)
+			if on and i then table.remove(G.hiddenTabs, i) elseif not on and not i then table.insert(G.hiddenTabs, id) end
+			local V = ns.Window and ns.Window.main
+			if not on and V and ns.ui.global and V.st and V.st.sheet == id then V.st.sheet = "All" end
+			globalRefresh()
+		end,
+		function(id, delta) local i = ns.IndexOf(G.tabOrder, id); if ns.Move(G.tabOrder, i, i + delta) then globalRefresh() end end)
+end
 pages.banksheets = function(self, db) sheetsPage(self, db, true) end
 
 pages.sorting = function(self, db)
@@ -2406,6 +2474,13 @@ local origSet = ns.Set
 function ns:Set(key, value, silent)
 	if key == "__profile" then local ok, err = ns.Profiles:Use(value); if not ok then ns:Print(err) end return ok end
 	-- When the Main Window Opens: two stored switches behind one choice.
+	-- (1.9.0-beta6) Global Sections' Open with Sections: Global Inventory's own, outside every profile
+	if key == "__globalGrp" then
+		if not (value == "none" or value == "type") or not ns.Inventory then return false end
+		ns.Inventory:Settings().grp = value
+		ns:Fire("SETTINGS_CHANGED", "globalInv"); ns:RefreshViews(true)
+		return true
+	end
 	-- (1.9.0-beta5) so is Icon Layout: Full Width, Split View or Compact View
 	if key == "iconLayout" then
 		origSet(self, "splitView", value == "split", true)
