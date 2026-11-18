@@ -110,10 +110,12 @@ function U:Decorate(b, rec)
 	if show and not b.unusableOverlay then
 		-- Above the artwork, below OVERLAY borders, counts and corner marks.
 		b.unusableOverlay = b:CreateTexture(nil, "ARTWORK", nil, 7)
-		b.unusableOverlay:SetColorTexture(1, 0, 0, 0.25)
 		b.unusableOverlay:SetAllPoints(b.icon)
 	end
-	if b.unusableOverlay then b.unusableOverlay:SetShown(show) end
+	if b.unusableOverlay then
+		b.unusableOverlay:SetColorTexture(1, 0, 0, ns.db.unusableOverlayOpacity or 0.5)
+		b.unusableOverlay:SetShown(show)
+	end
 end
 function U:Invalidate() cache, count = {}, 0 end
 function U:Refresh()
@@ -131,7 +133,8 @@ local function changed()
 	C_Timer.After(0, function() queued = false; U:Refresh() end)
 end
 ns:OnSignal("SETTINGS_CHANGED", function(key)
-	if key == nil or key == "unusableOverlay" then U:Invalidate(); U:Refresh() end
+	if key == nil or key == "unusableOverlay" then U:Invalidate(); U:Refresh()
+	elseif key == "unusableOverlayOpacity" then U:Refresh() end
 end)
 ns:OnSignal("ADDON_READY", function()
 	for _, event in ipairs({ "PLAYER_LEVEL_UP", "SKILL_LINES_CHANGED", "SPELLS_CHANGED", "GET_ITEM_INFO_RECEIVED", "TOOLTIP_DATA_UPDATE", "PLAYER_ENTERING_WORLD", "UPDATE_FACTION" }) do ns:On(event, changed) end

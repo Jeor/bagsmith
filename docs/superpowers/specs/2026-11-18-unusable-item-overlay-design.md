@@ -15,7 +15,7 @@ Make items the current character cannot equip, learn, or use easy to spot. Use u
 
 - Cover equipment, recipes, and consumables whose character requirements are unmet, including level, class, proficiency, and profession requirements.
 - Add Unusable Item Overlay under Item Icons, enabled by default as proposed. Toggling it immediately updates visible items without a reload.
-- Use an icon-sized red wash, initially approximately 25% opacity, in list and grid views and both Modern and Classic skins. Keep quality borders, counts, item levels, and corner markers legible above or outside the wash.
+- Use an icon-sized red wash, 50% opacity by default, adjustable from 0–100%, in list and grid views and both Modern and Classic skins. Keep quality borders, counts, item levels, and corner markers legible above or outside the wash.
 - Evaluate against the logged-in character, including items shown from bank or other-character inventory. This is a proposed default; never imply a reliable assessment of an offline character.
 - Ordinary materials and junk do not acquire the overlay simply because they lack a use action. Cooldowns, combat restrictions, missing targets, full health, and temporary resource shortages do not count as unmet character requirements.
 - Already-known recipes are outside the initial unmet-requirements rule; do not flag them solely for being known.
@@ -33,4 +33,4 @@ Test equipment, recipes, and consumables with unmet and satisfied requirements; 
 
 ## Scope
 
-A small feature with one toggle and one visual treatment. No opacity slider, new filtering, automatic item actions, or changes to click behavior. Initial opacity can be tuned during visual review.
+A small feature with one toggle, a profile-backed opacity percentage control, and one visual treatment. The opacity control uses the existing percentage field and 5% increment buttons. No new filtering, automatic item actions, or changes to click behavior.

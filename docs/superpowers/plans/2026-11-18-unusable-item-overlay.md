@@ -9,7 +9,7 @@
 
 ## Constraints and review focus
 
-Use upstream dev ef451347 (1.9.1). Default on, 25% red opacity, current character only. Unknown data stays unmarked. Keep overlays below labels and borders; class portrait rows never receive item overlays. No per-frame scanning. No generic false IsUsableItem predicate. Verify missing APIs, localized requirements, delayed item info, pooled-button reuse, and progression events.
+Use upstream dev ef451347 (1.9.1). Default on, 50% red opacity adjustable from 0–100%, current character only. Unknown data stays unmarked. Keep overlays below labels and borders; class portrait rows never receive item overlays. No per-frame scanning. No generic false IsUsableItem predicate. Verify missing APIs, localized requirements, delayed item info, pooled-button reuse, and progression events.
 
 ## Task 1: Detect and display unmet requirements
 

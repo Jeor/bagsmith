@@ -98,9 +98,14 @@ for _, skin in ipairs({ "modern", "classic" }) do
 			n.Buttons:SetMode(b, mode); n.Buttons:Fill(b, rec)
 			check(b.unusableOverlay and b.unusableOverlay:IsShown(), skin .. " " .. mode .. ": red wash visible")
 			local t = b.unusableOverlay
-			check(t and t.color[1] == 1 and t.color[4] == 0.25, "translucent red at 25 percent")
-			check(t and t.allPoints == b.icon, "wash bound to icon, not row")
+			check(t and t.color[1] == 1 and t.color[4] == 0.5, "red tint defaults to 50 percent")
+			check(t and t.allPoints == b.icon, "tint bound to icon, not row")
 			check(t and t.layer == "ARTWORK" and t.sublayer == 7, "wash below border and label layers")
+			n:Set("unusableOverlayOpacity", 0.2); check(t.color[4] == 0.2, "opacity updates existing cached icon")
+			n:Set("unusableOverlayOpacity", 0); check(t.color[4] == 0, "zero opacity supported")
+			n:Set("unusableOverlayOpacity", 2); check(t.color[4] == 1, "opacity clamps to full strength")
+			n:Set("unusableOverlayOpacity", -1); check(t.color[4] == 0, "opacity clamps at zero")
+			n:Set("unusableOverlayOpacity", 0.5)
 			n:Set("unusableOverlay", false); check(not t:IsShown(), "toggle clears immediately")
 			n:Set("unusableOverlay", true); check(t:IsShown(), "toggle restores immediately")
 			rec.classID = 7; n.Buttons:Fill(b, rec); check(not t:IsShown(), "reuse clears wash")
@@ -128,11 +133,15 @@ for _, skin in ipairs({ "modern", "classic" }) do
 		M.combat = true; n:Set("unusableOverlay", false)
 		check(not live.unusableOverlay:IsShown(), "toggle clears secure button in combat")
 		n:Set("unusableOverlay", true); check(live.unusableOverlay:IsShown(), "toggle restores in combat")
+		n:Set("unusableOverlayOpacity", 0.3); check(live.unusableOverlay.color[4] == 0.3, "opacity updates secure item in combat")
 		M.combat = false
 		n.SettingsPanel:Show(); n.SettingsPanel:ShowPage("icons")
 		local found = false
 		for _, w in ipairs(n.SettingsPanel.pools.check) do if w:IsShown() and w.key == "unusableOverlay" then found = true end end
 		check(found, "toggle on Item Icons page")
+		found = false
+		for _, w in ipairs(n.SettingsPanel.pools.step) do if w:IsShown() and w.key == "unusableOverlayOpacity" then found = true end end
+		check(found, "opacity control on Item Icons page")
 		check((n.errors or 0) == 0, "no addon errors")
 	end
 end
