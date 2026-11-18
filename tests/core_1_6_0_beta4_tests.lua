@@ -290,7 +290,8 @@
 		{ "look", "Each section spans the full width of the window." },
 		{ "icons", "Clearing your Recent Items also removes the green dots." },
 		{ "icons", "Choose what shows in each corner of your item icons, with a backup for items the first choice doesn't apply to. In List view, item level and stack count have their own columns." },
-		{ "automation", "Sells your grey and junk-marked items when you visit a vendor. You can buy back the last 12. Like Blizzard's own Sell All Junk, it includes grey favorites." },
+		-- (by design since 1.9.1-beta5, Shweep: the Automations help lines, shorter)
+		{ "automation", "Sells your grey and junk-marked items whenever you visit a vendor, grey favorites included. You can buy back the last 12." },
 		{ "automation", "Choose when BagSmith answers: always, or only while you hold Shift, Ctrl or a key you pick." },
 		{ "loothelper", "Blue and purple items always ask first, as they do in the game." },
 		{ "dehelper", "Estimates start from typical disenchant results. After 20 disenchants of the same kind of item, BagSmith uses your own results instead. Your characters share them, so a disenchant on any of them counts for all." },

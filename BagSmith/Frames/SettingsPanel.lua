@@ -723,10 +723,24 @@ local function layoutRow(w, label, help, controlW, controlH)
 	if not fits then w.text:SetWidth(rowW - 4) end
 	local helpH = 0
 	w.help:ClearAllPoints(); w.help:SetPoint("TOPLEFT", 2, -(y + 2))
+	w.helpBelow = nil
 	if help and help ~= "" then
 		w.help:SetText(help); w.help:SetTextColor(Skins:Color("muted"))
 		-- Keep the help clear of a control sitting on the label line.
 		helpH = wrapText(w.help, fits and (rowW - controlW - 16) or (rowW - 4)) + 2
+		-- (1.9.1-beta5, Shweep: "descriptions in settings like this one where the word wrap seems excessive") beside a
+		-- wide control the help can wrap into a narrow column; it runs the full width under the control instead
+		-- whenever that makes the row shorter
+		if fits then
+			local belowTop = 4 + (controlH or 22) + 4
+			local belowH = wrapText(w.help, rowW - 4) + 2
+			if belowTop + belowH < (y + 2) + helpH then
+				w.help:ClearAllPoints(); w.help:SetPoint("TOPLEFT", 2, -belowTop)
+				y, helpH, w.helpBelow = belowTop - 2, belowH, true
+			else
+				wrapText(w.help, rowW - controlW - 16)   -- (beside, as before)
+			end
+		end
 		w.help:Show()
 	else
 		w.help:SetText(""); w.help:Hide()
@@ -1761,11 +1775,13 @@ pages.automation = function(self, db)
 	-- (1.9.1-beta4, Shweep: "in automation please move BagScleanup, Vendors and Warlock to be first 3 followed by Travel
 	-- Mode and then prompts") Bag Cleanup, Vendors, Clear Soul Shards, Auto Travel Mode, Prompts
 	self:Head("Bag Cleanup")
-	self:Check("cleanOnOpen", "Clean Up Bags When Opened", "Tidies your bags with Blizzard's Clean Up each time you open them, except in combat or at the bank.")
+	-- (1.9.1-beta5, Shweep: "can we cleanup these descriptions") the three help lines, shorter
+	self:Check("cleanOnOpen", "Clean Up Bags When Opened", "Tidies your bags each time you open them, except in combat or at the bank.")
 	self:Head("Vendors")
-	self:Check("autoSellJunk", "Sell Junk Automatically at Vendors", "Sells your grey and junk-marked items when you visit a vendor. You can buy back the last 12. Like Blizzard's own Sell All Junk, it includes grey favorites.")
+	self:Check("autoSellJunk", "Sell Junk Automatically at Vendors", "Sells your grey and junk-marked items whenever you visit a vendor, grey favorites included. You can buy back the last 12.")
 	self:Head("Clear Soul Shards")
-	self:Step("shardKeep", "Soul Shards to Keep", 1, "%d", "|cff8788eeWarlock|r only. Clear Soul Shards always leaves you this many. Shards in a soul bag count and are never destroyed.")
+	-- (Shweep: "clear shards button where? that needs context. Also does it auto destroy any that exceed that count?")
+	self:Step("shardKeep", "Soul Shards to Keep", 1, "%d", "|cff8788eeWarlocks|r only. Soul Shards are only cleared when you click Clear Shards (on their section in your bags) or use the Loot Helper, and you always keep this many. Shards in your soul bag count toward it and are never cleared.")
 	self:Head("Auto Travel Mode")
 	self:Text("Travel Mode is a compact view for adventuring. The signpost by the close button turns it on and off. These settings turn it off when you need your full bags, and back on afterwards.")
 	self:Check("travelLeaveBank", "Leave Travel Mode at the Bank", "Turns it back on when you close the bank.")

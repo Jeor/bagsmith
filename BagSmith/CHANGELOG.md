@@ -10,6 +10,9 @@ New:
 Changed:
 - Settings marks what each update adds with NEW, even on a page you've already looked at since the last big release.
 - Settings > Automations starts with Bag Cleanup, Vendors and Clear Soul Shards, then Auto Travel Mode and Prompts.
+- Settings > Automations: shorter descriptions, and Soul Shards to Keep now says where Clear Shards is and that
+  nothing is cleared until you click it.
+- Settings: a description runs under its buttons, at full width, when that's shorter than a narrow column beside them.
 
 ## 1.9.0
 
