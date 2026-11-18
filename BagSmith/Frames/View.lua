@@ -901,11 +901,14 @@ function View:Build()
 	-- buttons keep on the right.
 	self.moneyText:SetPoint("LEFT", MONEY_X, 0)
 	-- (1.8.0-beta12, Shweep) Click your gold to open or close the currency drawer (the main window's; it opens beside it).
-	if self.kind == "main" then
+	-- (1.9.1-beta1, Shweep: "In bank window mousing over the gold in corner should display same tool tip as main bag")
+	-- the bank's gold has the same tooltip; only the bags' opens the drawer
+	if self.kind == "main" or self.kind == "bank" then
+		local main = self.kind == "main"
 		local mb = CreateFrame("Button", nil, footer)
 		mb:SetPoint("TOPLEFT", self.moneyText, "TOPLEFT", -4, 4)
 		mb:SetPoint("BOTTOMRIGHT", self.moneyText, "BOTTOMRIGHT", 4, -4)
-		mb:SetScript("OnClick", function() if ns.Drawer then ns.Drawer:Toggle() end end)
+		if main then mb:SetScript("OnClick", function() if ns.Drawer then ns.Drawer:Toggle() end end) end
 		-- (1.9.0-beta1, Shweep) the tooltip lists your gold: each character's on this realm, Shift for the account
 		function mb:ShowGoldTip(again)
 			-- (beta2, Shweep: holding Shift reshaped it) shown again from scratch, as a fresh hover
@@ -913,7 +916,7 @@ function View:Build()
 			GameTooltip:SetOwner(self, "ANCHOR_TOP")
 			if GameTooltip.ClearLines then GameTooltip:ClearLines() end
 			if ns.Inventory then ns.Inventory:AddGoldLines(GameTooltip) end
-			if ns.HelpTipsOK() then
+			if main and ns.HelpTipsOK() then
 				GameTooltip:AddLine(" ")
 				ns.TipLine(GameTooltip, "Click to open or close the currency drawer.", 0.8, 0.8, 0.8, true)
 			end
@@ -2213,9 +2216,12 @@ function View:UpdateFooter(bagInfo)
 			chip:SetScript("OnEnter", function(c)
 				if not ns.TooltipsOK() then return end
 				GameTooltip:SetOwner(c, "ANCHOR_TOP")
-				if c.per and #c.per > 0 then
-					GameTooltip:AddDoubleLine(c.name or "", "Total: " .. tostring(c.total or 0), 1, 0.82, 0, 0.55, 0.78, 1)
-					for _, p in ipairs(c.per) do
+				-- (1.9.1-beta1, Shweep) in your own bags too: who has how many on this ruleset, when anyone else has it
+				local per, total = c.per, c.total
+				if not (per and #per > 0) and ns.Currency and ns.Currency.Breakdown then per, total = ns.Currency:Breakdown(c.key) end
+				if per and #per > 0 then
+					GameTooltip:AddDoubleLine(c.name or "", "Total: " .. tostring(total or 0), 1, 0.82, 0, 0.55, 0.78, 1)
+					for _, p in ipairs(per) do
 						local cr, cg, cb = ns.ClassColor(p.class)
 						GameTooltip:AddDoubleLine((ns.Inventory and ns.Inventory.ClassIcon(p.class) or "") .. (p.name or "?"), tostring(p.count), cr, cg, cb, 1, 1, 1)
 					end

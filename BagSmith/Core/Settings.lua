@@ -69,6 +69,7 @@ local DEFAULTS = {
 	globalResize = true,       -- (1.9.0-beta13) Resize for Global Inventory: its own size while it shows (Windows page)
 	compactCategories = false, -- Icons + By Section: variable-width category rows
 	splitViewRecentWide = false,   -- (1.7.0-beta2) Split View: Recent spans both columns instead of pairing
+	splitViewPinnedWide = false,   -- (1.9.1-beta2, Shweep) Split and Compact View: each pinned section a full-width row
 	recentSection = true,      -- a Recent section pinned at the top of the bags window (Sections page)
 	recentWindow = "session",  -- session | 1h | 15m
 	recentMax = 0,             -- how many recent items (0 = all)
@@ -881,7 +882,9 @@ local function loadDB(saved)
 			if type(rel) == "string" and rel:find("^%d+%.%d+$") and type(seen) == "table" and releases < 16 then
 				local t, n = {}, 0
 				for k, v in pairs(seen) do
-					if type(k) == "string" and #k <= 32 and k:find("^%w+$") and v == true and n < 64 then t[k] = true; n = n + 1 end
+					-- (1.9.1-beta3) true (an older save) or the version the page was opened at
+					local ok = v == true or (type(v) == "string" and #v <= 16 and v:find("^%d+%.%d+%.%d+$"))
+					if type(k) == "string" and #k <= 32 and k:find("^%w+$") and ok and n < 64 then t[k] = v; n = n + 1 end
 				end
 				keep[rel], releases = t, releases + 1
 			end

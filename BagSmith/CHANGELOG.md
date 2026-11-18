@@ -1,3 +1,19 @@
+## 1.9.1
+
+New:
+- Hover your gold in the bank window for the same tooltip as in your bags: each of your characters' gold on this
+  ruleset and the total. Hold Shift for your whole account.
+- In your own bags, hover a pinned currency or a row in the currency drawer to see how many each of your characters
+  has, with the total, as in Global Inventory.
+- Full-Width Pinned (Settings > Style, under Icon Layout): in Split View and Compact View, give each pinned section its
+  own full-width row, as Full-Width Recent does for Recent Items.
+Changed:
+- Settings marks what each update adds with NEW, even on a page you've already looked at since the last big release.
+- Settings > Automations starts with Bag Cleanup, Vendors and Clear Soul Shards, then Auto Travel Mode and Prompts,
+  with shorter descriptions. Soul Shards to Keep now says where Clear Shards is and that nothing is cleared until you
+  click it.
+- Settings: a description runs under its buttons, at full width, when that's shorter than a narrow column beside them.
+
 ## 1.9.0
 
 New:

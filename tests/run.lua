@@ -4467,7 +4467,8 @@ end)()
 		table.sort(wrong)
 		check(#wrong == 0, page .. ": every setting sits under its own heading" .. (#wrong > 0 and (": " .. table.concat(wrong, ", ")) or ""))
 	end
-	grouped("automation", "Auto Travel Mode | Bag Cleanup | Vendors | Prompts | Clear Soul Shards", {
+	-- (by design since 1.9.1-beta4, Shweep: Bag Cleanup, Vendors and Clear Soul Shards first, then Auto Travel Mode and Prompts)
+	grouped("automation", "Bag Cleanup | Vendors | Clear Soul Shards | Auto Travel Mode | Prompts", {
 		travelLeaveBank = "Auto Travel Mode", travelLeaveAH = "Auto Travel Mode", travelLeaveVendor = "Auto Travel Mode", travelLeaveTaxi = "Auto Travel Mode", travelLeaveTrade = "Auto Travel Mode",
 		cleanOnOpen = "Bag Cleanup", autoSellJunk = "Vendors", ["Soul Shards to Keep"] = "Clear Soul Shards",
 		autoConfirm = "Prompts", autoConfirmEverywhere = "Prompts", autoConfirmEquip = "Prompts", autoConfirmUse = "Prompts", autoConfirmEnchant = "Prompts", autoConfirmRoll = "Prompts",
@@ -4671,7 +4672,8 @@ end)()
 	for _, w in ipairs(P.pools.check) do if w:IsShown() and w.key then helps[w.key] = w.help and w.help.text end end
 	check(helps.travelLeaveAH == "Turns it back on when you close the auction house." and helps.travelLeaveTrade == "Turns it back on when the trade is finished or canceled.",
 		"the auction house and trading help lines name what ends them")
-	check(helps.cleanOnOpen and helps.cleanOnOpen:find("Blizzard's Clean Up", 1, true), "Clean Up Bags When Opened is on the Automations page")   -- (1.6.0-beta4) approved wording
+	-- (by design since 1.9.1-beta5, Shweep: "Tidies your bags...", was "...with Blizzard's Clean Up...")
+	check(helps.cleanOnOpen and helps.cleanOnOpen:find("Tidies your bags each time you open them", 1, true), "Clean Up Bags When Opened is on the Automations page")   -- (1.6.0-beta4) approved wording
 	P:Hide()
 	-- Clean Up Bags When Opened.
 	local sorts = 0
@@ -5235,7 +5237,8 @@ end)()
 	check(heads["Loot Helper"] and checks.makeRoom == "Show Loot Helper When Loot Won't Fit", "renamed: Loot Helper in Settings (on its own sub-page since 1.2.0)")
 	P:ShowPage("automation"); steps = {}
 	for _, w in ipairs(P.pools.step) do if w:IsShown() then steps[w.text.text] = w.help and w.help.text end end
-	check(steps["Soul Shards to Keep"] and steps["Soul Shards to Keep"]:find("^|cff8788eeWarlock|r only%.") and steps["Soul Shards to Keep"]:find("count and are never destroyed", 1, true),
+	-- (by design since 1.9.1-beta5, Shweep: "Warlocks only", where Clear Shards is, nothing cleared on its own)
+	check(steps["Soul Shards to Keep"] and steps["Soul Shards to Keep"]:find("^|cff8788eeWarlocks|r only%.") and steps["Soul Shards to Keep"]:find("count toward it and are never cleared", 1, true),
 		"the shard setting: Soul Shards to Keep, Warlock in the warlock color, clearer help")
 	P:Hide()
 	-- The Make Room Helper's title, and its solid Classic background.
@@ -6437,7 +6440,7 @@ end)()
 	local tf = io.open("BagSmith/BagSmith.toc", "r"); local toc = tf and tf:read("*a") or ""; if tf then tf:close() end
 	-- (1.5.7) the date's format only: which day it must be is the packaging check's job (it knows the build day). Pinning the
 -- day here carried 7 November into 1.5.6, built on the 8th.
-check(toc:find("## Version: 1%.9%.0\n") and toc:find("## X%-Date: %d%d%d%d%-%d%d%-%d%d\n"), "the TOC version is 1.9.0, with a release date in YYYY-MM-DD form")
+check(toc:find("## Version: 1%.9%.1\n") and toc:find("## X%-Date: %d%d%d%d%-%d%d%-%d%d\n"), "the TOC version is 1.9.1, with a release date in YYYY-MM-DD form")
 	n.version = "0.14.0"
 	local e
 	for _, x in ipairs(WN.ENTRIES) do if x.v == "0.13.0" then e = x end end
@@ -7610,7 +7613,8 @@ end)()
 		return table.concat(t, " ")
 	end
 	-- (1.6.0-beta4, by design) the approved wording (items 20, 44, 46) says the same in plainer words
-	check(pageText("automation"):find("Like Blizzard's own Sell All Junk, it includes grey favorites.", 1, true), "Sell Junk Automatically explains that Blizzard's button sells every grey item")
+	-- (by design since 1.9.1-beta5, Shweep: shorter, "grey favorites included")
+	check(pageText("automation"):find("grey favorites included", 1, true), "Sell Junk Automatically says grey favorites are sold too")
 	local secText, dynText = pageText("sections"), pageText("dynamic")
 	check(secText:find("Hiding doesn't stop Blizzard's Sell All Junk button from selling them.", 1, true) and dynText:find("Grey favorites can still be sold as junk.", 1, true),
 		"Standard Sections says the same for hidden sections, and Dynamic Sections for Favorites")
@@ -10890,7 +10894,7 @@ end)()
 ;(function()
 	-- 0.15.0 (prod): one clean 0.15.0 changelog section; the sword-and-shield replaces the helmet everywhere.
 	local log = io.open("BagSmith/CHANGELOG.md"):read("*a")
-	check(log:find("^## 1%.9%.0\n") and log:find("\n## 1%.8%.0\n") and log:find("\n## 1%.7%.5\n") and log:find("\n## 1%.7%.4\n") and log:find("\n## 1%.7%.3\n") and log:find("\n## 1%.7%.2\n") and log:find("\n## 1%.7%.1\n") and log:find("\n## 1%.7%.0\n") and log:find("\n## 1%.6%.3\n") and log:find("\n## 1%.6%.2\n") and log:find("\n## 1%.6%.1\n") and log:find("\n## 1%.6%.0\n") and log:find("\n## 1%.5%.8\n") and log:find("\n## 1%.5%.7\n") and log:find("\n## 1%.5%.6\n") and log:find("\n## 1%.5%.5\n") and log:find("\n## 1%.5%.4\n") and log:find("\n## 1%.5%.3\n") and log:find("\n## 1%.5%.2\n") and log:find("\n## 1%.5%.1\n") and log:find("\n## 1%.5%.0\n") and log:find("\n## 1%.4%.2\n") and log:find("\n## 1%.4%.1\n") and log:find("\n## 1%.4%.0\n") and log:find("\n## 1%.3%.1\n") and log:find("\n## 1%.3%.0\n") and log:find("\n## 1%.2%.0\n") and log:find("\n## 1%.1%.0\n") and log:find("\n## 1%.0%.1\n") and log:find("\n## 1%.0%.0\n") and log:find("\n## 0%.15%.0\n") and not log:find("## 0%.15%.0%-beta") and not log:find("## 0%.15%.0%-rc"), "the changelog leads with 1.9.0 (the release in progress; 1.9.0, by design), then 1.8.0, 1.7.5, 1.7.4, 1.7.3, 1.7.2, 1.7.1, 1.7.0, 1.6.3, 1.6.2, 1.6.1, 1.6.0, 1.5.8, 1.5.7, 1.5.6, 1.5.5, 1.5.4, 1.5.3, 1.5.2, 1.5.1, 1.5.0, 1.4.2, 1.4.1, 1.4.0, 1.3.1, 1.3.0, 1.2.0, 1.1.0, 1.0.1 and 1.0.0, then one 0.15.0 section (the beta and rc entries folded in)")
+	check(log:find("^## 1%.9%.1\n") and log:find("\n## 1%.9%.0\n") and log:find("\n## 1%.8%.0\n") and log:find("\n## 1%.7%.5\n") and log:find("\n## 1%.7%.4\n") and log:find("\n## 1%.7%.3\n") and log:find("\n## 1%.7%.2\n") and log:find("\n## 1%.7%.1\n") and log:find("\n## 1%.7%.0\n") and log:find("\n## 1%.6%.3\n") and log:find("\n## 1%.6%.2\n") and log:find("\n## 1%.6%.1\n") and log:find("\n## 1%.6%.0\n") and log:find("\n## 1%.5%.8\n") and log:find("\n## 1%.5%.7\n") and log:find("\n## 1%.5%.6\n") and log:find("\n## 1%.5%.5\n") and log:find("\n## 1%.5%.4\n") and log:find("\n## 1%.5%.3\n") and log:find("\n## 1%.5%.2\n") and log:find("\n## 1%.5%.1\n") and log:find("\n## 1%.5%.0\n") and log:find("\n## 1%.4%.2\n") and log:find("\n## 1%.4%.1\n") and log:find("\n## 1%.4%.0\n") and log:find("\n## 1%.3%.1\n") and log:find("\n## 1%.3%.0\n") and log:find("\n## 1%.2%.0\n") and log:find("\n## 1%.1%.0\n") and log:find("\n## 1%.0%.1\n") and log:find("\n## 1%.0%.0\n") and log:find("\n## 0%.15%.0\n") and not log:find("## 0%.15%.0%-beta") and not log:find("## 0%.15%.0%-rc"), "the changelog leads with 1.9.1 (the release in progress; 1.9.1, by design), then 1.9.0, 1.8.0, 1.7.5, 1.7.4, 1.7.3, 1.7.2, 1.7.1, 1.7.0, 1.6.3, 1.6.2, 1.6.1, 1.6.0, 1.5.8, 1.5.7, 1.5.6, 1.5.5, 1.5.4, 1.5.3, 1.5.2, 1.5.1, 1.5.0, 1.4.2, 1.4.1, 1.4.0, 1.3.1, 1.3.0, 1.2.0, 1.1.0, 1.0.1 and 1.0.0, then one 0.15.0 section (the beta and rc entries folded in)")
 	local section = log:match("(## 0%.15%.0\n.-)\n## ") or ""
 	local bad = false
 	for _, w in ipairs({ "colour", "favourite", "behaviour", "cancelled", "helmet", "\226\128\148" }) do if section:find(w) then bad = true end end

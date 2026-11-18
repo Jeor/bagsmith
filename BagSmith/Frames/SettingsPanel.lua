@@ -79,34 +79,92 @@ end
 -- other than NEW.release shows none, so the list is replaced each release. heads and keys name the page they're on.
 -- (1.9.0-beta1) 1.9's list (1.8's: Style, Item Icons and Profile; Special Bag Slot Indicators, Shared Between Characters;
 -- Text Size, Font, Gold Frame for Quest Items).
+-- (1.9.1-beta3, Shweep: "point releases getting new tags would be good going forward as well") A point release adds its
+-- own entries under added["x.y.z"]; the lists above are the release's own (x.y.0). A page remembers the version it was
+-- last opened at (newSeen[release][page] = "1.9.1"; an older save's true reads as x.y.0), and it and its entries show
+-- NEW while it holds anything added after that: a 1.9.1 setting on a page opened in 1.9.0 is NEW, the rest there isn't.
+-- Someone coming straight from an older release sees all of them.
 Panel.NEW = {
 	release = "1.9",
 	pages = { general = true, window = true, icons = true, look = true, sections = true, columns = true, sheets = true,
 		globalsections = true, globalcols = true, globalsheets = true },
 	heads = {},
 	keys = { tipInventory = "general", tipAHPrice = "general", bagSlotCount = "window", borderWeight = "icons", iconLayout = "look", footerTextScale = "look", globalResize = "window" },
+	added = {
+		["1.9.1"] = { keys = { splitViewPinnedWide = "look" } },   -- (1.9.1-beta2) Full-Width Pinned
+	},
 }
 Panel.NEW_COLOR = { 0.55, 0.78, 1 }   -- the soft blue of What's New's links
 local function release() return tostring(ns.version or ""):match("^(%d+%.%d+)") end
+-- The point version running ("1.9.1" in 1.9.1-beta3), and a version's patch number (true, from an older save: 0).
+local function point() return tostring(ns.version or ""):match("^(%d+%.%d+%.%d+)") end
+local function patchOf(v)
+	if v == true then return 0 end
+	return tonumber(type(v) == "string" and v:match("^%d+%.%d+%.(%d+)") or nil) or 0
+end
+Panel.NewPatchOf = patchOf
+-- Every entry on a page, as { kind, id, patch } (pages: the page itself), up to the version running.
+local function entriesOn(N, page)
+	local out, cur = {}, patchOf(point())
+	local function scan(list, patch)
+		if patch > cur then return end
+		if list.pages and list.pages[page] then out[#out + 1] = { "pages", page, patch } end
+		for _, kind in ipairs({ "heads", "keys" }) do
+			for id, pg in pairs(list[kind] or {}) do if pg == page then out[#out + 1] = { kind, id, patch } end end
+		end
+	end
+	scan(N, 0)
+	for ver, list in pairs(N.added or {}) do scan(list, patchOf(ver)) end
+	return out
+end
+-- An entry's page and the patch that added it, or nil.
+local function entryOf(N, kind, id)
+	if id == nil then return nil end
+	if kind == "pages" then if N.pages and N.pages[id] then return id, 0 end
+	elseif N[kind] and N[kind][id] then return N[kind][id], 0 end
+	local cur = patchOf(point())
+	for ver, list in pairs(N.added or {}) do
+		local pg = kind == "pages" and (list.pages and list.pages[id] and id) or (list[kind] and list[kind][id])
+		if pg and patchOf(ver) <= cur then return pg, patchOf(ver) end
+	end
+end
+-- The patch a page was last opened at, while Settings is open (nil: never).
+function Panel:SeenPatch(page)
+	local v = self.seenAtOpen and self.seenAtOpen[page]
+	if v == nil then return nil end
+	return patchOf(v)
+end
 function Panel:NewPage(page)
 	local N = self.NEW
-	if not (N and page and N.pages[page] and release() == N.release) then return false end
-	return not (self.seenAtOpen and self.seenAtOpen[page])
+	if not (N and page and release() == N.release) then return false end
+	local seen = self:SeenPatch(page)
+	for _, e in ipairs(entriesOn(N, page)) do if seen == nil or e[3] > seen then return true end end
+	return false
 end
 function Panel:IsNew(kind, id)
 	local N = self.NEW
-	local page = N and N[kind] and id ~= nil and N[kind][id]
-	return page and self:NewPage(page) or false
+	if not (N and release() == N.release) then return false end
+	local page, patch = entryOf(N, kind, id)
+	if not page then return false end
+	local seen = self:SeenPatch(page)
+	return seen == nil or patch > seen
 end
 -- Listed for this release, seen or not (searching "new" finds these all release long).
 function Panel:InRelease(kind, id)
 	local N = self.NEW
-	return (N and N[kind] and id ~= nil and N[kind][id] and release() == N.release) and true or false
+	return (N and release() == N.release and entryOf(N, kind, id) ~= nil) and true or false
 end
 -- (1.8.0-beta19, after FlareUI) A first install: nothing is new to this player.
 function Panel:MarkAllNewSeen()
 	local N = self.NEW
-	for page in pairs(N and N.pages or {}) do self:MarkPageSeen(page) end
+	local pages = {}
+	for page in pairs(N and N.pages or {}) do pages[page] = true end
+	for _, list in pairs(N and N.added or {}) do
+		for page in pairs(list.pages or {}) do pages[page] = true end
+		for _, kind in ipairs({ "heads", "keys" }) do for _, pg in pairs(list[kind] or {}) do pages[pg] = true end end
+	end
+	for _, kind in ipairs({ "heads", "keys" }) do for _, pg in pairs(N and N[kind] or {}) do pages[pg] = true end end
+	for page in pairs(pages) do self:MarkPageSeen(page) end
 end
 -- (1.8.0-beta20) /bs new reset: this release's tags show again, as just after an update (at once, if Settings is open).
 function Panel:ResetNewForTesting()
@@ -123,11 +181,12 @@ function Panel:SnapshotNew()
 end
 function Panel:MarkPageSeen(page)
 	local N = self.NEW
-	if not (N and page and N.pages[page] and release() == N.release and type(BagSmithDB) == "table") then return end
+	if not (N and page and release() == N.release and type(BagSmithDB) == "table") then return end
+	if #entriesOn(N, page) == 0 then return end   -- (nothing listed there: nothing to remember)
 	if type(BagSmithDB.newSeen) ~= "table" then BagSmithDB.newSeen = {} end
 	local t = BagSmithDB.newSeen[N.release]
 	if type(t) ~= "table" then t = {}; BagSmithDB.newSeen[N.release] = t end
-	t[page] = true
+	t[page] = point() or true   -- (1.9.1-beta3) the version it was opened at
 end
 -- The tag itself, on owner, just right of anchor (x on screen, from its left). Blizzard's NEW label (the game's own soft
 -- blue with its glow, as FlareUI shows it), smaller and with its text at the left; a plain soft-blue NEW where the
@@ -664,10 +723,24 @@ local function layoutRow(w, label, help, controlW, controlH)
 	if not fits then w.text:SetWidth(rowW - 4) end
 	local helpH = 0
 	w.help:ClearAllPoints(); w.help:SetPoint("TOPLEFT", 2, -(y + 2))
+	w.helpBelow = nil
 	if help and help ~= "" then
 		w.help:SetText(help); w.help:SetTextColor(Skins:Color("muted"))
 		-- Keep the help clear of a control sitting on the label line.
 		helpH = wrapText(w.help, fits and (rowW - controlW - 16) or (rowW - 4)) + 2
+		-- (1.9.1-beta5, Shweep: "descriptions in settings like this one where the word wrap seems excessive") beside a
+		-- wide control the help can wrap into a narrow column; it runs the full width under the control instead
+		-- whenever that makes the row shorter
+		if fits then
+			local belowTop = 4 + (controlH or 22) + 4
+			local belowH = wrapText(w.help, rowW - 4) + 2
+			if belowTop + belowH < (y + 2) + helpH then
+				w.help:ClearAllPoints(); w.help:SetPoint("TOPLEFT", 2, -belowTop)
+				y, helpH, w.helpBelow = belowTop - 2, belowH, true
+			else
+				wrapText(w.help, rowW - controlW - 16)   -- (beside, as before)
+			end
+		end
 		w.help:Show()
 	else
 		w.help:SetText(""); w.help:Hide()
@@ -1643,6 +1716,10 @@ pages.look = function(self, db)
 	self:Indented(function()
 		self:Check("splitViewRecentWide", "Full-Width Recent", "Gives Recent Items its own full-width row instead of sharing space with other sections.",
 			layout == "full" and { disabled = true, checked = db.splitViewRecentWide } or nil)
+		-- (1.9.1-beta2, Shweep: "let's have pinned also get a sub-setting under icon layout so like recent can decide if
+		-- full width or not")
+		self:Check("splitViewPinnedWide", "Full-Width Pinned", "Gives each pinned section its own full-width row instead of sharing space with other sections.",
+			layout == "full" and { disabled = true, checked = db.splitViewPinnedWide } or nil)
 	end)
 	self:Check("emptySlots", "Show Empty Slots", "Shows your free bag spaces as empty squares in Icons view. Not shown in By Section.")
 end
@@ -1695,6 +1772,16 @@ pages.icons = function(self, db)
 end
 
 pages.automation = function(self, db)
+	-- (1.9.1-beta4, Shweep: "in automation please move BagScleanup, Vendors and Warlock to be first 3 followed by Travel
+	-- Mode and then prompts") Bag Cleanup, Vendors, Clear Soul Shards, Auto Travel Mode, Prompts
+	self:Head("Bag Cleanup")
+	-- (1.9.1-beta5, Shweep: "can we cleanup these descriptions") the three help lines, shorter
+	self:Check("cleanOnOpen", "Clean Up Bags When Opened", "Tidies your bags each time you open them, except in combat or at the bank.")
+	self:Head("Vendors")
+	self:Check("autoSellJunk", "Sell Junk Automatically at Vendors", "Sells your grey and junk-marked items whenever you visit a vendor, grey favorites included. You can buy back the last 12.")
+	self:Head("Clear Soul Shards")
+	-- (Shweep: "clear shards button where? that needs context. Also does it auto destroy any that exceed that count?")
+	self:Step("shardKeep", "Soul Shards to Keep", 1, "%d", "|cff8788eeWarlocks|r only. Soul Shards are only cleared when you click Clear Shards (on their section in your bags) or use the Loot Helper, and you always keep this many. Shards in your soul bag count toward it and are never cleared.")
 	self:Head("Auto Travel Mode")
 	self:Text("Travel Mode is a compact view for adventuring. The signpost by the close button turns it on and off. These settings turn it off when you need your full bags, and back on afterwards.")
 	self:Check("travelLeaveBank", "Leave Travel Mode at the Bank", "Turns it back on when you close the bank.")
@@ -1703,10 +1790,6 @@ pages.automation = function(self, db)
 	self:Check("travelLeaveVendor", "Leave Travel Mode at Vendors", "Turns it back on when you close the vendor.")
 	self:Check("travelLeaveTaxi", "Leave Travel Mode During Flight Paths", "Turns it back on when you land.")
 	self:Check("travelLeaveTrade", "Leave Travel Mode When Trading", "Turns it back on when the trade is finished or canceled.")
-	self:Head("Bag Cleanup")
-	self:Check("cleanOnOpen", "Clean Up Bags When Opened", "Tidies your bags with Blizzard's Clean Up each time you open them, except in combat or at the bank.")
-	self:Head("Vendors")
-	self:Check("autoSellJunk", "Sell Junk Automatically at Vendors", "Sells your grey and junk-marked items when you visit a vendor. You can buy back the last 12. Like Blizzard's own Sell All Junk, it includes grey favorites.")
 	self:Head("Prompts")
 	self:Text("Some actions ask yes or no first, like equipping gear that binds or replacing an enchant. BagSmith can answer Yes for you on the kinds you choose. Hold Shift to answer yourself.")
 	self:Check("autoConfirm", "Auto-Confirm Prompts From BagSmith Actions", "Answers Yes only right after you do one of these in BagSmith. Each one is noted in chat.")
@@ -1726,8 +1809,6 @@ pages.automation = function(self, db)
 			for _, g in ipairs(ns.Prompts and ns.Prompts.GROUPS or {}) do self:Check(g.key, g.label) end
 		end)
 	end)
-	self:Head("Clear Soul Shards")
-	self:Step("shardKeep", "Soul Shards to Keep", 1, "%d", "|cff8788eeWarlock|r only. Clear Soul Shards always leaves you this many. Shards in a soul bag count and are never destroyed.")
 end
 
 pages.loothelper = function(self, db)
