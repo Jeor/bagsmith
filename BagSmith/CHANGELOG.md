@@ -9,6 +9,7 @@ New:
   own full-width row, as Full-Width Recent does for Recent Items.
 Changed:
 - Settings marks what each update adds with NEW, even on a page you've already looked at since the last big release.
+- Settings > Automations starts with Bag Cleanup, Vendors and Clear Soul Shards, then Auto Travel Mode and Prompts.
 
 ## 1.9.0
 

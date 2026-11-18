@@ -1758,6 +1758,14 @@ pages.icons = function(self, db)
 end
 
 pages.automation = function(self, db)
+	-- (1.9.1-beta4, Shweep: "in automation please move BagScleanup, Vendors and Warlock to be first 3 followed by Travel
+	-- Mode and then prompts") Bag Cleanup, Vendors, Clear Soul Shards, Auto Travel Mode, Prompts
+	self:Head("Bag Cleanup")
+	self:Check("cleanOnOpen", "Clean Up Bags When Opened", "Tidies your bags with Blizzard's Clean Up each time you open them, except in combat or at the bank.")
+	self:Head("Vendors")
+	self:Check("autoSellJunk", "Sell Junk Automatically at Vendors", "Sells your grey and junk-marked items when you visit a vendor. You can buy back the last 12. Like Blizzard's own Sell All Junk, it includes grey favorites.")
+	self:Head("Clear Soul Shards")
+	self:Step("shardKeep", "Soul Shards to Keep", 1, "%d", "|cff8788eeWarlock|r only. Clear Soul Shards always leaves you this many. Shards in a soul bag count and are never destroyed.")
 	self:Head("Auto Travel Mode")
 	self:Text("Travel Mode is a compact view for adventuring. The signpost by the close button turns it on and off. These settings turn it off when you need your full bags, and back on afterwards.")
 	self:Check("travelLeaveBank", "Leave Travel Mode at the Bank", "Turns it back on when you close the bank.")
@@ -1766,10 +1774,6 @@ pages.automation = function(self, db)
 	self:Check("travelLeaveVendor", "Leave Travel Mode at Vendors", "Turns it back on when you close the vendor.")
 	self:Check("travelLeaveTaxi", "Leave Travel Mode During Flight Paths", "Turns it back on when you land.")
 	self:Check("travelLeaveTrade", "Leave Travel Mode When Trading", "Turns it back on when the trade is finished or canceled.")
-	self:Head("Bag Cleanup")
-	self:Check("cleanOnOpen", "Clean Up Bags When Opened", "Tidies your bags with Blizzard's Clean Up each time you open them, except in combat or at the bank.")
-	self:Head("Vendors")
-	self:Check("autoSellJunk", "Sell Junk Automatically at Vendors", "Sells your grey and junk-marked items when you visit a vendor. You can buy back the last 12. Like Blizzard's own Sell All Junk, it includes grey favorites.")
 	self:Head("Prompts")
 	self:Text("Some actions ask yes or no first, like equipping gear that binds or replacing an enchant. BagSmith can answer Yes for you on the kinds you choose. Hold Shift to answer yourself.")
 	self:Check("autoConfirm", "Auto-Confirm Prompts From BagSmith Actions", "Answers Yes only right after you do one of these in BagSmith. Each one is noted in chat.")
@@ -1789,8 +1793,6 @@ pages.automation = function(self, db)
 			for _, g in ipairs(ns.Prompts and ns.Prompts.GROUPS or {}) do self:Check(g.key, g.label) end
 		end)
 	end)
-	self:Head("Clear Soul Shards")
-	self:Step("shardKeep", "Soul Shards to Keep", 1, "%d", "|cff8788eeWarlock|r only. Clear Soul Shards always leaves you this many. Shards in a soul bag count and are never destroyed.")
 end
 
 pages.loothelper = function(self, db)
