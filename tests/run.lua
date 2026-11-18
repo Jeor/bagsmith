@@ -4467,7 +4467,8 @@ end)()
 		table.sort(wrong)
 		check(#wrong == 0, page .. ": every setting sits under its own heading" .. (#wrong > 0 and (": " .. table.concat(wrong, ", ")) or ""))
 	end
-	grouped("automation", "Auto Travel Mode | Bag Cleanup | Vendors | Prompts | Clear Soul Shards", {
+	-- (by design since 1.9.1-beta4, Shweep: Bag Cleanup, Vendors and Clear Soul Shards first, then Auto Travel Mode and Prompts)
+	grouped("automation", "Bag Cleanup | Vendors | Clear Soul Shards | Auto Travel Mode | Prompts", {
 		travelLeaveBank = "Auto Travel Mode", travelLeaveAH = "Auto Travel Mode", travelLeaveVendor = "Auto Travel Mode", travelLeaveTaxi = "Auto Travel Mode", travelLeaveTrade = "Auto Travel Mode",
 		cleanOnOpen = "Bag Cleanup", autoSellJunk = "Vendors", ["Soul Shards to Keep"] = "Clear Soul Shards",
 		autoConfirm = "Prompts", autoConfirmEverywhere = "Prompts", autoConfirmEquip = "Prompts", autoConfirmUse = "Prompts", autoConfirmEnchant = "Prompts", autoConfirmRoll = "Prompts",
