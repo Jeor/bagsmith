@@ -7,6 +7,8 @@ New:
   has, with the total, as in Global Inventory.
 - Full-Width Pinned (Settings > Style, under Icon Layout): in Split View and Compact View, give each pinned section its
   own full-width row, as Full-Width Recent does for Recent Items.
+Changed:
+- Settings marks what each update adds with NEW, even on a page you've already looked at since the last big release.
 
 ## 1.9.0
 

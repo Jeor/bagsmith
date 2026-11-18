@@ -882,7 +882,9 @@ local function loadDB(saved)
 			if type(rel) == "string" and rel:find("^%d+%.%d+$") and type(seen) == "table" and releases < 16 then
 				local t, n = {}, 0
 				for k, v in pairs(seen) do
-					if type(k) == "string" and #k <= 32 and k:find("^%w+$") and v == true and n < 64 then t[k] = true; n = n + 1 end
+					-- (1.9.1-beta3) true (an older save) or the version the page was opened at
+					local ok = v == true or (type(v) == "string" and #v <= 16 and v:find("^%d+%.%d+%.%d+$"))
+					if type(k) == "string" and #k <= 32 and k:find("^%w+$") and ok and n < 64 then t[k] = v; n = n + 1 end
 				end
 				keep[rel], releases = t, releases + 1
 			end

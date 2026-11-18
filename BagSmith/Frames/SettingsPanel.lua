@@ -79,35 +79,92 @@ end
 -- other than NEW.release shows none, so the list is replaced each release. heads and keys name the page they're on.
 -- (1.9.0-beta1) 1.9's list (1.8's: Style, Item Icons and Profile; Special Bag Slot Indicators, Shared Between Characters;
 -- Text Size, Font, Gold Frame for Quest Items).
+-- (1.9.1-beta3, Shweep: "point releases getting new tags would be good going forward as well") A point release adds its
+-- own entries under added["x.y.z"]; the lists above are the release's own (x.y.0). A page remembers the version it was
+-- last opened at (newSeen[release][page] = "1.9.1"; an older save's true reads as x.y.0), and it and its entries show
+-- NEW while it holds anything added after that: a 1.9.1 setting on a page opened in 1.9.0 is NEW, the rest there isn't.
+-- Someone coming straight from an older release sees all of them.
 Panel.NEW = {
 	release = "1.9",
 	pages = { general = true, window = true, icons = true, look = true, sections = true, columns = true, sheets = true,
 		globalsections = true, globalcols = true, globalsheets = true },
 	heads = {},
-	keys = { tipInventory = "general", tipAHPrice = "general", bagSlotCount = "window", borderWeight = "icons", iconLayout = "look", footerTextScale = "look", globalResize = "window",
-		splitViewPinnedWide = "look" },   -- (1.9.1-beta2)
+	keys = { tipInventory = "general", tipAHPrice = "general", bagSlotCount = "window", borderWeight = "icons", iconLayout = "look", footerTextScale = "look", globalResize = "window" },
+	added = {
+		["1.9.1"] = { keys = { splitViewPinnedWide = "look" } },   -- (1.9.1-beta2) Full-Width Pinned
+	},
 }
 Panel.NEW_COLOR = { 0.55, 0.78, 1 }   -- the soft blue of What's New's links
 local function release() return tostring(ns.version or ""):match("^(%d+%.%d+)") end
+-- The point version running ("1.9.1" in 1.9.1-beta3), and a version's patch number (true, from an older save: 0).
+local function point() return tostring(ns.version or ""):match("^(%d+%.%d+%.%d+)") end
+local function patchOf(v)
+	if v == true then return 0 end
+	return tonumber(type(v) == "string" and v:match("^%d+%.%d+%.(%d+)") or nil) or 0
+end
+Panel.NewPatchOf = patchOf
+-- Every entry on a page, as { kind, id, patch } (pages: the page itself), up to the version running.
+local function entriesOn(N, page)
+	local out, cur = {}, patchOf(point())
+	local function scan(list, patch)
+		if patch > cur then return end
+		if list.pages and list.pages[page] then out[#out + 1] = { "pages", page, patch } end
+		for _, kind in ipairs({ "heads", "keys" }) do
+			for id, pg in pairs(list[kind] or {}) do if pg == page then out[#out + 1] = { kind, id, patch } end end
+		end
+	end
+	scan(N, 0)
+	for ver, list in pairs(N.added or {}) do scan(list, patchOf(ver)) end
+	return out
+end
+-- An entry's page and the patch that added it, or nil.
+local function entryOf(N, kind, id)
+	if id == nil then return nil end
+	if kind == "pages" then if N.pages and N.pages[id] then return id, 0 end
+	elseif N[kind] and N[kind][id] then return N[kind][id], 0 end
+	local cur = patchOf(point())
+	for ver, list in pairs(N.added or {}) do
+		local pg = kind == "pages" and (list.pages and list.pages[id] and id) or (list[kind] and list[kind][id])
+		if pg and patchOf(ver) <= cur then return pg, patchOf(ver) end
+	end
+end
+-- The patch a page was last opened at, while Settings is open (nil: never).
+function Panel:SeenPatch(page)
+	local v = self.seenAtOpen and self.seenAtOpen[page]
+	if v == nil then return nil end
+	return patchOf(v)
+end
 function Panel:NewPage(page)
 	local N = self.NEW
-	if not (N and page and N.pages[page] and release() == N.release) then return false end
-	return not (self.seenAtOpen and self.seenAtOpen[page])
+	if not (N and page and release() == N.release) then return false end
+	local seen = self:SeenPatch(page)
+	for _, e in ipairs(entriesOn(N, page)) do if seen == nil or e[3] > seen then return true end end
+	return false
 end
 function Panel:IsNew(kind, id)
 	local N = self.NEW
-	local page = N and N[kind] and id ~= nil and N[kind][id]
-	return page and self:NewPage(page) or false
+	if not (N and release() == N.release) then return false end
+	local page, patch = entryOf(N, kind, id)
+	if not page then return false end
+	local seen = self:SeenPatch(page)
+	return seen == nil or patch > seen
 end
 -- Listed for this release, seen or not (searching "new" finds these all release long).
 function Panel:InRelease(kind, id)
 	local N = self.NEW
-	return (N and N[kind] and id ~= nil and N[kind][id] and release() == N.release) and true or false
+	return (N and release() == N.release and entryOf(N, kind, id) ~= nil) and true or false
 end
 -- (1.8.0-beta19, after FlareUI) A first install: nothing is new to this player.
 function Panel:MarkAllNewSeen()
 	local N = self.NEW
-	for page in pairs(N and N.pages or {}) do self:MarkPageSeen(page) end
+	local pages = {}
+	for page in pairs(N and N.pages or {}) do pages[page] = true end
+	for _, list in pairs(N and N.added or {}) do
+		for page in pairs(list.pages or {}) do pages[page] = true end
+		for _, kind in ipairs({ "heads", "keys" }) do for _, pg in pairs(list[kind] or {}) do pages[pg] = true end end
+	end
+	for _, kind in ipairs({ "heads", "keys" }) do for _, pg in pairs(N and N[kind] or {}) do pages[pg] = true end end
+	for page in pairs(pages) do self:MarkPageSeen(page) end
 end
 -- (1.8.0-beta20) /bs new reset: this release's tags show again, as just after an update (at once, if Settings is open).
 function Panel:ResetNewForTesting()
@@ -124,11 +181,12 @@ function Panel:SnapshotNew()
 end
 function Panel:MarkPageSeen(page)
 	local N = self.NEW
-	if not (N and page and N.pages[page] and release() == N.release and type(BagSmithDB) == "table") then return end
+	if not (N and page and release() == N.release and type(BagSmithDB) == "table") then return end
+	if #entriesOn(N, page) == 0 then return end   -- (nothing listed there: nothing to remember)
 	if type(BagSmithDB.newSeen) ~= "table" then BagSmithDB.newSeen = {} end
 	local t = BagSmithDB.newSeen[N.release]
 	if type(t) ~= "table" then t = {}; BagSmithDB.newSeen[N.release] = t end
-	t[page] = true
+	t[page] = point() or true   -- (1.9.1-beta3) the version it was opened at
 end
 -- The tag itself, on owner, just right of anchor (x on screen, from its left). Blizzard's NEW label (the game's own soft
 -- blue with its glow, as FlareUI shows it), smaller and with its text at the left; a plain soft-blue NEW where the

@@ -134,7 +134,8 @@ end)()
 	n.SettingsPanel.NEW = NEW18
 	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers()
 	local ns18 = BagSmithDB.newSeen and BagSmithDB.newSeen["1.8"]
-	check(ns18 and ns18.look == true and ns18.profile == true and ns18.bad == nil and ns18["no spaces"] == nil, "kept: the pages seen; dropped: anything else")
+	-- (by design since 1.9.1-beta3: a page remembers the version it was opened at, "1.8.0" here; true from older saves)
+	check(ns18 and ns18.look == "1.8.0" and ns18.profile == "1.8.0" and ns18.bad == nil and ns18["no spaces"] == nil, "kept: the pages seen; dropped: anything else")
 	check(BagSmithDB.newSeen.junk == nil and BagSmithDB.newSeen["1.7"] == nil, "only releases, each a list of pages")
 	-- another release shows none of 1.8's
 	n.version = "1.9.0"
