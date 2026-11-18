@@ -22,6 +22,25 @@ for _, skin in ipairs({ "modern", "classic" }) do
 	check(n.Usability ~= nil, "usability module is loaded")
 	if n.Usability then
 		local U = n.Usability
+		-- Forever files edible raw fish under Trade Goods, not Consumable.
+		local oldLevel, oldSpell = UnitLevel, C_Item.GetItemSpell
+		_G.UnitLevel = function() return 29 end
+		C_Item.GetItemSpell = function(id) if id == 4603 then return "Food", 433 end end
+		local fish = {itemID=4603, link="item:4603", name="Raw Spotted Yellowtail", classID=7,
+			minLevel=35, count=1, quality=1, icon=123, isCraftingReagent=true}
+		check(U:IsUnusable(fish), "level-29 character cannot eat level-35 raw fish filed as Trade Goods")
+		local fishButton = n.Buttons:GetCached(CreateFrame("Frame"), 1)
+		n.Buttons:SetMode(fishButton, "cell"); n.Buttons:Fill(fishButton, fish)
+		check(fishButton.unusableOverlay and fishButton.unusableOverlay:IsShown(), "raw fish gets a visible red wash")
+		_G.UnitLevel = function() return 35 end; U:Invalidate()
+		n.Buttons:Fill(fishButton, fish)
+		check(not (fishButton.unusableOverlay and fishButton.unusableOverlay:IsShown()), "raw fish clears at the required level")
+		_G.UnitLevel = function() return 29 end
+		C_Item.GetItemSpell = function() return nil end; U:Invalidate()
+		check(not U:IsUnusable(fish), "unknown use action remains unmarked")
+		C_Item.GetItemSpell = function() error("not loaded") end
+		check(not U:IsUnusable(fish), "unavailable use-spell API remains unmarked")
+		_G.UnitLevel, C_Item.GetItemSpell = oldLevel, oldSpell
 		local rec = { itemID = 100, link = "item:100", classID = 2, name = "Test", count = 2, quality = 2, icon = 123, minLevel = 40, itemSubType = "Swords" }
 		for _, class in ipairs({2, 4, 9, 0}) do rec.classID = class; check(U:IsUnusable(rec), "unmet level for class " .. class) end
 		rec.classID = 7; check(not U:IsUnusable(rec), "materials not flagged")

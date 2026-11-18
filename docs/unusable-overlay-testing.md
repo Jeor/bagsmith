@@ -10,6 +10,8 @@ Checks always refer to the logged-in character, including saved inventory from o
 
 The detector uses required level and explicit red requirement lines, including typed skill restrictions and localized rank/class/reputation text. Unknown data stays unmarked and is retried. On clients without typed tooltip data, ambiguous rankless "Requires ..." lines stay unmarked rather than guessing what they mean.
 
+Items outside the usual equipment/recipe/consumable classes are also checked when the game confirms a Use spell. This covers edible crafting ingredients such as Raw Spotted Yellowtail, which Forever files under Trade Goods. Overlay test build 2 fixes this case: a level-29 character sees red on the level-35 fish; the mark clears at level 35. Ordinary materials without a Use spell remain unmarked.
+
 ## In-game verification
 
 1. Back up the installed BagSmith folder before trying this package. Extract its BagSmith folder into Interface/AddOns and reload the UI.

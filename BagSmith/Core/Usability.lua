@@ -77,7 +77,12 @@ end
 function U:IsUnusable(rec)
 	if not rec or rec.empty or rec.globalChild then return false end
 	local c = rec.classID
-	if c ~= 2 and c ~= 4 and c ~= 9 and c ~= 0 then return false end
+	if c ~= 2 and c ~= 4 and c ~= 9 and c ~= 0 then
+		-- Some edible reagents (raw fish on Forever) are Trade Goods. A real use
+		-- spell makes them eligible; a category label alone does not tell us that.
+		local ok, name, spellID = pcall(ns.ItemUseSpell, ns, rec.itemID)
+		if not ok or not ((type(name) == "string" and name ~= "") or (type(spellID) == "number" and spellID > 0)) then return false end
+	end
 	local level = UnitLevel and UnitLevel("player")
 	if type(level) == "number" and level > 0 and type(rec.minLevel) == "number" and rec.minLevel > level then return true end
 	local key = rec.link or rec.itemID
