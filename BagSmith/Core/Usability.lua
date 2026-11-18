@@ -121,7 +121,7 @@ function U:Decorate(b, rec)
 		b.unusableOverlay:SetAllPoints(b.icon)
 	end
 	if b.unusableOverlay then
-		b.unusableOverlay:SetColorTexture(1, 0, 0, ns.db.unusableOverlayOpacity or 0.5)
+		b.unusableOverlay:SetColorTexture(1, 0, 0, ns.db.unusableOverlayOpacity or 0.35)
 		b.unusableOverlay:SetShown(show)
 	end
 end

@@ -18,6 +18,8 @@ local function boot(opts)
 	for k, v in pairs(opts.db or {}) do db[k] = v end
 	_G.BagSmithDB = db
 	if opts.tip then _G.C_TooltipInfo = { GetHyperlink = opts.tip } else _G.C_TooltipInfo = nil end
+	-- (1.9.2-beta2) the game's "Requires Level %d" (the mock has none, so beta1's red pieces never turned red)
+	_G.ITEM_MIN_LEVEL = "Requires Level %d"
 	local n = M.loadAddon("BagSmith")
 	n.version = opts.version or "1.9.2-beta1"
 	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
@@ -32,7 +34,7 @@ end
 		local id = tonumber(tostring(link):match("item:(%d+)"))
 		if loading[id] then return { lines = {} } end   -- the game doesn't have its data yet
 		local lines = { { leftText = "Armor " .. tostring(id) }, { leftText = "Cloth" } }
-		if red[id] then lines[#lines + 1] = { leftText = (ITEM_MIN_LEVEL or "Requires Level %d"):format(60), leftColor = { r = 1, g = 0.1, b = 0.1 } } end
+		if red[id] then lines[#lines + 1] = { leftText = ITEM_MIN_LEVEL:format(60), leftColor = { r = 1, g = 0.1, b = 0.1 } } end
 		return { lines = lines }
 	end
 	red[10001], red[10002] = true, true
@@ -40,6 +42,10 @@ end
 	n.Window:Show(); M.runTimers(); M.runTimers()
 	check(reads > 0, "(setup) the bags open: each armor piece read once (" .. reads .. ")")
 	check(n.Usability.Unknown()[10003], "(setup) one piece read before its data was there: no answer yet")
+	-- (1.9.2-beta2) the two red pieces really tinted, the others not
+	local function btn(id) local f; n.Buttons:EachLive(function(b) if b.hasItem and b.rec and b.rec.itemID == id then f = b end end); return f end
+	local function tinted(id) local b = btn(id); return b and b.unusableOverlay and b.unusableOverlay:IsShown() or false end
+	check(tinted(10001) and tinted(10002) and not tinted(10004), "(setup) the two pieces above your level tinted red, the rest not")
 	local r0 = reads
 	for i = 1, 30 do M.fire("GET_ITEM_INFO_RECEIVED", 50000 + i, true); M.runTimers() end
 	check(reads == r0, "item data for 30 items not in the bags: nothing read again (" .. (reads - r0) .. ")")
@@ -55,12 +61,12 @@ end
 	check(reads == r0, "nothing unanswered: tooltip data reads nothing")
 	r0 = reads
 	for i = 1, 10 do M.fire("UPDATE_FACTION"); M.runTimers() end
-	check(reads - r0 <= 10 * 2 * 2, "10 reputation gains: only the two red pieces read again each time (" .. (reads - r0) .. ")")
+	check(reads - r0 >= 10 * 2 and reads - r0 <= 10 * 2 * 2, "10 reputation gains: only the two red pieces read again each time (" .. (reads - r0) .. ")")
 	red[10001] = nil
 	M.fire("PLAYER_LEVEL_UP", 60); M.runTimers()
-	local b1
-	n.Buttons:EachLive(function(b) if b.hasItem and b.rec and b.rec.itemID == 10001 then b1 = b end end)
-	check(b1 and not (b1.unusableOverlay and b1.unusableOverlay:IsShown()), "a level up: the piece now usable loses its tint")
+	local b1 = btn(10001)
+	check(b1 and b1.unusableOverlay and not b1.unusableOverlay:IsShown(), "a level up: the piece now usable loses its tint")
+	check(tinted(10002), "the one still above your level keeps it")
 	r0 = reads
 	M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
 	check(reads - r0 >= 19, "a reload or login: everything read afresh (" .. (reads - r0) .. ")")
@@ -70,7 +76,7 @@ end)()
 ;(function()
 	-- the setting: on by default, "Unusable Item Opacity", NEW in 1.9.2
 	local n, M = boot()
-	check(n.db.unusableOverlay == true and n.db.unusableOverlayOpacity == 0.5, "Unusable Item Overlay: on by default, at 50%")
+	check(n.db.unusableOverlay == true and n.db.unusableOverlayOpacity == 0.35, "Unusable Item Overlay: on by default, at 35%")   -- (by design since 1.9.2-beta2: 35%, was 50%)
 	local P = n.SettingsPanel
 	P:Show(); P:ShowPage("icons"); M.runTimers()
 	local c, s

@@ -186,7 +186,7 @@ local DEFAULTS = {
 	iconSize = 37, rowHeight = 26,
 	iconItemLevel = false,        -- Icons view: the item level in the icon's top-right corner, for weapons and armor (1.0.2)
 	iconItemLevelColor = "3598db", -- hex; its own color so it reads apart from the stack count
-	unusableOverlayOpacity = 0.5, -- strength of the red wash (0 to 1)
+	unusableOverlayOpacity = 0.35, -- strength of the red wash (0 to 1); (1.9.2-beta2, Shweep: "default should be 35% opacity", was 50%)
 	unusableOverlay = true,      -- red wash for unmet character requirements
 	questFrame = true,         -- (1.8.0-beta11, Shweep) a gold frame on quest items, both skins
 	point = { "BOTTOMRIGHT", "UIParent", "BOTTOMRIGHT", -80, 140 },
