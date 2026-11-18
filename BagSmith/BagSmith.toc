@@ -39,6 +39,7 @@ Core\KeyBinds.lua
 Core\MakeRoom.lua
 Core\Prompts.lua
 Core\Disenchant.lua
+Core\Usability.lua
 Core\Buttons.lua
 Core\Corners.lua
 Frames\Outline.lua

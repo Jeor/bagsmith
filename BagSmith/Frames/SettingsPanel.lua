@@ -1739,6 +1739,7 @@ pages.icons = function(self, db)
 		keywords = "cooldown cooldowns timer timers countdown",
 	})
 	self:Check("dimJunk", "Dim Junk", "Greys out junk so the rest of your items stand out.")
+	self:Check("unusableOverlay", "Unusable Item Overlay", "Marks equipment, recipes and consumables whose requirements your current character does not meet with a translucent red overlay.")
 	self:Head("Marks")
 	self:Check("newdot", "Green Dot on New Items", "Marks new items with a green dot until you point at them.")
 	if db.newdot then

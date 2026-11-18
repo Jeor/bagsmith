@@ -1668,6 +1668,7 @@ function Buttons:Fill(b, rec, opts)
 		b.colWho:SetText("")
 		if b.kebab then b.kebab:Hide() end
 	end
+	if ns.Usability then ns.Usability:Decorate(b, rec) end
 end
 
 
@@ -1715,6 +1716,7 @@ function Buttons:LinkMark(b, rec)
 	if b.pawnArrow and b.pawnArrow:IsShown() and ns.Pawn and ns.Pawn.Decorate and b.hasItem then ns.Pawn:Decorate(b, b.rec) end
 end
 function Buttons:Blank(b, rec)
+	if ns.Usability then ns.Usability:Decorate(b, nil) end
 	b.rec, b.hasItem, b.readable = rec, nil, nil
 	Buttons:Cooldown(b)   -- (1.4.2) an empty slot shows no cooldown
 	self:ItemLevel(b, nil)
