@@ -84,7 +84,8 @@ Panel.NEW = {
 	pages = { general = true, window = true, icons = true, look = true, sections = true, columns = true, sheets = true,
 		globalsections = true, globalcols = true, globalsheets = true },
 	heads = {},
-	keys = { tipInventory = "general", tipAHPrice = "general", bagSlotCount = "window", borderWeight = "icons", iconLayout = "look", footerTextScale = "look", globalResize = "window" },
+	keys = { tipInventory = "general", tipAHPrice = "general", bagSlotCount = "window", borderWeight = "icons", iconLayout = "look", footerTextScale = "look", globalResize = "window",
+		splitViewPinnedWide = "look" },   -- (1.9.1-beta2)
 }
 Panel.NEW_COLOR = { 0.55, 0.78, 1 }   -- the soft blue of What's New's links
 local function release() return tostring(ns.version or ""):match("^(%d+%.%d+)") end
@@ -1643,6 +1644,10 @@ pages.look = function(self, db)
 	self:Indented(function()
 		self:Check("splitViewRecentWide", "Full-Width Recent", "Gives Recent Items its own full-width row instead of sharing space with other sections.",
 			layout == "full" and { disabled = true, checked = db.splitViewRecentWide } or nil)
+		-- (1.9.1-beta2, Shweep: "let's have pinned also get a sub-setting under icon layout so like recent can decide if
+		-- full width or not")
+		self:Check("splitViewPinnedWide", "Full-Width Pinned", "Gives each pinned section its own full-width row instead of sharing space with other sections.",
+			layout == "full" and { disabled = true, checked = db.splitViewPinnedWide } or nil)
 	end)
 	self:Check("emptySlots", "Show Empty Slots", "Shows your free bag spaces as empty squares in Icons view. Not shown in By Section.")
 end

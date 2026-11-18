@@ -69,6 +69,7 @@ local DEFAULTS = {
 	globalResize = true,       -- (1.9.0-beta13) Resize for Global Inventory: its own size while it shows (Windows page)
 	compactCategories = false, -- Icons + By Section: variable-width category rows
 	splitViewRecentWide = false,   -- (1.7.0-beta2) Split View: Recent spans both columns instead of pairing
+	splitViewPinnedWide = false,   -- (1.9.1-beta2, Shweep) Split and Compact View: each pinned section a full-width row
 	recentSection = true,      -- a Recent section pinned at the top of the bags window (Sections page)
 	recentWindow = "session",  -- session | 1h | 15m
 	recentMax = 0,             -- how many recent items (0 = all)

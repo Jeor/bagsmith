@@ -5,6 +5,8 @@ New:
   ruleset and the total. Hold Shift for your whole account.
 - In your own bags, hover a pinned currency or a row in the currency drawer to see how many each of your characters
   has, with the total, as in Global Inventory.
+- Full-Width Pinned (Settings > Style, under Icon Layout): in Split View and Compact View, give each pinned section its
+  own full-width row, as Full-Width Recent does for Recent Items.
 
 ## 1.9.0
 

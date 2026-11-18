@@ -80,6 +80,7 @@ QUICK.append("tests/core_1_9_0_beta22_tests.lua")
 QUICK.append("tests/core_1_9_0_beta23_tests.lua")
 QUICK.append("tests/core_1_9_0_beta24_tests.lua")
 QUICK.append("tests/core_1_9_1_beta1_tests.lua")
+QUICK.append("tests/core_1_9_1_beta2_tests.lua")
 
 def run_file(path, prelude=True, quiet=False):
     """Run one Lua set. (1.5.0-beta5, audit F6) The core suite ends with os.exit(code): that call now reports its
