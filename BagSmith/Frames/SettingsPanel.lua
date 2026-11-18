@@ -92,6 +92,7 @@ Panel.NEW = {
 	keys = { tipInventory = "general", tipAHPrice = "general", bagSlotCount = "window", borderWeight = "icons", iconLayout = "look", footerTextScale = "look", globalResize = "window" },
 	added = {
 		["1.9.1"] = { keys = { splitViewPinnedWide = "look" } },   -- (1.9.1-beta2) Full-Width Pinned
+		["1.9.2"] = { keys = { unusableOverlay = "icons" } },   -- (1.9.2-beta1) Jeor's Unusable Item Overlay
 	},
 }
 Panel.NEW_COLOR = { 0.55, 0.78, 1 }   -- the soft blue of What's New's links
@@ -322,7 +323,12 @@ function Panel:Create()
 	end
 
 	-- What's New, at the bottom left under the categories.
-	f.whatsNew = ns.TextButton(f, "What's New", NAV_W - 10, function() ns.WhatsNew:ShowLatest() end)
+	-- (1.9.2-beta1, Shweep) NEW while an update has notes you haven't opened, until you click it
+	f.whatsNew = ns.TextButton(f, "What's New", NAV_W - 10, function()
+		if ns.WhatsNew.MarkButtonSeen then ns.WhatsNew:MarkButtonSeen() end
+		Panel:SyncWhatsNewTag()
+		ns.WhatsNew:ShowLatest()
+	end)
 	f.whatsNew:SetHeight(22)
 	f.whatsNew:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 12, 14)
 	f.whatsNew.tip = "What's new in this version of BagSmith"
@@ -443,7 +449,16 @@ function Panel:NavRoom()
 	return (f:GetHeight() or WIN_H) - top - NAV_RESERVE
 end
 
+-- (1.9.2-beta1, Shweep: "show a new by it's button in settings if there are new patches until you click that button")
+function Panel:SyncWhatsNewTag()
+	local b = self.frame and self.frame.whatsNew
+	if not b then return end
+	local show = ns.WhatsNew and ns.WhatsNew.ButtonNew and ns.WhatsNew:ButtonNew() or false
+	newTag(b, show, b, 0)
+	if b.newTag and b.newTag:IsShown() then newTag(b, true, b, (NAV_W - 10) - tagWidth(b.newTag) - 8) end
+end
 function Panel:SyncNav()
+	self:SyncWhatsNewTag()
 	local s = Skins:Current()
 	-- Sub-pages show under their page while it or one of them is open (not while searching).
 	local open = not self.query and (PARENT[self.page] or (HAS_SUBS[self.page] and self.page)) or nil
@@ -1739,6 +1754,11 @@ pages.icons = function(self, db)
 		keywords = "cooldown cooldowns timer timers countdown",
 	})
 	self:Check("dimJunk", "Dim Junk", "Greys out junk so the rest of your items stand out.")
+	self:Check("unusableOverlay", "Unusable Item Overlay", "Marks equipment, recipes and consumables whose requirements your current character does not meet with a translucent red overlay.")
+	self:Indented(function()
+		-- (1.9.2-beta1, Shweep) "Unusable Item Opacity" (Jeor's "Unusable Overlay Opacity")
+		self:Step("unusableOverlayOpacity", "Unusable Item Opacity", 0.05, "%d%%", "How strong the red tint is on unusable items.", nil, { disabled = not db.unusableOverlay })
+	end)
 	self:Head("Marks")
 	self:Check("newdot", "Green Dot on New Items", "Marks new items with a green dot until you point at them.")
 	if db.newdot then

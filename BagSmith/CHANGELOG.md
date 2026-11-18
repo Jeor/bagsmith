@@ -1,3 +1,13 @@
+## 1.9.2
+
+New:
+- Unusable Item Overlay (Settings > Item Icons > Appearance, on by default): gear, recipes and consumables your
+  character can't use yet get a soft red tint, like armor above your level or a recipe you don't have the skill for.
+  Unusable Item Opacity sets how strong it is. Thanks to Jeor!
+Changed:
+- What's New lists each update under its release: pick a release, then one of its updates. It opens on its own only
+  for a new release; for an update, the What's New button in Settings says NEW until you open it.
+
 ## 1.9.1
 
 New:

@@ -24,6 +24,16 @@ ns.WhatsNew = WN
 -- Newest first. Only notable releases get an entry; keep a handful of short
 -- bullets that say what it is and where to turn it on.
 WN.ENTRIES = {
+	-- (1.9.2-beta1, Shweep) a release's updates have entries of their own, shown under its tab: 1.9.2 (Jeor's red tint)
+	-- and 1.9.1 (which had no card), as Shweep approved them
+	{ v = "1.9.2", heading = "BagSmith 1.9.2", items = {
+		"|cfffac775Unusable Items in Red:|r gear, recipes and consumables your character can't use yet get a soft red tint, like armor above your level or a recipe you don't have the skill for. Turn it off in Settings > Item Icons > Appearance if you'd rather not see it. Thanks to Jeor!",
+	} },
+	{ v = "1.9.1", heading = "BagSmith 1.9.1", items = {
+		"|cfffac775Gold at the Bank:|r hover your gold in the bank window to see every character's gold on this ruleset, just like in your bags. Hold Shift for your whole account.",
+		"|cfffac775Who Has Which Currency:|r hover a pinned currency, or a row in the currency drawer, to see how many each of your characters has.",
+		"|cfffac775Full-Width Pinned:|r give each pinned section a full-width row of its own in Split View and Compact View, in Settings > Style > Layout.",
+	} },
 	-- (1.9.0-beta9) the 1.9 card: Shweep approved the draft (16 Nov: "make sure the wording of it is easy to understand
 	-- and does not sound like AI")
 	{ v = "1.9.0", heading = "BagSmith 1.9", items = {
@@ -173,6 +183,30 @@ end
 WN.Newer = newer
 local function base(v) local p = parse(v); return ("%d.%d.%d"):format(p[1], p[2], p[3]) end
 
+-- (1.9.2-beta1, Shweep: "a second set of button under a primary release that each contain the smaller releases") A
+-- release and its updates: entries sharing x.y are one tab, its x.y.0 entry (or its oldest) on the tab itself, the
+-- others (patches) on a second row under it, newest first. A tab reads as its main entry (v, heading, items).
+local function minorOf(v) local p = parse(v); return p[1] * 1000 + p[2] end
+local function groups(list)
+	local order, by = {}, {}
+	for _, e in ipairs(list) do
+		local k = minorOf(e.v)
+		if not by[k] then by[k] = {}; order[#order + 1] = k end
+		table.insert(by[k], e)
+	end
+	local out = {}
+	for _, k in ipairs(order) do
+		local list2 = by[k]
+		local primary = list2[#list2]
+		for _, e in ipairs(list2) do if parse(e.v)[3] == 0 then primary = e end end
+		local patches = {}
+		for _, e in ipairs(list2) do if e ~= primary then patches[#patches + 1] = e end end
+		out[#out + 1] = setmetatable({ primary = primary, patches = patches }, { __index = primary })
+	end
+	return out
+end
+WN.Groups = groups
+
 -- Entries not seen yet (newer than seen, up to the running version).
 function WN:Unseen()
 	local seen, current = BagSmithDB.whatsNewSeen or "0.0.0", ns.version
@@ -188,10 +222,44 @@ function WN:Latest()
 	for _, e in ipairs(self.ENTRIES) do if not newer(e.v, ns.version) then out[#out + 1] = e end end
 	return out
 end
+-- (1.9.2-beta1, Shweep: "only open the What's New window automatically on primary") main releases not seen yet, newest
+-- first: only these open the card on their own; an update never does
+function WN:UnseenReleases()
+	local seen, out = BagSmithDB.whatsNewSeen or "0.0.0", {}
+	for _, g in ipairs(groups(self:Latest())) do if newer(g.primary.v, seen) then out[#out + 1] = g end end
+	return out
+end
 function WN:Pending()
-	return ns.db and ns.db.whatsNew ~= false and #self:Unseen() > 0
+	return ns.db and ns.db.whatsNew ~= false and #self:UnseenReleases() > 0
 end
 function WN:MarkSeen() BagSmithDB.whatsNewSeen = base(ns.version) end
+-- An update's notes you haven't opened: NEW on its button, for the newest release's updates only (never an old one's)
+function WN:PatchNew(e)
+	local newest = groups(self:Latest())[1]
+	if not (newest and e) then return false end
+	local mine = false
+	for _, p in ipairs(newest.patches) do if p.v == e.v then mine = true end end
+	local seen = BagSmithDB.whatsNewPatchSeen
+	return mine and not (type(seen) == "table" and seen[base(e.v)]) or false
+end
+function WN:MarkPatchSeen(e)
+	if not e then return end
+	if type(BagSmithDB.whatsNewPatchSeen) ~= "table" then BagSmithDB.whatsNewPatchSeen = {} end
+	BagSmithDB.whatsNewPatchSeen[base(e.v)] = true
+end
+-- NEW on Settings' What's New button: an update you haven't opened, since the button was last clicked
+function WN:ButtonNew()
+	local newest = groups(self:Latest())[1]
+	local last = BagSmithDB.whatsNewButtonSeen or "0.0.0"
+	for _, p in ipairs(newest and newest.patches or {}) do if self:PatchNew(p) and newer(p.v, last) then return true end end
+	return false
+end
+function WN:MarkButtonSeen() BagSmithDB.whatsNewButtonSeen = base(ns.version) end
+-- Everything up to the running version counts as seen (a first install).
+function WN:MarkAllSeen()
+	self:MarkSeen(); self:MarkButtonSeen()
+	for _, e in ipairs(self:Latest()) do if parse(e.v)[3] > 0 then self:MarkPatchSeen(e) end end
+end
 
 ------------------------------------------------------------------------
 -- The card: created once, reused.
@@ -363,6 +431,7 @@ local function sep(f, i)
 end
 -- A tab per release (BagSmith's choice buttons; Blizzard's red buttons in Classic).
 local TAB_H = 22
+local SUB_H = 18   -- (1.9.2-beta1) an update's button, under its release's tab
 local function tab(f, i)
 	return pooled(f, f.tabs, i, function()
 		local b = ns.TextButton(f, "", 56, function(btn) WN:Select(btn.index) end)
@@ -460,13 +529,23 @@ function WN:Select(i)
 	if not card or not card.entries or not card.entries[i] then return end
 	self:Fill(card.entries, i)
 end
+-- (1.9.2-beta1) one of the open release's updates; opening it clears its NEW
+function WN:SelectPatch(j)
+	local g = card and card.entries and card.entries[card.sel]
+	local p = g and g.patches and g.patches[j]
+	if not p then return end
+	self:MarkPatchSeen(p)
+	self:Fill(card.entries, card.sel, j)
+end
 
--- entries: the releases with a tab, newest first; sel: the one shown.
-function WN:Fill(entries, sel)
+-- entries: the releases with a tab, newest first; sel: the one shown; sub: one of its updates (nil: its own notes).
+function WN:Fill(entries, sel, sub)
 	local f = create()
 	f.entries = entries
 	sel = math.max(1, math.min(sel or f.sel or 1, math.max(1, #entries)))
 	f.sel = sel
+	local patches = entries[sel] and entries[sel].patches or {}
+	f.sub = patches[sub or 0] and sub or nil
 	local classic = ns.Classic.IsOn()
 	local sk = ns.Skins:Current()
 	f.title:SetText("What's New")
@@ -494,6 +573,37 @@ function WN:Fill(entries, sel)
 	end
 	for i = #entries + 1, #f.tabs do f.tabs[i]:Hide() end
 	if #entries > 0 then top = top + TAB_H + 10 end
+	-- (1.9.2-beta1) the open release's updates, newest first, on a second row; its height kept on every tab (when any
+	-- release shown has updates), so switching tabs doesn't jump. An update not opened yet says NEW.
+	local anyPatches = false
+	for _, g in ipairs(entries) do if g.patches and #g.patches > 0 then anyPatches = true end end
+	f.subTabs = f.subTabs or {}
+	local sx = PAD
+	for j, p in ipairs(patches) do
+		local b = f.subTabs[j]
+		if not b then
+			b = ns.TextButton(f, "", 48, function(btn) WN:SelectPatch(btn.index) end)
+			b:SetHeight(SUB_H)
+			f.subTabs[j] = b
+		end
+		b.index = j
+		b.label:SetText(tabLabel(p))
+		local w = math.max(48, math.ceil(b.label:GetStringWidth()) + 18)
+		b:SetWidth(w)
+		b:ClearAllPoints(); b:SetPoint("TOPLEFT", f, "TOPLEFT", sx, -(top - 4))
+		if b.SetClassic then b:SetClassic(classic) end
+		b:SetActive(j == f.sub)
+		b.tip = p.heading or ("BagSmith " .. tostring(p.v))
+		b:Show()
+		local new = WN:PatchNew(p)
+		if ns.SettingsPanel and ns.SettingsPanel.NewTag then ns.SettingsPanel.NewTag(b, new, b, w + 4) end
+		sx = sx + w + 6 + (new and 30 or 0)
+	end
+	for j = #patches + 1, #f.subTabs do
+		f.subTabs[j]:Hide()
+		if f.subTabs[j].newTag then f.subTabs[j].newTag:Hide() end
+	end
+	if anyPatches then top = top + SUB_H + 6 end
 	-- The intro line, then the body below it.
 	f.intro:SetWidth(textW)
 	f.intro:SetText(WN.INTRO)
@@ -503,12 +613,15 @@ function WN:Fill(entries, sel)
 	-- The body: the selected release's heading, then its bullets with a
 	-- hanging indent (wrapped lines line up with the text, not the dash), a
 	-- stripe behind every other bullet and a light line between bullets.
-	local e = entries[sel]
+	local e = f.sub and patches[f.sub] or entries[sel]
 	-- (1.7.0-beta12) The body's height first: as tall as the tallest release, at most WN.MAX_BODY, and never more than
 	-- the screen allows (MAX_SCREEN, with the footer). A release taller than that scrolls, laid out narrower beside its
 	-- scrollbar; one that fits uses the full width and shows no bar.
 	local tallest = 0
-	for _, other in ipairs(entries) do tallest = math.max(tallest, measure(f, other, textW)) end
+	for _, other in ipairs(entries) do
+		tallest = math.max(tallest, measure(f, other, textW))
+		for _, p in ipairs(other.patches or {}) do tallest = math.max(tallest, measure(f, p, textW)) end   -- (1.9.2-beta1)
+	end
 	f.more:SetWidth(textW)
 	f.more:SetText(WN.CHANGELOG_LINE)
 	local footerH = 16 + 2 + 10 + f.more:GetStringHeight() + 4 + 22 + 16 + 12 + 22 + PAD
@@ -635,7 +748,7 @@ end
 -- From Settings or /bs new: the latest notable entries, nothing changes.
 -- A tab for each of the last five releases (up to the running version).
 function WN:Tabs()
-	local list, out = self:Latest(), {}
+	local list, out = groups(self:Latest()), {}   -- (1.9.2-beta1) a tab per release, its updates under it
 	for i = 1, math.min(#list, self.MAX_SHOWN) do out[i] = list[i] end
 	return out
 end
@@ -650,7 +763,8 @@ end
 function WN:Check()
 	if not self:Pending() or InCombatLockdown() then return end
 	-- Opens on the newest release you haven't seen (the update you just got).
-	local unseen, tabs = self:Unseen(), self:Tabs()
+	-- (1.9.2-beta1) on that release's own notes ("we always open on the primary"); its updates are a click away
+	local unseen, tabs = self:UnseenReleases(), self:Tabs()
 	local sel = 1
 	for i, e in ipairs(tabs) do if unseen[1] and e.v == unseen[1].v then sel = i end end
 	self:Open(tabs, sel)
@@ -658,19 +772,21 @@ end
 
 -- Hidden testing: make the next bag open behave as the first after updating.
 function WN:ResetForTesting(skipped)
-	-- The newest entry for the running version (or, for "skipped", the oldest).
-	local list = self:Latest()
+	-- The newest release for the running version (or, for "skipped", the oldest). (1.9.2-beta1) its main release, not
+	-- its newest update: only a main release opens the card, so one step before 1.9.2 (1.9.1) would show nothing
+	local list = groups(self:Latest())
 	local pick = list[skipped and #list or 1]
-	local p = parse(pick and pick.v or ns.version)
+	local p = parse(pick and pick.primary.v or ns.version)
 	-- One step before that release (never empty, which would count as a first install).
 	if p[3] > 0 then p[3] = p[3] - 1 elseif p[2] > 0 then p[2] = p[2] - 1 else p[1] = math.max(0, p[1] - 1) end
 	BagSmithDB.whatsNewSeen = ("%d.%d.%d"):format(p[1], p[2], p[3])
+	BagSmithDB.whatsNewPatchSeen, BagSmithDB.whatsNewButtonSeen = nil, nil   -- (1.9.2-beta1) the updates' NEW tags too
 end
 
 ns:OnSignal("ADDON_READY", function()
 	-- A first install has nothing to compare against: mark this version seen.
 	if BagSmithDB.whatsNewSeen == nil then
-		WN:MarkSeen()
+		WN:MarkAllSeen()   -- (1.9.2-beta1) the updates' notes too
 		-- (1.8.0-beta19, after FlareUI) and nothing in Settings is NEW to them either
 		if ns.SettingsPanel and ns.SettingsPanel.MarkAllNewSeen then ns.SettingsPanel:MarkAllNewSeen() end
 	end

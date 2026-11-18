@@ -116,12 +116,12 @@ end)()
 	local WN = n.WhatsNew
 	-- (1.8.0-beta2, by design) the 1.8 card leads now; every older card one place down (each check kept)
 	-- (1.9.0-beta9, by design) the 1.9 card leads now; every older card one place down (each check kept)
-	local e = WN.ENTRIES[3]
+	local e = WN.ENTRIES[5]   -- (by design since 1.9.2-beta1: two places down, after 1.9.2's and 1.9.1's entries)
 	local text = table.concat(e.items, " ")
 	-- (1.7.0-beta12, by design: Shweep's review) nine bullets: Mail and Trade, Section Values at Any Width and Smoother
 	-- Clean Up added (the body scrolls when a release is taller than the card)
 	check(e.v == "1.7.0" and e.heading == "BagSmith 1.7" and #e.items == 9, "What's New: the 1.7 card leads, with nine bullets")
-	check(WN.ENTRIES[4].v == "1.6.0" and WN.ENTRIES[5].v == "1.5.1", "and 1.6's card follows, then 1.5.1's")
+	check(WN.ENTRIES[6].v == "1.6.0" and WN.ENTRIES[7].v == "1.5.1", "and 1.6's card follows, then 1.5.1's")   -- (by design since 1.9.2-beta1: two places down, after 1.9.2's and 1.9.1's entries)
 	local heads = {}
 	for _, it in ipairs(e.items) do heads[#heads + 1] = it:match("^|cfffac775(.-):|r") end
 	check(table.concat(heads, "|") == "A Smarter Loot Helper|Protect|Mail and Trade|Split Gear by Binding|Lock Windows|Pinned Sections Stand Out|Simpler Section Settings|Section Values at Any Width|Smoother Clean Up", "its bullets: " .. table.concat(heads, "|"))
@@ -130,7 +130,8 @@ end)()
 	check(not text:find("\226\128\148") and not text:find("Show More", 1, true) and not text:find("Text Size", 1, true) and not text:find("Font", 1, true), "no em dashes; nothing that isn't in 1.7 (Show More, Text Size, Font)")
 	n.version = "1.7.0-beta6"   -- (the mock reports 0.1.0 for every build; a beta counts as its release)
 	local tabs = WN:Tabs()
-	check(#tabs == 5 and tabs[1].v == "1.7.0" and tabs[5].v == "1.4.0", "five tabs, 1.7 first; 1.3 drops off the row")
+	-- (by design since 1.9.2-beta1, Shweep: an update sits under its release's tab, so 1.5.1 is under 1.5 and 1.3 stays)
+	check(#tabs == 5 and tabs[1].v == "1.7.0" and tabs[3].v == "1.5.0" and tabs[3].patches[1].v == "1.5.1" and tabs[5].v == "1.3.0", "five tabs, 1.7 first; 1.5.1 under 1.5, so 1.3 stays on the row")
 	WN:ShowLatest(); M.runTimers()
 	local f = _G.BagSmithWhatsNew
 	check(f and f:IsShown() and f.sel == 1 and f.entries[1].v == "1.7.0", "the card opens on 1.7")
