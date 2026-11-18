@@ -772,10 +772,11 @@ end
 
 -- Hidden testing: make the next bag open behave as the first after updating.
 function WN:ResetForTesting(skipped)
-	-- The newest entry for the running version (or, for "skipped", the oldest).
-	local list = self:Latest()
+	-- The newest release for the running version (or, for "skipped", the oldest). (1.9.2-beta1) its main release, not
+	-- its newest update: only a main release opens the card, so one step before 1.9.2 (1.9.1) would show nothing
+	local list = groups(self:Latest())
 	local pick = list[skipped and #list or 1]
-	local p = parse(pick and pick.v or ns.version)
+	local p = parse(pick and pick.primary.v or ns.version)
 	-- One step before that release (never empty, which would count as a first install).
 	if p[3] > 0 then p[3] = p[3] - 1 elseif p[2] > 0 then p[2] = p[2] - 1 else p[1] = math.max(0, p[1] - 1) end
 	BagSmithDB.whatsNewSeen = ("%d.%d.%d"):format(p[1], p[2], p[3])
