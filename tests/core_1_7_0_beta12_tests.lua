@@ -262,7 +262,7 @@ end)()
 		local WN = n.WhatsNew
 		-- (1.8.0-beta2, by design) the 1.8 card leads now; every older card one place down (each check kept)
 		-- (1.9.0-beta9, by design) the 1.9 card leads now; every older card one place down (each check kept)
-		local e = WN.ENTRIES[3]
+		local e = WN.ENTRIES[5]   -- (by design since 1.9.2-beta1: two places down, after 1.9.2's and 1.9.1's entries)
 		local heads = {}
 		for _, it in ipairs(e.items) do heads[#heads + 1] = it:match("^|cfffac775(.-):|r") end
 		if skin == "modern" then
@@ -300,8 +300,9 @@ end)()
 		wheel(c.body, -3)
 		-- a shorter release: full width, no bar, the same size, back at the top
 		local short
-		for i, en in ipairs(c.entries) do if en.v == "1.5.1" then short = i end end
-		WN:Select(short)
+		-- (by design since 1.9.2-beta1: 1.5.1 is the 1.5 tab's update)
+		for i, en in ipairs(c.entries) do if en.v == "1.5.0" then short = i end end
+		WN:Select(short); WN:SelectPatch(1)
 		check(c:GetHeight() == h and not c.scrolls and not bar:IsShown() and c.body:GetVerticalScroll() == 0 and math.abs(c.lines[2].width - (512 - 32 - 10)) < 0.5,
 			S .. "1.5.1 fits: the same card size, no bar, full width, at the top")
 		WN:Select(1)

@@ -843,6 +843,17 @@ local function loadDB(saved)
 	-- What's New existed counts as "seen nothing yet"; no saved data at all
 	-- (a first install) stays empty and is marked seen once loaded.
 	if type(saved) == "table" then db.whatsNewSeen = type(saved.whatsNewSeen) == "string" and saved.whatsNewSeen or "0.0.0" end
+	-- (1.9.2-beta1) What's New: the updates opened (a version each), and the version when Settings' button was last clicked
+	if type(saved) == "table" and type(saved.whatsNewPatchSeen) == "table" then
+		local keep, n = {}, 0
+		for v, on in pairs(saved.whatsNewPatchSeen) do
+			if type(v) == "string" and #v <= 16 and v:find("^%d+%.%d+%.%d+$") and on == true and n < 64 then keep[v] = true; n = n + 1 end
+		end
+		db.whatsNewPatchSeen = keep
+	end
+	if type(saved) == "table" and type(saved.whatsNewButtonSeen) == "string" and #saved.whatsNewButtonSeen <= 16 and saved.whatsNewButtonSeen:find("^%d+%.%d+%.%d+$") then
+		db.whatsNewButtonSeen = saved.whatsNewButtonSeen
+	end
 	-- (1.8.0-beta18) The Settings pages whose "NEW" tags this account has opened, per release ({ ["1.8"] = { look = true } }).
 	-- (1.9.0-beta1) The Disenchant Helper's log, shared by your characters: results and learned materials, checked as the
 	-- per-character ones are.

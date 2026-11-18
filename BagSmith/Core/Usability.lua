@@ -3,6 +3,9 @@ local ADDON, ns = ...
 local U = {}
 ns.Usability = U
 local cache, count, patterns = {}, 0, {}
+-- (1.9.2-beta1, after Shweep's review) items read before the game had their data, with no answer yet: only these are
+-- read again when item data or tooltip data arrives
+local unknown = {}
 local function plain(s)
 	return type(s) == "string" and s:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):match("^%s*(.-)%s*$") or ""
 end
@@ -90,7 +93,11 @@ function U:IsUnusable(rec)
 	if cache[key] ~= nil then return cache[key] end
 	local ok, info = pcall(tooltip, rec)
 	if scanTip then scanTip:Hide() end
-	if not ok or type(info) ~= "table" or type(info.lines) ~= "table" or #info.lines == 0 then return false end
+	local id = tonumber(rec.itemID)
+	if not ok or type(info) ~= "table" or type(info.lines) ~= "table" or #info.lines == 0 then
+		if id then unknown[id] = true end
+		return false
+	end
 	local result, readable = false, 0
 	local readOK = pcall(function()
 		for _, line in ipairs(info.lines) do
@@ -98,9 +105,10 @@ function U:IsUnusable(rec)
 			if unmetLine(line, rec) then result = true; break end
 		end
 	end)
-	if not readOK then return false end
+	if not readOK then if id then unknown[id] = true end return false end
 	-- Empty/header-only tooltips are loading states, not evidence of met requirements.
-	if not result and readable < 2 then return false end
+	if not result and readable < 2 then if id then unknown[id] = true end return false end
+	if id then unknown[id] = nil end
 	if count >= 2000 then cache, count = {}, 0 end
 	cache[key], count = result, count + 1
 	return result
@@ -117,7 +125,12 @@ function U:Decorate(b, rec)
 		b.unusableOverlay:SetShown(show)
 	end
 end
-function U:Invalidate() cache, count = {}, 0 end
+function U:Invalidate() cache, count, unknown = {}, 0, {} end
+-- (1.9.2-beta1) a requirement can become met, never unmet: progression drops only the answers that said "can't use"
+function U:ForgetUnusable()
+	for k, v in pairs(cache) do if v then cache[k] = nil; count = count - 1 end end
+end
+U.Unknown = function() return unknown end   -- (for the tests)
 function U:Refresh()
 	local B = ns.Buttons
 	if not B then return end
@@ -126,16 +139,33 @@ function U:Refresh()
 	for _, pool in pairs(B.cached) do for _, b in pairs(pool) do each(b) end end
 end
 local queued = false
-local function changed()
-	U:Invalidate()
+local function refreshSoon()
 	if queued then return end
 	queued = true
 	C_Timer.After(0, function() queued = false; U:Refresh() end)
+end
+-- (1.9.2-beta1, after Shweep's review: each of these events used to clear every answer and read every item's tooltip
+-- again; in the mock, 30 item-data loads for items not in the bags cost 840 reads)
+local function itemData(itemID)   -- an item's data arrived: read it again only if it had no answer yet
+	itemID = tonumber(itemID)
+	if itemID and unknown[itemID] then unknown[itemID] = nil; refreshSoon() end
+end
+local function tooltipData()   -- no item named: only while some item still has no answer
+	if next(unknown) then refreshSoon() end
+end
+local function progressed()   -- level, skills, spells, reputation: the red ones may now be usable
+	U:ForgetUnusable(); refreshSoon()
+end
+local function entered()   -- logging in, a reload, another character: everything afresh
+	U:Invalidate(); refreshSoon()
 end
 ns:OnSignal("SETTINGS_CHANGED", function(key)
 	if key == nil or key == "unusableOverlay" then U:Invalidate(); U:Refresh()
 	elseif key == "unusableOverlayOpacity" then U:Refresh() end
 end)
 ns:OnSignal("ADDON_READY", function()
-	for _, event in ipairs({ "PLAYER_LEVEL_UP", "SKILL_LINES_CHANGED", "SPELLS_CHANGED", "GET_ITEM_INFO_RECEIVED", "TOOLTIP_DATA_UPDATE", "PLAYER_ENTERING_WORLD", "UPDATE_FACTION" }) do ns:On(event, changed) end
+	for _, event in ipairs({ "PLAYER_LEVEL_UP", "SKILL_LINES_CHANGED", "SPELLS_CHANGED", "UPDATE_FACTION" }) do ns:On(event, progressed) end
+	ns:On("GET_ITEM_INFO_RECEIVED", itemData)
+	ns:On("TOOLTIP_DATA_UPDATE", tooltipData)
+	ns:On("PLAYER_ENTERING_WORLD", entered)
 end)
