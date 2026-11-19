@@ -535,7 +535,7 @@ local function writeHeaderValues(infos)
 	local regular = {}
 	for _, i in ipairs(infos) do
 		local h = i.h
-		h.compactValues = i.compact and { v = i.v, ah = i.ah } or nil
+		h.compactValues = (i.compact or i.valuesOverflow) and { v = i.v, ah = i.ah } or nil
 		if i.v2 and not i.recent and not i.emptyCustom and not i.emptySet then
 			-- Already measured and painted before item placement.
 		elseif i.compact and not i.emptyCustom and not i.emptySet then

@@ -1,3 +1,7 @@
+## 2.0.0-alpha5
+
+- Keep category headers to one line in compact, split and standard views. Values that do not fit remain in the category tooltip instead of increasing row height.
+
 ## 2.0.0-alpha4
 
 - Updated to upstream dev 6004e6e (1.9.2), preserving its new features and fixes.

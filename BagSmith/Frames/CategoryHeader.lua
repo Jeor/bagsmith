@@ -6,7 +6,6 @@ function H.Apply(i)
 	local h, width = i.h, i.colW
 	local s=ns.Skins:Current()
 	local base=ns.Fonts and ns.Fonts:Grow(26) or 26
-	local lineH=ns.Fonts and ns.Fonts:Grow(16) or 16
 	h.band:Show(); h.accent:Show()
 	h.text:SetTextColor(ns.Skins:Accent())
 	h.text:ClearAllPoints(); h.text:SetPoint('TOPLEFT',h,'TOPLEFT',h.textX or 20,-6)
@@ -38,24 +37,14 @@ function H.Apply(i)
 	h.sub:SetWidth(0); h.sub:SetWordWrap(false); h.sub:SetText(text)
 	local valueWidth=h.sub:GetStringWidth()
 	h.sub:ClearAllPoints()
-	local height=base
-	h.line:ClearAllPoints(); h.line:SetHeight(1); h.line:SetColorTexture(unpack(s.line))
-	if text~='' and titleWidth+valueWidth+24>width then
-		h.sub:SetPoint('TOPLEFT',h,'TOPLEFT',20,-base)
-		h.sub:SetJustifyH('LEFT'); h.sub:SetWidth(math.max(1,width-24)); h.sub:SetWordWrap(true)
-		height=base+math.max(lineH,h.sub:GetStringHeight())+6
-		h.line:SetPoint('BOTTOMLEFT',h,'BOTTOMLEFT',20,1); h.line:SetPoint('BOTTOMRIGHT',h,'BOTTOMRIGHT',-4,1)
-	else
-		h.sub:SetPoint('TOPRIGHT',h,'TOPRIGHT',-4,-6); h.sub:SetJustifyH('RIGHT')
-		local left=math.min(width-4,titleWidth+10)
-		local right=math.max(left,width-(text~='' and valueWidth+14 or 4))
-		h.line:SetPoint('TOPLEFT',h,'TOPLEFT',left,-base/2)
-		h.line:SetWidth(math.max(1,math.min(180,right-left)))
-	end
-	h.sub:SetShown(text~=''); h.line:Hide()
-	h:SetHeight(height)
+	-- Values never create another line or enlarge neighboring compact headers.
+	i.valuesOverflow=text~='' and titleWidth+valueWidth+24>width
+	if i.valuesOverflow then h.compactValues={v=i.v,ah=i.ah} end
+	h.sub:SetPoint('TOPRIGHT',h,'TOPRIGHT',-4,-6); h.sub:SetJustifyH('RIGHT')
+	h.sub:SetShown(text~='' and not i.valuesOverflow); h.line:Hide()
+	h:SetHeight(base)
 	i.v2=true
-	return height
+	return base
 end
 
 -- The row is rendered once. Only shorter headings and their item offsets need

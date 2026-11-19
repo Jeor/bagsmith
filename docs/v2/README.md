@@ -4,7 +4,7 @@ This Jeor branch includes Shweep8's dev commit `6004e6e` (1.9.2), merged for 2.0
 
 The new appearance is enabled by default. Click the bag icon beside the title to open Bag Options. Grouping, view, layout, sort, stack merging, category details and the existing tools live there. Scroll the drawer when the window is short. It opens left when space allows, or right near the screen's left edge, without resizing the inventory.
 
-Category titles retain the original BagSmith shaded bands, gold titles and accent rails. Enabled vendor and auction values stay visible, wrapping within a taller header before items are placed. Empty values are omitted. Existing compact/split ordering, item interactions, tooltips, section actions and sheet behavior remain in place. Both skin palettes use the new window controls; Classic still uses its item artwork.
+Category titles retain the original BagSmith shaded bands, gold titles and accent rails. Headers stay on one line at the selected text size. Enabled vendor and auction values appear inline when they fit, otherwise in the header tooltip. Empty values are omitted. Existing compact/split ordering, item interactions, tooltips, section actions and sheet behavior remain in place. Both skin palettes use the new window controls; Classic still uses its item artwork.
 
 Search includes its filter button. Sheet tabs use a selected underline and footer capacity controls have no boxes. The status note remains available in the bag button's tooltip.
 
@@ -36,4 +36,4 @@ Alpha3 publishes `optionsReady` only once drawer construction finishes. Layout i
 
 ## Alpha4 refinement
 
-The in-game sidebar now uses the Minimal concept: inline view, layout and grouping controls; sorting, category details and tools expand on demand. Existing action callbacks, Global Inventory restrictions and drawer mutual exclusion remain intact. Category bands restore BagSmith identity while retaining wrapped vendor/AH details and aligned compact rows. The web-only concept switcher and sample inventories are not part of the installed addon.
+The in-game sidebar now uses the Minimal concept: inline view, layout and grouping controls; sorting, category details and tools expand on demand. Existing action callbacks, Global Inventory restrictions and drawer mutual exclusion remain intact. Category bands restore BagSmith identity while retaining vendor/AH details in tooltips when they do not fit inline. The web-only concept switcher and sample inventories are not part of the installed addon.

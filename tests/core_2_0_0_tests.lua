@@ -94,7 +94,8 @@ local function checkHeaders(label)
   if b.laneId and b.text and b:IsShown() then
    count=count+1
    check(b.band:IsShown() and b.accent:IsShown(), label..': original shaded header and accent rail')
-   check(b.sub:IsShown() and b.sub:GetText()~='', label..': vendor value remains visible')
+   check((b.sub:IsShown() and b.sub:GetText()~='') or (b.compactValues and b.compactValues.v), label..': vendor value is inline or in tooltip')
+   check(b:GetHeight()==n.Fonts:Grow(26),label..': headers remain one line')
   end
  end
  check(count>=2,label..': categories remain visible')
@@ -114,7 +115,7 @@ for _,h in ipairs(V.used or {}) do
   end
  end
 end
-check(wrapped,'alignment fixture includes wrapped category metadata')
+check(not wrapped,'compact metadata never grows the category row')
 
 n:Set('compactCategories',false); n:Set('splitView',true); M.runTimers(); M.runTimers()
 checkHeaders('split')
@@ -135,10 +136,11 @@ local heading
 for _,b in ipairs(V.used or {}) do if b.laneId and b.text then heading=b; break end end
 local i={h=heading,colW=150,v='123456 gold 99 silver 99 copper',ah='765432 gold'}
 local tall=n.CategoryHeader.Apply(i)
-check(tall>26 and heading.sub:IsShown(),'narrow headers reserve another line for vendor and AH details')
-check(heading.sub:GetText():find('AH:',1,true)~=nil,'auction value remains visible')
+check(tall==n.Fonts:Grow(26) and not heading.sub:IsShown(),'narrow headers remain one line')
+check(i.valuesOverflow and heading.compactValues.v==i.v and heading.compactValues.ah==i.ah,'overflow values remain available to the header tooltip')
+check(heading.sub:GetText():find('AH:',1,true)~=nil,'auction value is retained')
 i.colW=900; local short=n.CategoryHeader.Apply(i)
-check(short<tall,'pooled heading returns to one line at wide widths')
+check(short==tall and heading.sub:IsShown() and not i.valuesOverflow,'wide headers restore inline values without changing height')
 for _,skin in ipairs({'classic','modern'}) do
  n:Set('skin',skin); M.runTimers(); M.runTimers(); V:Refresh(true)
  check(V.optionsToggle:IsShown() and not V.tools:IsShown(),skin..': new chrome survives skin change')
