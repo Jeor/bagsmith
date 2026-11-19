@@ -1,3 +1,8 @@
+## 2.0.0-alpha6
+
+- Replace layout/grouping dropdowns with direct text choices and gold selection underlines. Hide irrelevant layouts in List and All Items views.
+- Sidebar settings and tools start expanded; users can still collapse them.
+
 ## 2.0.0-alpha5
 
 - Keep category headers to one line in compact, split and standard views. Values that do not fit remain in the category tooltip instead of increasing row height.

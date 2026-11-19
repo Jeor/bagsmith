@@ -72,3 +72,9 @@ The GitHub Pages demo now includes independent character inventories, all rarity
 - Removed metadata wrapping and row-height expansion; retained original bands and accent rails. Overflow values use the existing category tooltip in any layout.
 - Focused 2.0 tests: 126 passed. Compact layout regression: 416 passed. Separate renamed package: 126 passed and all Lua sources parsed.
 - Installed 140 hash-verified files; alpha4 backed up, regular addon and settings unchanged. In-game screenshot confirmation remains required.
+
+## Alpha6: direct choices and expanded defaults
+
+- 2.0 focused suite and renamed installed-package suite: 133 checks each passed. Global By Bag restrictions: 10 shipping-appearance checks passed.
+- Upstream font suite: 30 checks passed in its intended legacy-toolbar fixture. Running that historical suite with shipping UI hits one inapplicable legacy hidden-toolbar width assertion; font-face checks pass.
+- Installed 140 verified files, backed up alpha5, and preserved regular BagSmith and saved settings. Actual in-game visual review is still required.

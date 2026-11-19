@@ -37,3 +37,7 @@ Alpha3 publishes `optionsReady` only once drawer construction finishes. Layout i
 ## Alpha4 refinement
 
 The in-game sidebar now uses the Minimal concept: inline view, layout and grouping controls; sorting, category details and tools expand on demand. Existing action callbacks, Global Inventory restrictions and drawer mutual exclusion remain intact. Category bands restore BagSmith identity while retaining vendor/AH details in tooltips when they do not fit inline. The web-only concept switcher and sample inventories are not part of the installed addon.
+
+## Alpha6 refinement
+
+View, Layout and Group by use direct text choices with subtle fill and a gold selection underline. Layout choices hide when upstream would not use them (List or All Items). Sorting, category details and tools start expanded in each window and can be collapsed for the session. The drawer is 280 UI pixels wide to give the three-choice rows enough space.

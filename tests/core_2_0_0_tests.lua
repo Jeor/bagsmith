@@ -53,27 +53,33 @@ V.optionsToggle:GetScript('OnClick')(V.optionsToggle)
 check(V.optionsDrawer:IsShown(), 'bag button opens drawer')
 check(V.frame:GetWidth()==w and V.frame:GetHeight()==h, 'opening drawer does not resize inventory')
 check(V.btnSort:GetParent()==V.optionsContent, 'original sort action lives in drawer')
-check(not V.btnSort:IsShown() and not V.btnCurrency:IsShown(),'minimal secondary sections start collapsed')
-V.optionsSections.sorting:GetScript('OnClick')()
-check(V.btnSort:IsShown() and V.btnMerge:IsShown(),'sorting disclosure reveals existing controls')
-V:SyncTools(); M.runTimers()
-check(V.btnSort:IsShown(),'sorting disclosure survives toolbar sync')
+check(V.btnSort:IsShown() and V.btnCurrency:IsShown() and V.optionsDetails[1]:IsShown(),'all sidebar sections start expanded')
 V.optionsSections.sorting:GetScript('OnClick')()
 check(not V.btnSort:IsShown(),'sorting disclosure closes')
+V:SyncTools(); M.runTimers()
+check(not V.btnSort:IsShown(),'manual collapse survives toolbar sync')
+V.optionsSections.sorting:GetScript('OnClick')()
+check(V.btnSort:IsShown() and V.btnMerge:IsShown(),'sorting disclosure opens')
 V.optionsSections.tools:GetScript('OnClick')()
-check(V.btnCurrency:IsShown() and V.btnCurrency:GetParent()==V.optionsContent,'tools disclosure keeps currency attached')
+check(not V.btnCurrency:IsShown(),'tools disclosure closes')
 V.optionsSections.tools:GetScript('OnClick')()
-check(not V.btnCurrency:IsShown(),'tools disclosure hides currency again')
-local menuBefore=n.ShowMenu
-local layoutEntries
-n.ShowMenu=function(items) layoutEntries=items end
-V.optionsLayoutMenu:GetScript('OnClick')(V.optionsLayoutMenu)
-check(layoutEntries and #layoutEntries==3,'layout dropdown exposes all three layouts')
-layoutEntries[3].onClick(); M.runTimers()
-check(n.db.splitView and not n.db.compactCategories,'layout dropdown changes actual layout')
-layoutEntries[2].onClick(); M.runTimers()
-check(n.db.compactCategories and not n.db.splitView,'layout dropdown returns to compact')
-n.ShowMenu=menuBefore
+check(V.btnCurrency:IsShown() and V.btnCurrency:GetParent()==V.optionsContent,'tools disclosure opens in drawer')
+check(not V.btnGrpMenu:IsShown() and V.optionsLayoutMenu==nil,'layout and grouping dropdowns removed')
+V.optionsLayout[3]:GetScript('OnClick')(); M.runTimers()
+check(n.db.splitView and not n.db.compactCategories,'Split choice changes actual layout')
+V.optionsLayout[2]:GetScript('OnClick')(); M.runTimers()
+check(n.db.compactCategories and not n.db.splitView,'Compact choice changes actual layout')
+for _,button in ipairs(V.grpSegBtns) do
+ check(button:IsShown() and button:GetParent()==V.optionsContent,'group choice is directly accessible')
+end
+V.grpSegBtns[1]:GetScript('OnClick')(); M.runTimers()
+check(V:Pref('grp')=='none' and not V.optionsLayout[1]:IsShown(),'All choice hides irrelevant layouts')
+V.grpSegBtns[2]:GetScript('OnClick')(); M.runTimers()
+check(V:Pref('grp')=='type' and V.optionsLayout[1]:IsShown(),'Category choice restores layouts')
+V.viewSegBtns[1]:GetScript('OnClick')(); M.runTimers()
+check(V:Pref('view')=='list' and not V.optionsLayout[1]:IsShown(),'List view hides irrelevant layouts')
+V.viewSegBtns[2]:GetScript('OnClick')(); M.runTimers()
+check(V:Pref('view')=='icons' and V.optionsLayout[1]:IsShown(),'Icons view restores layouts')
 
 check(V.btnSettings:GetParent()==V.optionsDrawer, 'settings moved out of title bar')
 check(not V.tools:IsShown(), 'old toolbar is hidden')
@@ -153,8 +159,8 @@ check(V.btnBags.bgColor and V.btnBags.bgColor[4]==0,'footer counters are unboxed
 for _,b in ipairs(V.grpSegBtns) do b:SetActive(b.active); check(b:GetFrameLevel()>=V.optionsContent:GetFrameLevel(),'drawer controls paint above their parent') end
 n:Set('travelMode',false); M.runTimers(); M.runTimers()
 check(V.optionsContent:GetHeight()<650,'options fit into a substantially shorter panel')
-check(V.btnGrpMenu:GetParent()==V.optionsContent and V.btnGrpMenu:IsShown(),'grouping uses its dropdown')
-for _,b in ipairs(V.grpSegBtns) do check(not b:IsShown(),'old vertical grouping choices are hidden') end
+check(not V.btnGrpMenu:IsShown(),'old grouping dropdown stays hidden')
+for _,b in ipairs(V.grpSegBtns) do check(b:IsShown() and b.optionsUnderline,'grouping uses visible underlined choices') end
 for _,b in ipairs(V.optionsDetails) do check(b.optionsCheck~=nil,'category options use checkboxes') end
 check(V.optionsScrollbar~=nil,'overflow has a usable scrollbar')
 local B=n.Window.bank

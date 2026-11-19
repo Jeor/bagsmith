@@ -2,7 +2,7 @@
 local _, ns = ...
 local O = {}
 ns.BagOptions = O
-local WIDTH, PAD = 224, 14
+local WIDTH, PAD = 280, 14
 local function label(parent, text)
 	local f = parent:CreateFontString(nil, 'OVERLAY', ns.Fonts:Name('GameFontHighlightSmall'))
 	f:SetText(text); f:SetJustifyH('LEFT'); f:SetWordWrap(false)
@@ -133,9 +133,15 @@ function O.Build(v)
 			ns:Set('compactCategories',it[2],true); ns:Set('splitView',it[3],true)
 			v:FreshLayout(); ns:RefreshViews(true); O.Layout(v)
 		end)
+		b:SetScript('OnEnter',function(self)
+			if not ns.TooltipsOK() then return end
+			GameTooltip:SetOwner(self,'ANCHOR_RIGHT'); ns.TipText(GameTooltip,it[1])
+			ns.TipLine(GameTooltip,it[1]=='Compact' and 'Pack categories to fit their items.' or it[1]=='Split' and 'Arrange categories in two columns.' or 'Show each category across the full width.',nil,nil,nil,true); GameTooltip:Show()
+		end)
+		b:SetScript('OnLeave',function() GameTooltip:Hide() end)
 		b.mode=it[1]; v.optionsLayout[#v.optionsLayout+1]=b
 	end
-	v.optionsExpanded={}
+	v.optionsExpanded={sorting=true,details=true,tools=true}
 	v.optionsSections={}
 	for _,it in ipairs({{'sorting','Sorting & stacking'},{'details','Category details'},{'tools','Tools'}}) do
 		local key,title=it[1],it[2]
@@ -145,16 +151,6 @@ function O.Build(v)
 		b.arrow=label(b,'>'); b.arrow:SetPoint('RIGHT',-2,0)
 		v.optionsSections[key]=b
 	end
-	v.optionsLayoutMenu=button(content,'Layout',function(b)
-		local items={}
-		for _,choice in ipairs(v.optionsLayout) do
-			local chosen=choice
-			items[#items+1]={text=chosen.mode,checked=chosen.active,onClick=function() chosen:GetScript('OnClick')(chosen) end}
-		end
-		ns.ShowMenu(items,b)
-	end)
-	v.optionsLayoutMenu.label:ClearAllPoints(); v.optionsLayoutMenu.label:SetPoint('LEFT',8,0)
-	v.optionsLayoutMenu.arrow=label(v.optionsLayoutMenu,'v'); v.optionsLayoutMenu.arrow:SetPoint('RIGHT',-7,0)
 	v.optionsDetails={}
 	for _,it in ipairs({{'Item Count','categoryCount'},{'Vendor Value','categoryVendor'},{'Auction Value','categoryAuction'}}) do
 		local b=button(content,it[1],function()
@@ -280,32 +276,37 @@ function O.Layout(v)
 	for _,f in pairs(v.optionsLabels) do f:Hide() end
 	for _,b in ipairs(v.optionsLayout) do b:Hide() end
 	for _,b in ipairs(v.grpSegBtns or {}) do b:Hide() end
-	local function inline(text,b)
+	local function choices(text,buttons)
 		local f=v.optionsLabels[text]; f:ClearAllPoints(); f:SetPoint('TOPLEFT',c,'TOPLEFT',PAD,-y-6)
 		f:SetTextColor(unpack(s.muted)); f:Show()
-		place(b,c,y,WIDTH-2*PAD-58); b:ClearAllPoints(); b:SetPoint('TOPLEFT',c,'TOPLEFT',PAD+58,-y); b:Show()
+		local width=(WIDTH-2*PAD-58)/#buttons
+		for j,b in ipairs(buttons) do
+			place(b,c,y,width); b:ClearAllPoints(); b:SetPoint('TOPLEFT',c,'TOPLEFT',PAD+58+(j-1)*width,-y); b:Show()
+			if b.divider then b.divider:Hide() end
+			if not b.optionsChoice then
+				b.optionsUnderline=b:CreateTexture(nil,'ARTWORK'); b.optionsUnderline:SetHeight(1)
+				b.optionsUnderline:SetPoint('BOTTOMLEFT',3,0); b.optionsUnderline:SetPoint('BOTTOMRIGHT',-3,0)
+				local paint=b.SetActive
+				b.SetActive=function(self,on)
+					paint(self,on); self:SetFrameLevel(self:GetParent():GetFrameLevel()+2)
+					self:SetBackdropBorderColor(0,0,0,0); self:SetBackdropColor(1,1,1,on and 0.06 or (self.hover and 0.03 or 0))
+					self.optionsUnderline:SetColorTexture(ns.Skins:Accent()); self.optionsUnderline:SetShown(on)
+				end
+				b.optionsChoice=true
+			end
+			b:SetActive(b.active)
+		end
 		y=y+34
 	end
-	local f=v.optionsLabels.View; f:ClearAllPoints(); f:SetPoint('TOPLEFT',c,'TOPLEFT',PAD,-y-6); f:SetTextColor(unpack(s.muted)); f:Show()
-	local width=(WIDTH-2*PAD-58)/#v.viewSegBtns
-	for j,b in ipairs(v.viewSegBtns) do
-		place(b,c,y,width); b:ClearAllPoints(); b:SetPoint('TOPLEFT',c,'TOPLEFT',PAD+58+(j-1)*width,-y); b:Show()
-		if b.divider then b.divider:Hide() end
-		b:SetBackdropBorderColor(0,0,0,0); b:SetBackdropColor(1,1,1,b.active and 0.06 or 0)
-		if not b.optionsUnderline then
-			b.optionsUnderline=b:CreateTexture(nil,'ARTWORK'); b.optionsUnderline:SetHeight(1)
-			b.optionsUnderline:SetPoint('BOTTOMLEFT',3,0); b.optionsUnderline:SetPoint('BOTTOMRIGHT',-3,0)
-		end
-		b.optionsUnderline:SetColorTexture(ns.Skins:Accent()); b.optionsUnderline:SetShown(b.active)
-	end
-	y=y+36
+	choices('View',v.viewSegBtns)
 	local mode=ns.db.compactCategories and 'Compact' or ns.db.splitView and 'Split' or 'Standard'
 	for _,b in ipairs(v.optionsLayout) do b:SetActive(b.mode==mode) end
-	v.optionsLayoutMenu.label:SetText(mode)
-	inline('Layout',v.optionsLayoutMenu)
-	if v:Pref('view')=='icons' and v:Pref('grp')~='none' then v.optionsLayoutMenu:Enable() else v.optionsLayoutMenu:Disable() end
+	-- Upstream layout options only affect grouped icon view.
+	if v:Pref('view')=='icons' and v:Pref('grp')~='none' then choices('Layout',v.optionsLayout) end
 	v.optionsLabels.Grouping:SetText('Group by')
-	inline('Grouping',v.btnGrpMenu); v:SyncGrpMenu()
+	for _,b in ipairs(v.grpSegBtns) do b.label:SetText(b.value=='type' and 'Category' or b.value=='bag' and 'Bag' or 'All') end
+	choices('Grouping',v.grpSegBtns)
+	v.btnGrpMenu:Hide()
 	row(v.btnLanes,v.btnLanes.tip); y=y+8
 	local function section(key)
 		local b=v.optionsSections[key]; row(b)
