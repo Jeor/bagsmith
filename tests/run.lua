@@ -6440,7 +6440,7 @@ end)()
 	local tf = io.open("BagSmith/BagSmith.toc", "r"); local toc = tf and tf:read("*a") or ""; if tf then tf:close() end
 	-- (1.5.7) the date's format only: which day it must be is the packaging check's job (it knows the build day). Pinning the
 -- day here carried 7 November into 1.5.6, built on the 8th.
-check(toc:find("## Version: 1%.9%.4\n") and toc:find("## X%-Date: %d%d%d%d%-%d%d%-%d%d\n"), "the TOC version is 1.9.4, with a release date in YYYY-MM-DD form")
+check(toc:find("## Version: 1%.9%.5%-beta1\n") and toc:find("## X%-Date: %d%d%d%d%-%d%d%-%d%d\n"), "the TOC version is 1.9.5-beta1, with a release date in YYYY-MM-DD form")
 	n.version = "0.14.0"
 	local e
 	for _, x in ipairs(WN.ENTRIES) do if x.v == "0.13.0" then e = x end end
@@ -7032,7 +7032,7 @@ end)()
 	check(w and w:IsShown() and w.icon.texture:find("about%-icon") and w.icon:GetWidth() == 52, "the full-color icon sits in the top corner")
 	check(w.iconEdge:IsShown() and w.iconBG:IsShown() and not w.iconFrame:IsShown(), "Modern: the icon gets the bags' shaded frame")
 	-- The icon texture: the art's silver border replaced by its dark background (corners match the middle of each edge).
-	local fh = io.open("BagSmith/Media/about-icon.tga", "rb"); local data = fh:read("*a"); fh:close()
+	local data = dofile("tests/tga.lua").uncompressed("BagSmith/Media/about-icon.tga")   -- (by design since 1.9.5-beta1: textures stored compressed; the same pixels)
 	local function px(x, y) local i = 18 + ((127 - y) * 128 + x) * 4; return data:byte(i + 1), data:byte(i + 2), data:byte(i + 3) end
 	local function dark(x, y) local b, g, r = px(x, y); return r < 40 and g < 40 and b < 40 end
 	check(dark(1, 1) and dark(126, 1) and dark(1, 126) and dark(126, 126) and dark(64, 1) and dark(1, 64), "the About icon has no light border or corners left (all edges dark)")
@@ -8141,7 +8141,7 @@ end)()
 ;(function()
 	-- 0.14.0-beta12: the undo icon is the U-turn: a left-pointing head at the top, the
 	-- stroke curving round on the right and back along the bottom (64 x 64 TGA, alpha).
-	local fh = io.open("BagSmith/Media/ui-undo.tga", "rb"); local data = fh:read("*a"); fh:close()
+	local data = dofile("tests/tga.lua").uncompressed("BagSmith/Media/ui-undo.tga")   -- (by design since 1.9.5-beta1: textures stored compressed; the same pixels)
 	local w, h = data:byte(13) + data:byte(14) * 256, data:byte(15) + data:byte(16) * 256
 	local function alpha(x, y) local i = 18 + ((h - 1 - y) * w + x) * 4; return data:byte(i + 4) end
 	check(w == 64 and h == 64, "the undo icon is 64 x 64")
@@ -10894,7 +10894,7 @@ end)()
 ;(function()
 	-- 0.15.0 (prod): one clean 0.15.0 changelog section; the sword-and-shield replaces the helmet everywhere.
 	local log = io.open("BagSmith/CHANGELOG.md"):read("*a")
-	check(log:find("^## 1%.9%.4\n") and log:find("\n## 1%.9%.3\n") and log:find("\n## 1%.9%.2\n") and log:find("\n## 1%.9%.1\n") and log:find("\n## 1%.9%.0\n") and log:find("\n## 1%.8%.0\n") and log:find("\n## 1%.7%.5\n") and log:find("\n## 1%.7%.4\n") and log:find("\n## 1%.7%.3\n") and log:find("\n## 1%.7%.2\n") and log:find("\n## 1%.7%.1\n") and log:find("\n## 1%.7%.0\n") and log:find("\n## 1%.6%.3\n") and log:find("\n## 1%.6%.2\n") and log:find("\n## 1%.6%.1\n") and log:find("\n## 1%.6%.0\n") and log:find("\n## 1%.5%.8\n") and log:find("\n## 1%.5%.7\n") and log:find("\n## 1%.5%.6\n") and log:find("\n## 1%.5%.5\n") and log:find("\n## 1%.5%.4\n") and log:find("\n## 1%.5%.3\n") and log:find("\n## 1%.5%.2\n") and log:find("\n## 1%.5%.1\n") and log:find("\n## 1%.5%.0\n") and log:find("\n## 1%.4%.2\n") and log:find("\n## 1%.4%.1\n") and log:find("\n## 1%.4%.0\n") and log:find("\n## 1%.3%.1\n") and log:find("\n## 1%.3%.0\n") and log:find("\n## 1%.2%.0\n") and log:find("\n## 1%.1%.0\n") and log:find("\n## 1%.0%.1\n") and log:find("\n## 1%.0%.0\n") and log:find("\n## 0%.15%.0\n") and not log:find("## 0%.15%.0%-beta") and not log:find("## 0%.15%.0%-rc"), "the changelog leads with 1.9.4 (the release in progress; 1.9.4, by design), then 1.9.3, 1.9.2, 1.9.1, 1.9.0, 1.8.0, 1.7.5, 1.7.4, 1.7.3, 1.7.2, 1.7.1, 1.7.0, 1.6.3, 1.6.2, 1.6.1, 1.6.0, 1.5.8, 1.5.7, 1.5.6, 1.5.5, 1.5.4, 1.5.3, 1.5.2, 1.5.1, 1.5.0, 1.4.2, 1.4.1, 1.4.0, 1.3.1, 1.3.0, 1.2.0, 1.1.0, 1.0.1 and 1.0.0, then one 0.15.0 section (the beta and rc entries folded in)")
+	check(log:find("^## 1%.9%.5\n") and log:find("\n## 1%.9%.4\n") and log:find("\n## 1%.9%.3\n") and log:find("\n## 1%.9%.2\n") and log:find("\n## 1%.9%.1\n") and log:find("\n## 1%.9%.0\n") and log:find("\n## 1%.8%.0\n") and log:find("\n## 1%.7%.5\n") and log:find("\n## 1%.7%.4\n") and log:find("\n## 1%.7%.3\n") and log:find("\n## 1%.7%.2\n") and log:find("\n## 1%.7%.1\n") and log:find("\n## 1%.7%.0\n") and log:find("\n## 1%.6%.3\n") and log:find("\n## 1%.6%.2\n") and log:find("\n## 1%.6%.1\n") and log:find("\n## 1%.6%.0\n") and log:find("\n## 1%.5%.8\n") and log:find("\n## 1%.5%.7\n") and log:find("\n## 1%.5%.6\n") and log:find("\n## 1%.5%.5\n") and log:find("\n## 1%.5%.4\n") and log:find("\n## 1%.5%.3\n") and log:find("\n## 1%.5%.2\n") and log:find("\n## 1%.5%.1\n") and log:find("\n## 1%.5%.0\n") and log:find("\n## 1%.4%.2\n") and log:find("\n## 1%.4%.1\n") and log:find("\n## 1%.4%.0\n") and log:find("\n## 1%.3%.1\n") and log:find("\n## 1%.3%.0\n") and log:find("\n## 1%.2%.0\n") and log:find("\n## 1%.1%.0\n") and log:find("\n## 1%.0%.1\n") and log:find("\n## 1%.0%.0\n") and log:find("\n## 0%.15%.0\n") and not log:find("## 0%.15%.0%-beta") and not log:find("## 0%.15%.0%-rc"), "the changelog leads with 1.9.5 (the release in progress; 1.9.5, by design), then 1.9.4, 1.9.3, 1.9.2, 1.9.1, 1.9.0, 1.8.0, 1.7.5, 1.7.4, 1.7.3, 1.7.2, 1.7.1, 1.7.0, 1.6.3, 1.6.2, 1.6.1, 1.6.0, 1.5.8, 1.5.7, 1.5.6, 1.5.5, 1.5.4, 1.5.3, 1.5.2, 1.5.1, 1.5.0, 1.4.2, 1.4.1, 1.4.0, 1.3.1, 1.3.0, 1.2.0, 1.1.0, 1.0.1 and 1.0.0, then one 0.15.0 section (the beta and rc entries folded in)")
 	local section = log:match("(## 0%.15%.0\n.-)\n## ") or ""
 	local bad = false
 	for _, w in ipairs({ "colour", "favourite", "behaviour", "cancelled", "helmet", "\226\128\148" }) do if section:find(w) then bad = true end end

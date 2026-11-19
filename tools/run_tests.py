@@ -39,7 +39,7 @@ SET_DIRS = ["features", "releases", "audits", "plugins"]
 # .lua files at the top of tests/ that aren't sets: the mock client, files the core suite and sets load, and the
 # saved-variables fixtures. A new one goes here; a new set goes in one of SET_DIRS.
 HELPERS = {"mock.lua", "look.lua", "lifecycle.lua", "invariants.lua", "modern_check.lua", "classic_check.lua",
-           "companion_loader.lua", "prod_0112_savedvars.lua", "prod_0919_savedvars.lua"}
+           "companion_loader.lua", "prod_0112_savedvars.lua", "prod_0919_savedvars.lua", "tga.lua"}
 
 
 def run_file(path, prelude=True, quiet=False):

@@ -654,6 +654,7 @@ function ns:SaveCache(atLogout)
 		entry.currencies = snap
 	end
 	BagSmithDB.cache[key] = entry
+	if ns.Inventory and ns.Inventory.Touch then ns.Inventory:Touch() end   -- (1.9.5-beta1) the kept Global list
 end
 
 -- Returns a list of cached characters, own character first.

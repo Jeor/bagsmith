@@ -62,7 +62,8 @@ end
 		local h = io.open("BagSmith/Media/ui-set-" .. f .. ".tga", "rb")
 		local head = h and h:read(18)
 		if h then h:close() end
-		check(head and head:byte(3) == 2 and head:byte(13) == 64 and head:byte(15) == 64 and head:byte(17) == 32, "ui-set-" .. f .. ".tga: 64x64, 32-bit")
+		-- (by design since 1.9.5-beta1: stored compressed, type 10, or plainly, type 2)
+		check(head and (head:byte(3) == 2 or head:byte(3) == 10) and head:byte(13) == 64 and head:byte(15) == 64 and head:byte(17) == 32, "ui-set-" .. f .. ".tga: 64x64, 32-bit")
 	end
 end)()
 

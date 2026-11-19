@@ -413,10 +413,17 @@ ns:OnSignal("ADDON_READY", function()
 		if key == nil or key == "customCurrencies" or key == "marks" or key == "fav" then Currency:Invalidate() end
 	end)
 	-- A tracked item's name arriving from the game (it may never have been in your bags).
-	ns:On("GET_ITEM_INFO_RECEIVED", function()
-		if ns.db and #(ns.db.customCurrencies or {}) > 0 then
-			Currency:Invalidate()
-			if ns.Drawer and ns.Drawer.Refresh then ns.Drawer:Refresh() end
+	-- (1.9.5-beta1, Shweep's optimization review) only for a tracked item: every item's data arriving (hundreds at the
+	-- auction house) rebuilt the list while any item was tracked
+	ns:On("GET_ITEM_INFO_RECEIVED", function(itemID)
+		itemID = tonumber(itemID)
+		if not (itemID and ns.db) then return end
+		for _, id in ipairs(ns.db.customCurrencies or {}) do
+			if tonumber(id) == itemID then
+				Currency:Invalidate()
+				if ns.Drawer and ns.Drawer.Refresh then ns.Drawer:Refresh() end
+				return
+			end
 		end
 	end)
 end)

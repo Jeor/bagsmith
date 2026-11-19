@@ -66,7 +66,7 @@ function Inv:Mine()
 	addList(mine, Inv.Worn(), me, "equipped")
 	return mine
 end
-function Inv:Invalidate(all) mine = nil; if all then others = nil end end
+function Inv:Invalidate(all) mine = nil; if all then others = nil end; Inv:Touch() end   -- (1.9.5-beta1) and the Global list
 
 -- What you're wearing (slots 1 to 19), as { slot, itemID, link, count }: saved with each character, counted live.
 function Inv.Worn()
@@ -296,7 +296,28 @@ end
 -- have the accordion view and simplify this": beta4's All Rows is gone). Each is a display row: read only, with who (a
 -- name, or "N characters") and where. only: the places to take (beta4: the Bank tab's bank-only filter), every place
 -- when nil.
+-- (1.9.5-beta1, Shweep's optimization review: opening Global Inventory and searching cost a 53 ms frame) the list is
+-- built once and kept until something it's made of changes: your bags (each scan), the bank opening, what you wear,
+-- a character's data saved, or any setting (sections, profiles). Kept per realm choice and tab (All or Bank). As a
+-- safety net it's also rebuilt whenever the live bag or bank lists have been replaced since it was built. Each
+-- caller gets its own list (the same records): sorting or filtering it never touches the kept one. Inv.builds counts
+-- the builds.
+local kept, generation = {}, 0
+function Inv:Touch() generation = generation + 1 end
+Inv.builds = 0
 function Inv:GlobalRecords(all, only)
+	local key = (all and "all" or "realm") .. ((only and only.bank) and ":bank" or "") .. ((only and only.bags) and ":bags" or "") .. ((only and only.equipped) and ":equipped" or "")
+	local k = kept[key]
+	if not (k and k.generation == generation and k.items == ns.items and k.bank == ns.bankItems) then
+		k = { generation = generation, items = ns.items, bank = ns.bankItems, list = self:BuildGlobalRecords(all, only) }
+		kept[key] = k
+		Inv.builds = Inv.builds + 1
+	end
+	local out = {}
+	for i, r in ipairs(k.list) do out[i] = r end
+	return out
+end
+function Inv:BuildGlobalRecords(all, only)
 	local out, byKey, order = {}, {}, {}
 	for _, c in ipairs(self:Characters(all)) do
 		for _, place in ipairs(self.PLACES) do
@@ -432,6 +453,10 @@ ns:OnSignal("ADDON_READY", function()
 	ns:OnSignal("ITEMS_CHANGED", function() Inv:Invalidate() end)
 	ns:OnSignal("BANK_OPENED", function() Inv:Invalidate() end)
 	ns:On("PLAYER_EQUIPMENT_CHANGED", function() Inv:Invalidate() end)
+	-- (1.9.5-beta1) the kept Global list: any setting (its sections come from the defaults, and a profile change
+	-- reloads everything), a new zone or login (a character's data saved: SaveCache, Scanner.lua)
+	ns:OnSignal("SETTINGS_CHANGED", function() Inv:Touch() end)
+	ns:On("PLAYER_ENTERING_WORLD", function() Inv:Touch() end)
 	-- the gold tooltip follows Shift while it's up
 	ns:On("MODIFIER_STATE_CHANGED", function(key)
 		local owner = Inv.goldOwner
