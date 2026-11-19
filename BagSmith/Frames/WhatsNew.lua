@@ -26,6 +26,10 @@ ns.WhatsNew = WN
 WN.ENTRIES = {
 	-- (1.9.2-beta1, Shweep) a release's updates have entries of their own, shown under its tab: 1.9.2 (Jeor's red tint)
 	-- and 1.9.1 (which had no card), as Shweep approved them
+	-- (1.9.5, Shweep: "I do think a What's New would be nice, it's technically relevant")
+	{ v = "1.9.5", heading = "BagSmith 1.9.5", items = {
+		"|cfffac775Faster and Lighter:|r Global Inventory searches and redraws faster, and BagSmith takes up about a third less space.",
+	} },
 	-- (1.9.4-beta2, Shweep: "let's also add a what's new entry"; wording as he chose it)
 	{ v = "1.9.4", heading = "BagSmith 1.9.4", items = {
 		"|cfffac775Section Values in Compact View:|r Compact View now shows what each section is worth, too. Just hover over or click the little coin on a section's header.",
