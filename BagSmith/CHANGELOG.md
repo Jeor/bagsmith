@@ -1,3 +1,8 @@
+## 2.0.0-alpha8
+
+- Remove unused sidebar layout helpers and obsolete header-divider calculations.
+- Consolidate test-addon packaging and verification; retain the alpha7 appearance and controls.
+
 ## 2.0.0-alpha7
 
 - Combine View and Layout into one Display row: List, Standard, Compact, Split. Icon layout choices switch views directly; Compact/Split restore category grouping when needed.

@@ -124,7 +124,7 @@ function O.Build(v)
 		local paint=b.SetActive
 		b.SetActive=function(self,on) paint(self,on); self:SetFrameLevel(self:GetParent():GetFrameLevel()+2); if not on then self:SetBackdropBorderColor(unpack(ns.Skins:Current().line)); self:SetBackdropColor(1,1,1,0.025) end end
 	end
-	for _,text in ipairs({'View','Display','Layout','Grouping','Sorting','Category Details','Tools'}) do
+	for _,text in ipairs({'Display','Grouping'}) do
 		v.optionsLabels[text]=label(content,text)
 	end
 	v.optionsLayout={}
@@ -243,10 +243,6 @@ function O.Layout(v)
 	local opacity=ns.db.bgWhole and 1 or (tonumber(ns.db.bgOpacity) or 1)
 	v.optionsDrawer:SetBackdropColor(s.bg[1],s.bg[2],s.bg[3],(s.bg[4] or 1)*opacity)
 	v.optionsDrawer:SetBackdropBorderColor(unpack(s.border))
-	local function heading(text)
-		local f=v.optionsLabels[text]; f:ClearAllPoints(); f:SetPoint('TOPLEFT',c,'TOPLEFT',PAD,-y)
-		f:SetTextColor(unpack(s.muted)); y=y+20
-	end
 	local function row(b,text)
 		if not b then return end
 		place(b,c,y); b:SetHeight(22); b:Show()
@@ -258,21 +254,6 @@ function O.Layout(v)
 			if not b.optionsHover then ns.HoverWash(b,0); b.optionsHover=true end
 		end
 		y=y+25
-	end
-	local function segments(btns)
-		for _,b in ipairs(btns) do
-			if not b.optionsLevel and b.SetActive then
-				local paint=b.SetActive
-				b.SetActive=function(self,on) paint(self,on); self:SetFrameLevel(self:GetParent():GetFrameLevel()+2); if not on then self:SetBackdropBorderColor(unpack(ns.Skins:Current().line)); self:SetBackdropColor(1,1,1,0.025) end end
-				b.optionsLevel=true
-			end
-		end
-		local width=(WIDTH-2*PAD)/#btns
-		for j,b in ipairs(btns) do
-			place(b,c,y,width); b:ClearAllPoints(); b:SetPoint('TOPLEFT',c,'TOPLEFT',PAD+(j-1)*width,-y); b:Show()
-			if b.divider then b.divider:Hide() end
-		end
-		y=y+32
 	end
 	-- Always attach controls to the scroll child before hiding them. Otherwise
 	-- old toolbar ownership can leave icons floating outside a collapsed section.

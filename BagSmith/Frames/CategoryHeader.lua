@@ -4,7 +4,6 @@ local H = {}
 ns.CategoryHeader = H
 function H.Apply(i)
 	local h, width = i.h, i.colW
-	local s=ns.Skins:Current()
 	local base=ns.Fonts and ns.Fonts:Grow(26) or 26
 	h.band:Show(); h.accent:Show()
 	h.text:SetTextColor(ns.Skins:Accent())
@@ -84,10 +83,7 @@ function H.Finish(infos)
 				b.v2Quiet=true
 			end
 			b:SetActive(false); h.sub:Hide()
-			local left=(h.textX or 20)+h.text:GetStringWidth()+6+h.count:GetStringWidth()+10
-			local room=i.colW-b:GetWidth()-12-left
-			h.line:ClearAllPoints(); h.line:SetPoint('TOPLEFT',h,'TOPLEFT',left,-13)
-			h.line:SetWidth(math.max(1,math.min(180,room))); h.line:Hide()
+			h.line:Hide()
 		end
 	end
 end

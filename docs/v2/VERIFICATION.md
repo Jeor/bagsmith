@@ -83,3 +83,12 @@ The GitHub Pages demo now includes independent character inventories, all rarity
 
 - 138 focused checks passed in both source and renamed package; all package Lua files parsed. Coverage includes List-to-icon transitions, grouping restoration, global restrictions and expanded defaults.
 - Installed 140 hash-verified files, with alpha6 backed up and regular BagSmith/settings unchanged. In-game visual confirmation remains required.
+
+## Alpha8: cleanup and portable test release
+
+- Removed unused sidebar layout functions/labels and invisible divider calculations without changing controls.
+- Source focused tests: 138 passed; compact layout regression: 416 passed.
+- New reusable packaging tool parsed all Lua and passed 138 checks against the isolated renamed addon.
+- ZIP contains 140 addon files plus TESTING.txt and a SHA-256 manifest; every addon ZIP entry was hash-verified.
+- Historical one-off build/install scripts archived outside the checkout; backups, staged builds and installed addon retained.
+- The alpha8 ZIP is for manual installation; no game install was changed during cleanup.

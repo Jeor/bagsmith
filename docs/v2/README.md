@@ -1,47 +1,37 @@
-# BagSmith 2.0 alpha
+# BagSmith 2.0 test build
 
-This Jeor branch includes Shweep8's dev commit `6004e6e` (1.9.2), merged for 2.0.0-alpha4.
+Based on upstream dev `6004e6e` (1.9.2). Current package: **2.0.0-alpha8**.
 
-The new appearance is enabled by default. Click the bag icon beside the title to open Bag Options. Grouping, view, layout, sort, stack merging, category details and the existing tools live there. Scroll the drawer when the window is short. It opens left when space allows, or right near the screen's left edge, without resizing the inventory.
+## Current appearance
 
-Category titles retain the original BagSmith shaded bands, gold titles and accent rails. Headers stay on one line at the selected text size. Enabled vendor and auction values appear inline when they fit, otherwise in the header tooltip. Empty values are omitted. Existing compact/split ordering, item interactions, tooltips, section actions and sheet behavior remain in place. Both skin palettes use the new window controls; Classic still uses its item artwork.
+- BagSmith Options opens beside the bag without resizing it.
+- Display combines List, Standard, Compact and Split. Icon choices switch directly out of List; Compact/Split restore category grouping when needed.
+- Group by offers All, Category and Bag. Global Inventory retains upstream restrictions.
+- Sorting, Category details and Tools start expanded and can be collapsed for the session.
+- Original shaded category bands, gold titles and accent rails stay single-line. Values that do not fit remain in the header tooltip.
+- Search contains the filter button. Tabs use an underline and footer counters use quiet styling.
+- Options and currencies dismiss each other. All Settings remains fixed at the drawer bottom.
 
-Search includes its filter button. Sheet tabs use a selected underline and footer capacity controls have no boxes. The status note remains available in the bag button's tooltip.
+The web demo retains experimental sidebar concepts and synthetic inventories for comparison. Those are not included in the addon.
 
-To restore the upstream appearance, use `/bs v2 off`, then `/reload`. To enable the new appearance again, use `/bs v2`, then `/reload`. Appearance changes take effect at reload to avoid replacing live protected item frames.
+## Build the testing ZIP
 
-## Verification
+From this checkout, with the test runner's `lupa` dependency available:
 
-`python tools/run_tests.py` runs the existing regression suites with their historical presentation fixture plus `tests/core_2_0_0_tests.lua` with shipping defaults. Historical tests pin toolbar and Classic-template geometry; their fixture explicitly chooses the legacy appearance. The production default remains enabled and the 2.0 test loads it without an override.
+```powershell
+python tools/package_test_addon.py --output-dir ../../releases
+```
 
-Use `python tools/run_tests.py --shipping-ui <test-files.lua>` to run existing behavior tests against the shipping appearance. Global Inventory, currency details, sorting, custom sections, junk sales and prompts were also exercised this way.
+The command packages only the addon, preserving assets and libraries. It renames the addon namespace, saved variables and slash commands for isolated testing, parses all Lua files, runs the focused 2.0 checks against the renamed package, and verifies every ZIP entry against its checksum. Existing release files are never overwritten. The script does not install into WoW.
 
-## In-game review
+Extract `BagSmithTest` into WoW's `Interface/AddOns` folder. Enable **BagSmith 2.0 Test** and disable regular BagSmith while testing. Restart WoW for a new addon folder, or `/reload` for an update. Test settings use `BagSmithTestDB` and `BagSmithTestCharDB`. Commands are `/bstest` and `/bagsmithtest`.
 
-This is an alpha, not an in-game-validated release. Test both skin palettes, compact/split/standard and List/Icons, long custom section names, large text, vendor/AH/count visibility, bank and Global Inventory, Travel Mode, short windows, screen edges, section drag/drop and combat. Compare against `approved-mockup.png`. The live installed addon is not changed by building this branch.
+## Verification and review
 
-## Alpha2 refinement
+`python tools/run_tests.py` runs the full historical fixture suite and the focused shipping 2.0 tests. `python tools/run_tests.py tests/core_2_0_0_tests.lua` runs the focused checks alone. Results and limitations are recorded in [VERIFICATION.md](VERIFICATION.md).
 
-The drawer now uses grouping/sort dropdowns and checkbox rows for stack merging and category details. All Settings remains fixed below the scrollable content; a slim scrollbar and edge shading indicate overflow. The frame follows the bag skin and background opacity. View/Layout choices share their sizing, tool rows are tighter, and the search filter is smaller.
+Historical toolbar-geometry tests use the legacy presentation; their hidden-toolbar sizing assertions do not describe the new sidebar. Use `--shipping-ui` only for applicable behavior suites.
 
-Compact categories reserve the tallest heading in each row before finalizing item offsets. This aligns first item rows without dropping vendor/AH metadata, and expands pinned backgrounds accordingly. Dividers are capped at 180 UI pixels. Clear Recent sits on the right; its divider reserves that action's space.
+Check both skins, all displays/grouping choices, large fonts, narrow windows, category values, bank, Global Inventory, Travel Mode and combat in game. Mock tests do not prove actual client rendering.
 
-The separate BagSmithTest installation is updated without touching saved settings or regular BagSmith. Alpha1 was backed up before replacement. In-game screenshots remain the visual acceptance check.
-
-## Alpha3 drawer repair
-
-The live client's backdrop sizing can synchronously invoke the old toolbar's `OnSizeChanged` callback while the merge checkbox is being created. Alpha2 entered the drawer layout before `optionsLabels` existed, raised an error, and left `optionsLayingOut` set. Later layout attempts returned early, leaving an empty drawer and detached tools.
-
-Alpha3 publishes `optionsReady` only once drawer construction finishes. Layout ignores earlier resize callbacks without setting its reentrancy guard. A regression fixture recreates the nested callback for main and bank windows and checks that visible tools are attached to the drawer. The normal mock did not simulate that callback timing.
-
-## Alpha4 refinement
-
-The in-game sidebar now uses the Minimal concept: inline view, layout and grouping controls; sorting, category details and tools expand on demand. Existing action callbacks, Global Inventory restrictions and drawer mutual exclusion remain intact. Category bands restore BagSmith identity while retaining vendor/AH details in tooltips when they do not fit inline. The web-only concept switcher and sample inventories are not part of the installed addon.
-
-## Alpha6 refinement
-
-View, Layout and Group by use direct text choices with subtle fill and a gold selection underline. Layout choices hide when upstream would not use them (List or All Items). Sorting, category details and tools start expanded in each window and can be collapsed for the session. The drawer is 280 UI pixels wide to give the three-choice rows enough space.
-
-## Alpha7 refinement
-
-Display combines List, Standard, Compact and Split on one row. Icon modes switch directly out of List. Compact and Split restore Category grouping when currently viewing All Items. Group by is below Display; all secondary sections remain expanded by default. Global Inventory keeps its list-only restriction.
+To restore upstream presentation in the test addon: `/bstest v2 off`, then `/reload`. Use `/bstest v2`, then `/reload` to enable 2.0 again. Earlier design history is preserved in the changelog and Git history.
