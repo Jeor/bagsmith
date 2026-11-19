@@ -26,7 +26,7 @@ freely.
 ## Testing your plugin
 
 The repository's `tests` folder has a mock WoW client and BagSmith's own test sets, and `tools/run_tests.py`
-runs them (see the main README). `tests/plugins_example_tests.lua` shows how the example plugin is tested.
+runs them (see the main README). `tests/plugins/plugins_example_tests.lua` shows how the example plugin is tested.
 
 ## Questions and requests
 

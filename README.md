@@ -41,11 +41,11 @@ MIT licensed.
 BagSmith's tests run outside the game against a mock WoW client. You need Python 3 and the `lupa` package:
 
     pip install lupa
-    python3 tools/run_tests.py                     # everything (about ten minutes)
-    python3 tools/run_tests.py tests/some_set.lua  # one or more sets
+    python3 tools/run_tests.py                     # everything (a few minutes; several sets at once)
+    python3 tools/run_tests.py some_set_tests.lua  # one or more sets, by file name or path
 
-Run them from the repository root (the folder holding `BagSmith/`). Mock results show the code's behaviour, not
-the real game client's.
+Run them from the repository root (the folder holding `BagSmith/`). `tests/README.md` explains how the sets are
+organized. Mock results show the code's behaviour, not the real game client's.
 
 ## Contributing
 
