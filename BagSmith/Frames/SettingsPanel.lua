@@ -93,6 +93,7 @@ Panel.NEW = {
 	added = {
 		["1.9.1"] = { keys = { splitViewPinnedWide = "look" } },   -- (1.9.1-beta2) Full-Width Pinned
 		["1.9.2"] = { keys = { unusableOverlay = "icons" } },   -- (1.9.2-beta1) Jeor's Unusable Item Overlay
+		["1.9.4"] = { keys = { sectionValues = "sections" } },   -- (1.9.4-beta2) Show Section Values
 	},
 }
 Panel.NEW_COLOR = { 0.55, 0.78, 1 }   -- the soft blue of What's New's links
@@ -1998,6 +1999,10 @@ pages.sections = function(self, db)
 	self:Text("Group your items into sections. Click a header to collapse it, and drag headers to reorder them.")
 	self:Seg("grp", "Open with Sections", { { "none", "None" }, { "type", "By Section" }, { "bag", "By Bag" } })
 	self:Check("remember", "Remember Which Sections Are Collapsed")
+	-- (1.9.4-beta2, Shweep: "let's make that a setting to turn showing V and AH in section headers")
+	-- (1.9.4, Shweep: "add one sentence to end ... At smaller widths this is displayed as a coin (show coin icon)") the
+	-- coin drawn inline, the header coin's own texture at the text's height
+	self:Check("sectionValues", "Show Section Values", "Each section's header shows what its items are worth: V for vendor, and AH while the AH Price column is on. Turn it off to keep headers clean; you can still hover a section's name to see them. At smaller widths this is displayed as a coin |TInterface\\MoneyFrame\\UI-GoldIcon:0|t.")
 	self:Head("Which Section an Item Goes To")
 	self:Text("An item goes to the first of these that fits: its gear set, Junk if you marked it, Favorites if starred, the section you moved it to, or its usual section.")
 	self:Head("Keys & Reagent Bag")

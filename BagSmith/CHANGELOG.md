@@ -1,3 +1,12 @@
+## 1.9.4
+
+New:
+- Show Section Values (Settings > Sections, on by default): turn off the vendor and AH values on section headers.
+  Hovering a section's name still shows them.
+Changed:
+- Compact View's section headers show each section's vendor and AH value too, as the small coin the other layouts use
+  when space is short (hover or click it).
+
 ## 1.9.3
 
 Fixed:

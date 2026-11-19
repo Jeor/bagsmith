@@ -80,7 +80,7 @@ end)()
 ;(function()
 	-- What's New: Shweep's rewording
 	local n = boot()
-	local e = n.WhatsNew.ENTRIES[3]   -- (by design since 1.9.2-beta1: two places down, after 1.9.2's and 1.9.1's entries)
+	local e = n.WhatsNew.ENTRIES[4]   -- (by design since 1.9.4-beta2: three places down, after 1.9.4's, 1.9.2's and 1.9.1's entries)
 	check(e.items[1]:find("on this ruleset", 1, true) and not e.items[1]:find("realm", 1, true), "Global Inventory: \"ruleset\", not \"realm\"")
 	check(e.items[1]:find("Down at the bottom, the Total tells you what it's all worth.", 1, true), "its last sentence, reworded")
 	check(e.items[2]:find("^|cfffac775Alts in Your Tooltips:|r") and e.items[2]:find("you and your alts", 1, true) and e.items[2]:find("Settings > General > Tooltips", 1, true),
