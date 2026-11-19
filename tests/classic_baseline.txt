@@ -71,6 +71,9 @@
 # 1.9.0-beta5 (Shweep: "not seeing a Global button in Classic Style ... globe goes beside the Travel Mode in Classic"): the globe (main.2.2) is a red button like the signpost, 1 px left of it, at its frame level (it was Modern-styled at the title's level, hidden behind the strip's art). Both scenarios checked against beta4's snapshot to differ only there, Modern unchanged, then re-recorded
 # 1.9.0-beta6 (Shweep: "we may want to make it 5-10% taller"): Settings 588 tall (was 560), so its side list keeps full spacing with the Global sub-pages. Both scenarios checked to differ only in the settings line's height, Modern unchanged, then re-recorded
 # 1.9.0-beta10 (Shweep's main-page icons): each main page in the Settings list gains its icon (settings.3.N.r2, the accent at 0.65, the open page's at 1.00); an arrow after it renumbers r2 to r3, unchanged. Both scenarios checked to differ only there, then re-recorded
+# 1.9.0-beta20 (Shweep: "a soft shadow or line" under Settings' header): a new Settings child after the page (settings.7: its line in the skin's line color, and its shadow), so the two after it are numbered one higher (8 and 9). Both scenarios checked to differ only by its insertion, Modern's the same, then re-recorded
+# 1.9.0-beta22 (Shweep: "pull in the carrots closer to the words"): the side list's four arrows (settings.3.5, .6, .7 and .9, r3) sit 4 px after their page's name (LEFT of the arrow on the name's RIGHT), not at the row's right edge. Both scenarios checked to differ only there, Modern unchanged, then re-recorded
+# 1.9.1-beta1 (Shweep: the bank window's gold has the bags' gold tooltip): the bank footer's first child is its gold's hover button (bank.9.1, over the gold text), so the bag-slots button is bank.9.2, unchanged. Both scenarios checked to differ only by its insertion, then re-recorded
 == classic
 look main bg=0.09,0.09,0.10,0.00 border=0.00,0.00,0.00,0.00 w=620 h=560 at=BOTTOMRIGHT,UIParent,BOTTOMRIGHT,-80,140
 look main.1 w=nil h=54 at=TOPLEFT,parent,TOPLEFT,0,0;TOPRIGHT,parent,TOPRIGHT,0,0
@@ -278,22 +281,22 @@ look settings.3.4.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0
 look settings.3.5 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-112;TOPRIGHT,parent,TOPRIGHT,-10,-112
 look settings.3.5.r1 text=0.60,0.55,0.45,1.00
 look settings.3.5.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
-look settings.3.5.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=RIGHT,parent,RIGHT,-6,0 layer=ARTWORK/nil
+look settings.3.5.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=LEFT,frame,RIGHT,4,0 layer=ARTWORK/nil
 look settings.3.6 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-140;TOPRIGHT,parent,TOPRIGHT,-10,-140
 look settings.3.6.r1 text=0.60,0.55,0.45,1.00
 look settings.3.6.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
-look settings.3.6.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=RIGHT,parent,RIGHT,-6,0 layer=ARTWORK/nil
+look settings.3.6.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=LEFT,frame,RIGHT,4,0 layer=ARTWORK/nil
 look settings.3.7 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-168;TOPRIGHT,parent,TOPRIGHT,-10,-168
 look settings.3.7.r1 text=0.60,0.55,0.45,1.00
 look settings.3.7.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
-look settings.3.7.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=RIGHT,parent,RIGHT,-6,0 layer=ARTWORK/nil
+look settings.3.7.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=LEFT,frame,RIGHT,4,0 layer=ARTWORK/nil
 look settings.3.8 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-196;TOPRIGHT,parent,TOPRIGHT,-10,-196
 look settings.3.8.r1 text=0.60,0.55,0.45,1.00
 look settings.3.8.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
 look settings.3.9 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-224;TOPRIGHT,parent,TOPRIGHT,-10,-224
 look settings.3.9.r1 text=0.60,0.55,0.45,1.00
 look settings.3.9.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
-look settings.3.9.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=RIGHT,parent,RIGHT,-6,0 layer=ARTWORK/nil
+look settings.3.9.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=LEFT,frame,RIGHT,4,0 layer=ARTWORK/nil
 look settings.3.10 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-252;TOPRIGHT,parent,TOPRIGHT,-10,-252
 look settings.3.10.r1 text=0.60,0.55,0.45,1.00
 look settings.3.10.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
@@ -311,11 +314,14 @@ look settings.4.1 w=nil h=nil at=
 look settings.5 bg=0.00,0.00,0.00,0.00 border=0.00,0.00,0.00,0.00 w=160 h=22 at=BOTTOMLEFT,settings.4,TOPLEFT,0,6
 look settings.5.1 w=nil h=nil at=
 look settings.6 w=nil h=nil at=TOPLEFT,settings.3,TOPRIGHT,16,0;BOTTOMRIGHT,settings,BOTTOMRIGHT,-34,14
-look settings.7 w=nil h=nil at= level=1
-look settings.7.r1 w=58 h=58 at=TOPLEFT,parent,TOPLEFT,-5,7 layer=OVERLAY/nil
-look settings.7.r4 w=nil h=nil at=TOPLEFT,parent,TOPLEFT,4,-4;BOTTOMRIGHT,parent,BOTTOMRIGHT,-4,4 layer=BACKGROUND/2
-look settings.7.r5 color=0.07,0.07,0.06,0.35 w=nil h=nil at=TOPLEFT,parent,TOPLEFT,4,-4;BOTTOMRIGHT,parent,BOTTOMRIGHT,-4,4 layer=BACKGROUND/4
-look settings.8 w=nil h=nil at=TOPRIGHT,settings,TOPRIGHT,-4,-4 level=11
+look settings.7 w=nil h=11 at=TOPLEFT,settings.3,TOPLEFT,0,1;TOPRIGHT,settings.6,TOPRIGHT,22,1 level=51
+look settings.7.r1 color=0.32,0.25,0.12,1.00 w=nil h=nil at=TOPLEFT,parent,TOPLEFT,0,0;TOPRIGHT,parent,TOPRIGHT,0,0 layer=ARTWORK/nil
+look settings.7.r2 color=0.00,0.00,0.00,0.55 alpha=0.00 w=nil h=nil at=TOPLEFT,settings.3,TOPRIGHT,1,0;TOPRIGHT,settings.6,TOPRIGHT,0,0 layer=ARTWORK/nil
+look settings.8 w=nil h=nil at= level=1
+look settings.8.r1 w=58 h=58 at=TOPLEFT,parent,TOPLEFT,-5,7 layer=OVERLAY/nil
+look settings.8.r4 w=nil h=nil at=TOPLEFT,parent,TOPLEFT,4,-4;BOTTOMRIGHT,parent,BOTTOMRIGHT,-4,4 layer=BACKGROUND/2
+look settings.8.r5 color=0.07,0.07,0.06,0.35 w=nil h=nil at=TOPLEFT,parent,TOPLEFT,4,-4;BOTTOMRIGHT,parent,BOTTOMRIGHT,-4,4 layer=BACKGROUND/4
+look settings.9 w=nil h=nil at=TOPRIGHT,settings,TOPRIGHT,-4,-4 level=11
 look filter bg=0.09,0.09,0.10,0.00 border=0.00,0.00,0.00,0.00 w=480 h=642 at=TOPLEFT,BagSmithFrameSearch,BOTTOMLEFT,-4,-2
 look filter.r2 text=0.60,0.55,0.45,1.00
 look filter.r3 text=0.98,0.78,0.46,1.00
@@ -503,8 +509,9 @@ look bank.8.7.1 w=nil h=nil at=
 look bank.9 w=nil h=26 at=BOTTOMLEFT,parent,BOTTOMLEFT,12,12;BOTTOMRIGHT,parent,BOTTOMRIGHT,-12,12
 look bank.9.r2 text=0.84,0.83,0.79,1.00
 look bank.9.r3 text=0.98,0.78,0.46,1.00
-look bank.9.1 bg=0.00,0.00,0.00,0.00 border=0.00,0.00,0.00,0.00 w=76 h=20 at=RIGHT,bank.9,RIGHT,-18,0
-look bank.9.1.1 w=nil h=nil at=
+look bank.9.1 w=nil h=nil at=TOPLEFT,frame,TOPLEFT,-4,4;BOTTOMRIGHT,frame,BOTTOMRIGHT,4,-4
+look bank.9.2 bg=0.00,0.00,0.00,0.00 border=0.00,0.00,0.00,0.00 w=76 h=20 at=RIGHT,bank.9,RIGHT,-18,0
+look bank.9.2.1 w=nil h=nil at=
 look bank.10 w=nil h=nil at=TOPLEFT,bank.7,BOTTOMLEFT,0,-2;BOTTOMRIGHT,bank.9,TOPRIGHT,0,6
 look bank.11 w=16 h=16 at=BOTTOMRIGHT,parent,BOTTOMRIGHT,-4,4
 look bank.11.r1 w=nil h=nil at= layer=ARTWORK/nil
@@ -727,22 +734,22 @@ look settings.3.4.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0
 look settings.3.5 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-112;TOPRIGHT,parent,TOPRIGHT,-10,-112
 look settings.3.5.r1 text=0.60,0.55,0.45,1.00
 look settings.3.5.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
-look settings.3.5.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=RIGHT,parent,RIGHT,-6,0 layer=ARTWORK/nil
+look settings.3.5.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=LEFT,frame,RIGHT,4,0 layer=ARTWORK/nil
 look settings.3.6 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-140;TOPRIGHT,parent,TOPRIGHT,-10,-140
 look settings.3.6.r1 text=0.60,0.55,0.45,1.00
 look settings.3.6.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
-look settings.3.6.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=RIGHT,parent,RIGHT,-6,0 layer=ARTWORK/nil
+look settings.3.6.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=LEFT,frame,RIGHT,4,0 layer=ARTWORK/nil
 look settings.3.7 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-168;TOPRIGHT,parent,TOPRIGHT,-10,-168
 look settings.3.7.r1 text=0.60,0.55,0.45,1.00
 look settings.3.7.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
-look settings.3.7.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=RIGHT,parent,RIGHT,-6,0 layer=ARTWORK/nil
+look settings.3.7.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=LEFT,frame,RIGHT,4,0 layer=ARTWORK/nil
 look settings.3.8 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-196;TOPRIGHT,parent,TOPRIGHT,-10,-196
 look settings.3.8.r1 text=0.60,0.55,0.45,1.00
 look settings.3.8.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
 look settings.3.9 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-224;TOPRIGHT,parent,TOPRIGHT,-10,-224
 look settings.3.9.r1 text=0.60,0.55,0.45,1.00
 look settings.3.9.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
-look settings.3.9.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=RIGHT,parent,RIGHT,-6,0 layer=ARTWORK/nil
+look settings.3.9.r3 color=0.60,0.55,0.45,1.00 w=10 h=10 at=LEFT,frame,RIGHT,4,0 layer=ARTWORK/nil
 look settings.3.10 w=nil h=26 at=TOPLEFT,parent,TOPLEFT,0,-252;TOPRIGHT,parent,TOPRIGHT,-10,-252
 look settings.3.10.r1 text=0.60,0.55,0.45,1.00
 look settings.3.10.r2 color=0.98,0.78,0.46,0.65 w=14 h=14 at=LEFT,parent,LEFT,8,0 layer=ARTWORK/nil
@@ -760,11 +767,14 @@ look settings.4.1 w=nil h=nil at=
 look settings.5 bg=0.00,0.00,0.00,0.00 border=0.00,0.00,0.00,0.00 w=160 h=22 at=BOTTOMLEFT,settings.4,TOPLEFT,0,6
 look settings.5.1 w=nil h=nil at=
 look settings.6 w=nil h=nil at=TOPLEFT,settings.3,TOPRIGHT,16,0;BOTTOMRIGHT,settings,BOTTOMRIGHT,-34,14
-look settings.7 w=nil h=nil at= level=1
-look settings.7.r1 w=58 h=58 at=TOPLEFT,parent,TOPLEFT,-5,7 layer=OVERLAY/nil
-look settings.7.r4 w=nil h=nil at=TOPLEFT,parent,TOPLEFT,4,-4;BOTTOMRIGHT,parent,BOTTOMRIGHT,-4,4 layer=BACKGROUND/2
-look settings.7.r5 color=0.07,0.07,0.06,0.35 w=nil h=nil at=TOPLEFT,parent,TOPLEFT,4,-4;BOTTOMRIGHT,parent,BOTTOMRIGHT,-4,4 layer=BACKGROUND/4
-look settings.8 w=nil h=nil at=TOPRIGHT,settings,TOPRIGHT,-4,-4 level=11
+look settings.7 w=nil h=11 at=TOPLEFT,settings.3,TOPLEFT,0,1;TOPRIGHT,settings.6,TOPRIGHT,22,1 level=51
+look settings.7.r1 color=0.32,0.25,0.12,1.00 w=nil h=nil at=TOPLEFT,parent,TOPLEFT,0,0;TOPRIGHT,parent,TOPRIGHT,0,0 layer=ARTWORK/nil
+look settings.7.r2 color=0.00,0.00,0.00,0.55 alpha=0.00 w=nil h=nil at=TOPLEFT,settings.3,TOPRIGHT,1,0;TOPRIGHT,settings.6,TOPRIGHT,0,0 layer=ARTWORK/nil
+look settings.8 w=nil h=nil at= level=1
+look settings.8.r1 w=58 h=58 at=TOPLEFT,parent,TOPLEFT,-5,7 layer=OVERLAY/nil
+look settings.8.r4 w=nil h=nil at=TOPLEFT,parent,TOPLEFT,4,-4;BOTTOMRIGHT,parent,BOTTOMRIGHT,-4,4 layer=BACKGROUND/2
+look settings.8.r5 color=0.07,0.07,0.06,0.35 w=nil h=nil at=TOPLEFT,parent,TOPLEFT,4,-4;BOTTOMRIGHT,parent,BOTTOMRIGHT,-4,4 layer=BACKGROUND/4
+look settings.9 w=nil h=nil at=TOPRIGHT,settings,TOPRIGHT,-4,-4 level=11
 look filter bg=0.09,0.09,0.10,0.00 border=0.00,0.00,0.00,0.00 w=480 h=642 at=TOPLEFT,BagSmithFrameSearch,BOTTOMLEFT,-4,-2
 look filter.r2 text=0.60,0.55,0.45,1.00
 look filter.r3 text=0.98,0.78,0.46,1.00
@@ -952,8 +962,9 @@ look bank.8.7.1 w=nil h=nil at=
 look bank.9 w=nil h=26 at=BOTTOMLEFT,parent,BOTTOMLEFT,12,12;BOTTOMRIGHT,parent,BOTTOMRIGHT,-12,12
 look bank.9.r2 text=0.84,0.83,0.79,1.00
 look bank.9.r3 text=0.98,0.78,0.46,1.00
-look bank.9.1 bg=0.00,0.00,0.00,0.00 border=0.00,0.00,0.00,0.00 w=76 h=20 at=RIGHT,bank.9,RIGHT,-18,0
-look bank.9.1.1 w=nil h=nil at=
+look bank.9.1 w=nil h=nil at=TOPLEFT,frame,TOPLEFT,-4,4;BOTTOMRIGHT,frame,BOTTOMRIGHT,4,-4
+look bank.9.2 bg=0.00,0.00,0.00,0.00 border=0.00,0.00,0.00,0.00 w=76 h=20 at=RIGHT,bank.9,RIGHT,-18,0
+look bank.9.2.1 w=nil h=nil at=
 look bank.10 w=nil h=nil at=TOPLEFT,bank.7,BOTTOMLEFT,0,-2;BOTTOMRIGHT,bank.9,TOPRIGHT,0,6
 look bank.11 w=16 h=16 at=BOTTOMRIGHT,parent,BOTTOMRIGHT,-4,4
 look bank.11.r1 w=nil h=nil at= layer=ARTWORK/nil

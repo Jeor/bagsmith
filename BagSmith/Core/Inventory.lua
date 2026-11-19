@@ -59,7 +59,9 @@ function Inv:Mine()
 	mine = {}
 	local me = ns:CharKey()
 	addList(mine, ns.items, me, "bags")
-	local bank = (ns.bankItems and #ns.bankItems > 0) and ns.bankItems or (ns.SavedBank and ns:SavedBank())
+	-- (1.9.0-beta24, the beta23 audit's P2) the bank seen this session decides, even empty: an emptied bank looked
+	-- unseen (no records) and fell back to the saved one, so its last items still counted. As Currency reads it.
+	local bank = ns.bankScanned and ns.bankItems or (ns.SavedBank and ns:SavedBank())
 	addList(mine, bank, me, "bank")
 	addList(mine, Inv.Worn(), me, "equipped")
 	return mine
@@ -200,7 +202,7 @@ function Inv:Characters(all)
 	local out = {}
 	local myClass
 	if UnitClass then myClass = select(2, UnitClass("player")) end
-	local bank = (ns.bankItems and #ns.bankItems > 0) and ns.bankItems or select(1, ns:CachedRecords(me, true))
+	local bank = ns.bankScanned and ns.bankItems or select(1, ns:CachedRecords(me, true))   -- (beta24, as Mine)
 	local worn = {}
 	for _, e in ipairs(Inv.Worn()) do worn[#worn + 1] = wornRecord(e) end
 	out[1] = { key = me, isMe = true, class = myClass, name = ns.DisplayName and ns:DisplayName("player") or "?", bags = ns.items or {}, bank = bank or {}, equipped = worn }

@@ -146,10 +146,13 @@ local function row(f, i)
 	-- (1.9.0-beta4) In Global Inventory a row's tooltip says who has how many
 	r:EnableMouse(true)
 	r:SetScript("OnEnter", function(self)
-		if not (self.per and ns.TooltipsOK()) then return end
+		-- (1.9.1-beta1, Shweep: "yes to showing both places") in your own bags too, when anyone else has it
+		local per, total = self.per, self.total
+		if not per and not self.kid and ns.Currency and ns.Currency.Breakdown then per, total = ns.Currency:Breakdown(self.key) end
+		if not (per and ns.TooltipsOK()) then return end
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-		GameTooltip:AddDoubleLine(self.nameText or "", "Total: " .. tostring(self.total or 0), 1, 0.82, 0, 0.55, 0.78, 1)
-		for _, p in ipairs(self.per) do
+		GameTooltip:AddDoubleLine(self.nameText or "", "Total: " .. tostring(total or 0), 1, 0.82, 0, 0.55, 0.78, 1)
+		for _, p in ipairs(per) do
 			local cr, cg, cb = ns.ClassColor(p.class)
 			GameTooltip:AddDoubleLine((ns.Inventory and ns.Inventory.ClassIcon(p.class) or "") .. (p.name or "?"), tostring(p.count), cr, cg, cb, 1, 1, 1)
 		end

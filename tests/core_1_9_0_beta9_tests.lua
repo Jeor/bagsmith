@@ -115,12 +115,13 @@ end)()
 	-- the 1.9 What's New card
 	local n, M = boot()
 	local WN = n.WhatsNew
-	local e = WN.ENTRIES[1]
+	local e = WN.ENTRIES[3]   -- (by design since 1.9.2-beta1: two places down, after 1.9.2's and 1.9.1's entries)
 	check(e.v == "1.9.0" and e.heading == "BagSmith 1.9" and #e.items == 7, "the 1.9 card leads, with seven bullets")
 	local heads = {}
 	for _, it in ipairs(e.items) do heads[#heads + 1] = it:match("^|cfffac775(.-):|r") end
-	-- (by design since 1.9.0-beta10: Alts in Your Tooltips, Shweep's rewording)
-	check(table.concat(heads, "|") == "Global Inventory|Alts in Your Tooltips|Compact View|Shared Disenchanting|Footer Text Size|Bolder Borders|Count Every Free Slot",
+	-- (by design since 1.9.0-beta10: Alts in Your Tooltips, Shweep's rewording; since beta20: Text and Fonts, was Footer
+	-- Text Size, Shweep approved)
+	check(table.concat(heads, "|") == "Global Inventory|Alts in Your Tooltips|Compact View|Shared Disenchanting|Text and Fonts|Bolder Borders|Count Every Free Slot",
 		"its bullets, as Shweep approved: " .. table.concat(heads, "|"))
 	local text = table.concat(e.items, " ")
 	check(not text:find("\226\128\148") and not text:find("\226\128\147"), "no em or en dashes")

@@ -53,6 +53,28 @@ V.optionsToggle:GetScript('OnClick')(V.optionsToggle)
 check(V.optionsDrawer:IsShown(), 'bag button opens drawer')
 check(V.frame:GetWidth()==w and V.frame:GetHeight()==h, 'opening drawer does not resize inventory')
 check(V.btnSort:GetParent()==V.optionsContent, 'original sort action lives in drawer')
+check(not V.btnSort:IsShown() and not V.btnCurrency:IsShown(),'minimal secondary sections start collapsed')
+V.optionsSections.sorting:GetScript('OnClick')()
+check(V.btnSort:IsShown() and V.btnMerge:IsShown(),'sorting disclosure reveals existing controls')
+V:SyncTools(); M.runTimers()
+check(V.btnSort:IsShown(),'sorting disclosure survives toolbar sync')
+V.optionsSections.sorting:GetScript('OnClick')()
+check(not V.btnSort:IsShown(),'sorting disclosure closes')
+V.optionsSections.tools:GetScript('OnClick')()
+check(V.btnCurrency:IsShown() and V.btnCurrency:GetParent()==V.optionsContent,'tools disclosure keeps currency attached')
+V.optionsSections.tools:GetScript('OnClick')()
+check(not V.btnCurrency:IsShown(),'tools disclosure hides currency again')
+local menuBefore=n.ShowMenu
+local layoutEntries
+n.ShowMenu=function(items) layoutEntries=items end
+V.optionsLayoutMenu:GetScript('OnClick')(V.optionsLayoutMenu)
+check(layoutEntries and #layoutEntries==3,'layout dropdown exposes all three layouts')
+layoutEntries[3].onClick(); M.runTimers()
+check(n.db.splitView and not n.db.compactCategories,'layout dropdown changes actual layout')
+layoutEntries[2].onClick(); M.runTimers()
+check(n.db.compactCategories and not n.db.splitView,'layout dropdown returns to compact')
+n.ShowMenu=menuBefore
+
 check(V.btnSettings:GetParent()==V.optionsDrawer, 'settings moved out of title bar')
 check(not V.tools:IsShown(), 'old toolbar is hidden')
 V.optionsToggle:GetScript('OnClick')(V.optionsToggle)
@@ -71,7 +93,7 @@ local function checkHeaders(label)
  for _, b in ipairs(V.used or {}) do
   if b.laneId and b.text and b:IsShown() then
    count=count+1
-   check(not b.band:IsShown() and not b.accent:IsShown(), label..': lightweight header')
+   check(b.band:IsShown() and b.accent:IsShown(), label..': original shaded header and accent rail')
    check(b.sub:IsShown() and b.sub:GetText()~='', label..': vendor value remains visible')
   end
  end

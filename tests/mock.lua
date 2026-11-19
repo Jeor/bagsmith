@@ -231,6 +231,8 @@ GameTooltip.SetHyperlink = function(self, link) self.lines = {}; self.item = { l
 function M.rebuildTooltip() if GameTooltip.item then GameTooltip.lines = {}; runTipPost() end end
 _G.Constants = { InventoryConstants = { NumBankBagSlots = 8 } }
 _G.InCombatLockdown = function() return M.combat end
+-- (1.9.0-beta21) the game's securecallfunction: CallbackHandler calls each handler through it (LibSharedMedia's notices)
+_G.securecallfunction = function(fn, ...) return fn(...) end
 _G.GetBuildInfo = function() return "1.60.1", "70009", "Sep 22 2026", 16001 end
 _G.C_AddOns = { GetAddOnMetadata = function(_, k) return ({ Version = "0.1.0", ["X-Game"] = "Camelot", ["X-Family"] = "Mainline" })[k] end }
 _G.C_Timer = { After = function(_, fn) M.timers = M.timers or {}; M.timers[#M.timers + 1] = fn end,

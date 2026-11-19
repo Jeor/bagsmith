@@ -1,3 +1,9 @@
+## 2.0.0-alpha4
+
+- Updated to upstream dev 6004e6e (1.9.2), preserving its new features and fixes.
+- Minimal Bag Options: inline view/layout/grouping, with expandable sorting, details and tools.
+- Restore BagSmith category bands, accent rails and gold titles while retaining responsive optional details.
+
 ## 2.0.0-alpha3
 
 - Fix the blank Bag Options drawer and detached tool icons caused by a resize callback during drawer construction.
@@ -21,10 +27,36 @@ Jeor visual preview, based on upstream 1.9.0-beta18.
 - The new appearance is on by default. `/bs v2 off` then `/reload` restores the upstream appearance; `/bs v2` then `/reload` enables it again.
 - In-game visual review is still required for this alpha.
 
+## 1.9.2
+
+New:
+- Unusable Item Overlay (Settings > Item Icons > Appearance, on by default): gear, recipes and consumables your
+  character can't use yet get a soft red tint, like armor above your level or a recipe you don't have the skill for.
+  Unusable Item Opacity sets how strong it is. Thanks to Jeor!
+Changed:
+- What's New lists each update under its release: pick a release, then one of its updates. It opens on its own only
+  for a new release; for an update, the What's New button in Settings says NEW until you open it.
+
+## 1.9.1
+
+New:
+- Hover your gold in the bank window for the same tooltip as in your bags: each of your characters' gold on this
+  ruleset and the total. Hold Shift for your whole account.
+- In your own bags, hover a pinned currency or a row in the currency drawer to see how many each of your characters
+  has, with the total, as in Global Inventory.
+- Full-Width Pinned (Settings > Style, under Icon Layout): in Split View and Compact View, give each pinned section its
+  own full-width row, as Full-Width Recent does for Recent Items.
+Changed:
+- Settings marks what each update adds with NEW, even on a page you've already looked at since the last big release.
+- Settings > Automations starts with Bag Cleanup, Vendors and Clear Soul Shards, then Auto Travel Mode and Prompts,
+  with shorter descriptions. Soul Shards to Keep now says where Clear Shards is and that nothing is cleared until you
+  click it.
+- Settings: a description runs under its buttons, at full width, when that's shorter than a narrow column beside them.
+
 ## 1.9.0
 
 New:
-- Global Inventory: the globe beside Travel Mode shows every item on your characters on this realm in one list, with
+- Global Inventory: the globe beside Travel Mode shows every item on your characters on this ruleset in one list, with
   who has it and where (bags, bank, worn), one row per item with everyone's count together. Click an item more than
   one character has to see each character's row (class icon and name first). The Bank tab or icon shows only what's
   in banks, and the Filter panel can include your characters on other rulesets. Vendor and AH Price columns (AH Price
@@ -63,12 +95,20 @@ Changed:
 - The bags window's title reads Bags, and the character picker shows a surname as its initial ("Shweepy T.") when the
   full name doesn't fit, to make room in the title row.
 - Settings: text and buttons sit clear of the line above them; the window is a little taller, with room for the new
-  Global Inv pages; every page has an icon beside its name, in your accent color; and each main page opens with its
-  name and icon.
+  Global Inv pages; every page has an icon beside its name, in your accent color; each main page opens with its name
+  and icon; and a line marks the bottom of the header, with a soft shadow under it once you scroll down a page.
 - Text Size is now Item Text Size, and covers the column headings above the list too.
 - In the Modern look, the footer's gold and buttons sit centered between its line and the bottom of the window.
 - The Disenchant Helper's estimate for green items up to level 15 follows what they give on WoW Forever: more often an
   essence, and no shard.
+- Settings: the Automations & Actions page is now called Automations, and in the page list the arrows sit right after
+  the page names, so the NEW tags line up.
+- The Font you pick (Settings > Style) also shows on the buttons along the top of your bags (Sections, Sort, Merge
+  Stacks, Filter), the sheet tabs and the character picker and its list, at their usual size.
+Fixed:
+- The Font list shows every font again, BagSmith's own included, and the one you pick takes effect straight away.
+  Before, a font only showed up once the game had drawn it somewhere else first. A font another addon brings now stays
+  in use after a reload too, instead of falling back to the default until you changed a font setting.
 
 ## 1.8.0
 

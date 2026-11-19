@@ -1625,7 +1625,7 @@ function DE:Refresh()
 end
 
 function DE:Show()
-	if not (ns.db and ns.db.deEnabled) then ns:Print("Turn on the Disenchant Helper in Settings > Automations & Actions first."); return end
+	if not (ns.db and ns.db.deEnabled) then ns:Print("Turn on the Disenchant Helper in Settings > Automations > Disenchant Helper first."); return end
 	-- (1.5.6) closed in combat as far as the player can tell, and wanted again: it comes back as it was
 	if self.frame and self.frame.bsSoftClosed then self:Restore(); return end
 	-- in combat the game won't let a protected window be shown or moved: it doesn't open (or move) until combat ends

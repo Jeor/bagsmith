@@ -73,6 +73,21 @@ QUICK.append("tests/core_1_9_0_beta15_tests.lua")
 QUICK.append("tests/core_1_9_0_beta16_tests.lua")
 QUICK.append("tests/core_1_9_0_beta17_tests.lua")
 QUICK.append("tests/core_1_9_0_beta18_tests.lua")
+QUICK.append("tests/core_1_9_0_beta19_tests.lua")
+QUICK.append("tests/core_1_9_0_beta20_tests.lua")
+QUICK.append("tests/core_1_9_0_beta21_tests.lua")
+QUICK.append("tests/core_1_9_0_beta22_tests.lua")
+QUICK.append("tests/core_1_9_0_beta23_tests.lua")
+QUICK.append("tests/core_1_9_0_beta24_tests.lua")
+QUICK.append("tests/core_1_9_1_beta1_tests.lua")
+QUICK.append("tests/core_1_9_1_beta2_tests.lua")
+QUICK.append("tests/core_1_9_1_beta3_tests.lua")
+QUICK.append("tests/core_1_9_1_beta4_tests.lua")
+QUICK.append("tests/core_1_9_1_beta5_tests.lua")
+QUICK.append("tests/core_1_9_2_beta1_tests.lua")
+QUICK.append("tests/core_1_9_2_beta2_tests.lua")
+
+QUICK.append("tests/core_unusable_overlay_tests.lua")
 
 def run_file(path, prelude=True, quiet=False):
     """Run one Lua set. (1.5.0-beta5, audit F6) The core suite ends with os.exit(code): that call now reports its

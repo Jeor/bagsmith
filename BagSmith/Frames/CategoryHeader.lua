@@ -7,8 +7,8 @@ function H.Apply(i)
 	local s=ns.Skins:Current()
 	local base=ns.Fonts and ns.Fonts:Grow(26) or 26
 	local lineH=ns.Fonts and ns.Fonts:Grow(16) or 16
-	h.band:Hide(); h.accent:Hide()
-	h.text:SetTextColor(unpack(s.text))
+	h.band:Show(); h.accent:Show()
+	h.text:SetTextColor(ns.Skins:Accent())
 	h.text:ClearAllPoints(); h.text:SetPoint('TOPLEFT',h,'TOPLEFT',h.textX or 20,-6)
 	h.arrow:ClearAllPoints(); h.arrow:SetPoint('TOPLEFT',h,'TOPLEFT',5,-7)
 	h.count:SetWidth(0); h.count:SetWordWrap(false)
@@ -52,7 +52,7 @@ function H.Apply(i)
 		h.line:SetPoint('TOPLEFT',h,'TOPLEFT',left,-base/2)
 		h.line:SetWidth(math.max(1,math.min(180,right-left)))
 	end
-	h.sub:SetShown(text~=''); h.line:Show()
+	h.sub:SetShown(text~=''); h.line:Hide()
 	h:SetHeight(height)
 	i.v2=true
 	return height
@@ -98,7 +98,7 @@ function H.Finish(infos)
 			local left=(h.textX or 20)+h.text:GetStringWidth()+6+h.count:GetStringWidth()+10
 			local room=i.colW-b:GetWidth()-12-left
 			h.line:ClearAllPoints(); h.line:SetPoint('TOPLEFT',h,'TOPLEFT',left,-13)
-			h.line:SetWidth(math.max(1,math.min(180,room))); h.line:SetShown(room>=16)
+			h.line:SetWidth(math.max(1,math.min(180,room))); h.line:Hide()
 		end
 	end
 end

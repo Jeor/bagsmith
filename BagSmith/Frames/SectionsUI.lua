@@ -22,15 +22,41 @@ local MENU_W, ROW_H, MENU_MAX = 220, 20, 300
 -- (1.8.0) it.font: the row's text in that font file, at the row's size. Without one, the text goes back to its font
 -- object's own face: a face set directly stays until set again (the font object alone doesn't undo it, beta2's bug:
 -- Default Font kept the last font picked), and rows are reused.
+-- (1.9.0-beta19, after FlareUI 6.10.1) A font the game hasn't drawn yet loads only when a drawn text asks for it: until
+-- then SetFont answers false and the text keeps its old face. Such a text asks again every half second, up to 30
+-- seconds, until the game has the file (a row reused for another face drops its old wish).
+local pendingFaces = setmetatable({}, { __mode = "k" })
+local faceTicks
+local function retryFaces()
+	faceTicks = (faceTicks or 0) + 1
+	for fs, want in pairs(pendingFaces) do
+		local ok, res = pcall(fs.SetFont, fs, want[1], want[2], want[3])
+		if ok and res ~= false then pendingFaces[fs] = nil end
+	end
+	if next(pendingFaces) and faceTicks < 60 then
+		C_Timer.After(0.5, retryFaces)
+	else
+		for fs in pairs(pendingFaces) do pendingFaces[fs] = nil end
+		faceTicks = nil
+	end
+end
+ns.MENU_FACES_PENDING = pendingFaces   -- (for the tests)
 function ns.MenuFace(fs, path, object)
 	if not (fs.SetFont and fs.GetFont) then return end
+	pendingFaces[fs] = nil
 	local obj = object and _G[object]
 	local objPath, objSize, objFlags
 	if obj and obj.GetFont then objPath, objSize, objFlags = obj:GetFont() end
 	local _, size, flags = fs:GetFont()
 	size, flags = objSize or size, objFlags or flags
 	path = path or objPath
-	if path and size then pcall(fs.SetFont, fs, path, size, flags or "") end
+	if not (path and size) then return end
+	local ok, res = pcall(fs.SetFont, fs, path, size, flags or "")
+	if ok and res == false then
+		pendingFaces[fs] = { path, size, flags or "" }
+		if faceTicks then faceTicks = 0   -- (already asking: a fresh 30 seconds)
+		elseif C_Timer and C_Timer.After then faceTicks = 0; C_Timer.After(0.5, retryFaces) end
+	end
 end
 function ns.ShowMenu(items, anchor, keepPlace)
 	local m = ns.menuFrame

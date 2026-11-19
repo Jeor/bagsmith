@@ -24,15 +24,27 @@ ns.WhatsNew = WN
 -- Newest first. Only notable releases get an entry; keep a handful of short
 -- bullets that say what it is and where to turn it on.
 WN.ENTRIES = {
+	-- (1.9.2-beta1, Shweep) a release's updates have entries of their own, shown under its tab: 1.9.2 (Jeor's red tint)
+	-- and 1.9.1 (which had no card), as Shweep approved them
+	{ v = "1.9.2", heading = "BagSmith 1.9.2", items = {
+		"|cfffac775Unusable Items in Red:|r gear, recipes and consumables your character can't use yet get a soft red tint, like armor above your level or a recipe you don't have the skill for. Turn it off in Settings > Item Icons > Appearance if you'd rather not see it. Thanks to Jeor!",
+	} },
+	{ v = "1.9.1", heading = "BagSmith 1.9.1", items = {
+		"|cfffac775Gold at the Bank:|r hover your gold in the bank window to see every character's gold on this ruleset, just like in your bags. Hold Shift for your whole account.",
+		"|cfffac775Who Has Which Currency:|r hover a pinned currency, or a row in the currency drawer, to see how many each of your characters has.",
+		"|cfffac775Full-Width Pinned:|r give each pinned section a full-width row of its own in Split View and Compact View, in Settings > Style > Layout.",
+	} },
 	-- (1.9.0-beta9) the 1.9 card: Shweep approved the draft (16 Nov: "make sure the wording of it is easy to understand
 	-- and does not sound like AI")
 	{ v = "1.9.0", heading = "BagSmith 1.9", items = {
-		-- (beta10, Shweep: "realm" to "ruleset", a more human last sentence; the second bullet about tooltips and alts)
-		"|cfffac775Global Inventory:|r click the globe at the top of your bags to see everything your characters on this ruleset are carrying, in one list. It shows who has each item and where it is: bags, bank or worn. Click an item more than one character has to see how many each of them has. Down at the bottom, the Total tells you what it's all worth.",
+		-- (beta10, Shweep: "realm" to "ruleset", a more human last sentence; the second bullet about tooltips and alts;
+		-- beta20, Shweep approved: currencies in the drawer, the same as items)
+		"|cfffac775Global Inventory:|r click the globe at the top of your bags to see everything your characters on this ruleset are carrying, in one list. It shows who has each item and where it is: bags, bank or worn. Click an item more than one character has to see how many each of them has, and the same goes for currencies in the currency drawer. Down at the bottom, the Total tells you what it's all worth.",
 		"|cfffac775Alts in Your Tooltips:|r item tooltips now show how many you and your alts have, and where: bags, bank or worn. That's any item tooltip, whether the item is in your bags, at the auction house, at a vendor or in a chat link. Hover your gold to see each alt's gold too. Don't want the counts? Turn them off in Settings > General > Tooltips.",
 		"|cfffac775Compact View:|r in Icons view, sections can now share rows, each only as wide as it needs, so more fits on screen. Pick Full Width, Split View or Compact View in Settings > Style > Layout. Thanks to Jeor!",
 		"|cfffac775Shared Disenchanting:|r what one of your characters learns from disenchanting now helps all of them.",
-		"|cfffac775Footer Text Size:|r make your gold, pinned currencies and free slots bigger or smaller on their own, in Settings > Style > Size.",
+		-- (beta20, Shweep approved: "yeah these are good") the fonts with it: the header's buttons, and every font listed
+		"|cfffac775Text and Fonts:|r make your gold, pinned currencies and free slots bigger or smaller on their own, in Settings > Style > Size. The font you pick there now shows on the buttons along the top of your bags too, and every font you have now shows up in the list.",
 		"|cfffac775Bolder Borders:|r give your item icons thicker borders in Settings > Item Icons > Appearance. Thanks to Jeor!",
 		"|cfffac775Count Every Free Slot:|r your free-slot count leaves out quivers, herb bags and other special bags. Prefer the full count? Change Bag Slot Count in Settings > Windows > Main Window.",
 	} },
@@ -74,7 +86,7 @@ WN.ENTRIES = {
 	} },
 	{ v = "1.5.1", heading = "BagSmith 1.5.1", items = {
 		"|cfffac775Faster Destroying:|r when the Loot Helper helps you make room, choosing an item and pressing Destroy now removes it right away. Blue and epic items, and anything whose quality the game hasn't shown yet, still ask first, just like the game does. Junk is still one click.",
-		"|cfffac775Your Choice:|r prefer to be asked every time? Turn on Ask Before Destroying in Settings > Automations & Actions > Loot Helper. Want blue and epic items gone at once too? Untick Always Ask for Rare or Better.",
+		"|cfffac775Your Choice:|r prefer to be asked every time? Turn on Ask Before Destroying in Settings > Automations > Loot Helper. Want blue and epic items gone at once too? Untick Always Ask for Rare or Better.",
 		"|cfffac775Smoother Looting:|r after you make room, the Loot Helper takes one item at a time and waits for each to land in your bags, so it no longer runs into \"your bags are full\". Loot with no price gets suggestions too.",
 	} },
 	{ v = "1.5.0", heading = "BagSmith 1.5", items = {
@@ -96,9 +108,9 @@ WN.ENTRIES = {
 	} },
 	{ v = "1.2.0", heading = "BagSmith 1.2", items = {
 		"|cfffac775Disenchant Helper:|r enchanters, this one's for you. A new window lists the gear in your bags worth disenchanting, shows what it sells for, what it's worth on the AH, and what its materials should bring, and tells you which is the better call. Then it walks you through the pile one click at a time (or one press of a keybinding). Skip what you want to keep, Exclude for things it should stop asking about, and it learns from your own results as you go. Find it beside the Gear Sets shield once it's on, or say yes when BagSmith offers it to a character with Enchanting.",
-		"|cfffac775Fewer Yes/No Boxes:|r tired of confirming every bind-on-equip piece you put on? BagSmith can click Yes for you on the kinds of box you choose, only after your own BagSmith actions unless you widen it, with a key to hold if you'd rather be asked. Off by default, under Automations & Actions.",
+		"|cfffac775Fewer Yes/No Boxes:|r tired of confirming every bind-on-equip piece you put on? BagSmith can click Yes for you on the kinds of box you choose, only after your own BagSmith actions unless you widen it, with a key to hold if you'd rather be asked. Off by default, under Automations.",
 		"|cfffac775Mail and Trade:|r right-click a merged stack at the mailbox or in a trade window and the rest of its stacks follow, the way they already did at the bank.",
-		"|cfffac775Settings:|r the Loot Helper and the Disenchant Helper have their own pages under Automations & Actions.",
+		"|cfffac775Settings:|r the Loot Helper and the Disenchant Helper have their own pages under Automations.",
 	} },
 	{ v = "1.1.0", heading = "BagSmith 1.1", items = {
 		"|cfffac775Item Level on Icons:|r want to see gear levels at a glance? Turn on Show Item Level (ilvl) on Icons in Settings > Style > Items. Weapons and armor will show their item level in the corner of their icon, in a color you choose, so it's easy to tell apart from a stack count.",
@@ -133,8 +145,8 @@ WN.ENTRIES = {
 	} },
 	{ v = "0.13.0", heading = "BagSmith 0.13", items = {
 		"|cfffac775Bag Bar:|r gain access to your Bag Bar from within BagSmith. A new button beside the bag counts in the bottom right brings it up. You can also hide Blizzard's Bag Bar in Settings > General.",
-		"|cfffac775Sell Junk + Mark as Junk:|r mark any item as junk in the new Junk column (or with a keybinding) and it sells along with your greys. You can also sell junk automatically at vendors: Settings > Automations & Actions.",
-		"|cfffac775Loot Helper:|r when your bags are too full for loot or a quest reward, it suggests what to combine, clean up or destroy, then finishes the looting for you. Settings > Automations & Actions.",
+		"|cfffac775Sell Junk + Mark as Junk:|r mark any item as junk in the new Junk column (or with a keybinding) and it sells along with your greys. You can also sell junk automatically at vendors: Settings > Automations.",
+		"|cfffac775Loot Helper:|r when your bags are too full for loot or a quest reward, it suggests what to combine, clean up or destroy, then finishes the looting for you. Settings > Automations.",
 		"|cfffac775Favorites and Track as Currency:|r star items to pin them in a Favorites section at the top, and use the wallet column (or Add Item in the currency drawer) to track any item as a currency.",
 		"|cfffac775Profile Sharing:|r copy your profile as a code to keep or share, or import someone else's. Settings > Profile.",
 		"|cfffac775Keybindings:|r BagSmith has its own section in the game's Keybindings, plus Settings > Keybindings for Mark as Junk, Favorite Item and the rest.",
@@ -142,7 +154,7 @@ WN.ENTRIES = {
 	} },
 	{ v = "0.12.0", heading = "BagSmith 0.12", items = {
 		"|cfffac775Travel Mode:|r a compact, on-the-go view for when you're out adventuring. Click the signpost next to the close button and the toolbar and filters tuck away, leaving your items and search. Click it again anytime to get your full inventory tools back.",
-		"|cfffac775Auto Travel Mode:|r if you want, Travel Mode can switch off on its own when it's time to manage your bags (at the bank, the auction house or a vendor, or while you're on a flight path) and back on when you're done. Choose which in Settings > Automations & Actions.",
+		"|cfffac775Auto Travel Mode:|r if you want, Travel Mode can switch off on its own when it's time to manage your bags (at the bank, the auction house or a vendor, or while you're on a flight path) and back on when you're done. Choose which in Settings > Automations.",
 	} },
 	{ v = "0.11.0", heading = "BagSmith 0.11", items = {
 		"|cfffac775Recent Items:|r what you picked up since logging in, at the top of your bags (also kept in their usual sections). On by default; Settings > Dynamic Sections.",
@@ -153,8 +165,9 @@ WN.ENTRIES = {
 }
 WN.MAX_SHOWN = 5   -- releases with a tab (five fit on one row in both skins)
 WN.URL = "https://www.curseforge.com/wow/addons/bagsmith/files/all"
--- 440 since 0.14: bullets wrap less, the card is shorter; (1.9.0-beta11, Shweep: "5-10% wider") 476, about 8% more
-local WIDTH, PAD, LOGO = 476, 16, 32
+-- 440 since 0.14: bullets wrap less, the card is shorter; (1.9.0-beta11, Shweep: "5-10% wider") 476, about 8% more;
+-- (1.9.0-beta23, Shweep: "extend What's New about 5-10% in width") 512, about 7.5% more
+local WIDTH, PAD, LOGO = 512, 16, 32
 
 -- "0.11.0-beta2" -> { 0, 11, 0 }; a beta counts as its release.
 local function parse(v)
@@ -169,6 +182,30 @@ local function newer(x, y)   -- is x newer than y
 end
 WN.Newer = newer
 local function base(v) local p = parse(v); return ("%d.%d.%d"):format(p[1], p[2], p[3]) end
+
+-- (1.9.2-beta1, Shweep: "a second set of button under a primary release that each contain the smaller releases") A
+-- release and its updates: entries sharing x.y are one tab, its x.y.0 entry (or its oldest) on the tab itself, the
+-- others (patches) on a second row under it, newest first. A tab reads as its main entry (v, heading, items).
+local function minorOf(v) local p = parse(v); return p[1] * 1000 + p[2] end
+local function groups(list)
+	local order, by = {}, {}
+	for _, e in ipairs(list) do
+		local k = minorOf(e.v)
+		if not by[k] then by[k] = {}; order[#order + 1] = k end
+		table.insert(by[k], e)
+	end
+	local out = {}
+	for _, k in ipairs(order) do
+		local list2 = by[k]
+		local primary = list2[#list2]
+		for _, e in ipairs(list2) do if parse(e.v)[3] == 0 then primary = e end end
+		local patches = {}
+		for _, e in ipairs(list2) do if e ~= primary then patches[#patches + 1] = e end end
+		out[#out + 1] = setmetatable({ primary = primary, patches = patches }, { __index = primary })
+	end
+	return out
+end
+WN.Groups = groups
 
 -- Entries not seen yet (newer than seen, up to the running version).
 function WN:Unseen()
@@ -185,10 +222,44 @@ function WN:Latest()
 	for _, e in ipairs(self.ENTRIES) do if not newer(e.v, ns.version) then out[#out + 1] = e end end
 	return out
 end
+-- (1.9.2-beta1, Shweep: "only open the What's New window automatically on primary") main releases not seen yet, newest
+-- first: only these open the card on their own; an update never does
+function WN:UnseenReleases()
+	local seen, out = BagSmithDB.whatsNewSeen or "0.0.0", {}
+	for _, g in ipairs(groups(self:Latest())) do if newer(g.primary.v, seen) then out[#out + 1] = g end end
+	return out
+end
 function WN:Pending()
-	return ns.db and ns.db.whatsNew ~= false and #self:Unseen() > 0
+	return ns.db and ns.db.whatsNew ~= false and #self:UnseenReleases() > 0
 end
 function WN:MarkSeen() BagSmithDB.whatsNewSeen = base(ns.version) end
+-- An update's notes you haven't opened: NEW on its button, for the newest release's updates only (never an old one's)
+function WN:PatchNew(e)
+	local newest = groups(self:Latest())[1]
+	if not (newest and e) then return false end
+	local mine = false
+	for _, p in ipairs(newest.patches) do if p.v == e.v then mine = true end end
+	local seen = BagSmithDB.whatsNewPatchSeen
+	return mine and not (type(seen) == "table" and seen[base(e.v)]) or false
+end
+function WN:MarkPatchSeen(e)
+	if not e then return end
+	if type(BagSmithDB.whatsNewPatchSeen) ~= "table" then BagSmithDB.whatsNewPatchSeen = {} end
+	BagSmithDB.whatsNewPatchSeen[base(e.v)] = true
+end
+-- NEW on Settings' What's New button: an update you haven't opened, since the button was last clicked
+function WN:ButtonNew()
+	local newest = groups(self:Latest())[1]
+	local last = BagSmithDB.whatsNewButtonSeen or "0.0.0"
+	for _, p in ipairs(newest and newest.patches or {}) do if self:PatchNew(p) and newer(p.v, last) then return true end end
+	return false
+end
+function WN:MarkButtonSeen() BagSmithDB.whatsNewButtonSeen = base(ns.version) end
+-- Everything up to the running version counts as seen (a first install).
+function WN:MarkAllSeen()
+	self:MarkSeen(); self:MarkButtonSeen()
+	for _, e in ipairs(self:Latest()) do if parse(e.v)[3] > 0 then self:MarkPatchSeen(e) end end
+end
 
 ------------------------------------------------------------------------
 -- The card: created once, reused.
@@ -360,6 +431,7 @@ local function sep(f, i)
 end
 -- A tab per release (BagSmith's choice buttons; Blizzard's red buttons in Classic).
 local TAB_H = 22
+local SUB_H = 18   -- (1.9.2-beta1) an update's button, under its release's tab
 local function tab(f, i)
 	return pooled(f, f.tabs, i, function()
 		local b = ns.TextButton(f, "", 56, function(btn) WN:Select(btn.index) end)
@@ -457,13 +529,23 @@ function WN:Select(i)
 	if not card or not card.entries or not card.entries[i] then return end
 	self:Fill(card.entries, i)
 end
+-- (1.9.2-beta1) one of the open release's updates; opening it clears its NEW
+function WN:SelectPatch(j)
+	local g = card and card.entries and card.entries[card.sel]
+	local p = g and g.patches and g.patches[j]
+	if not p then return end
+	self:MarkPatchSeen(p)
+	self:Fill(card.entries, card.sel, j)
+end
 
--- entries: the releases with a tab, newest first; sel: the one shown.
-function WN:Fill(entries, sel)
+-- entries: the releases with a tab, newest first; sel: the one shown; sub: one of its updates (nil: its own notes).
+function WN:Fill(entries, sel, sub)
 	local f = create()
 	f.entries = entries
 	sel = math.max(1, math.min(sel or f.sel or 1, math.max(1, #entries)))
 	f.sel = sel
+	local patches = entries[sel] and entries[sel].patches or {}
+	f.sub = patches[sub or 0] and sub or nil
 	local classic = ns.Classic.IsOn()
 	local sk = ns.Skins:Current()
 	f.title:SetText("What's New")
@@ -491,6 +573,37 @@ function WN:Fill(entries, sel)
 	end
 	for i = #entries + 1, #f.tabs do f.tabs[i]:Hide() end
 	if #entries > 0 then top = top + TAB_H + 10 end
+	-- (1.9.2-beta1) the open release's updates, newest first, on a second row; its height kept on every tab (when any
+	-- release shown has updates), so switching tabs doesn't jump. An update not opened yet says NEW.
+	local anyPatches = false
+	for _, g in ipairs(entries) do if g.patches and #g.patches > 0 then anyPatches = true end end
+	f.subTabs = f.subTabs or {}
+	local sx = PAD
+	for j, p in ipairs(patches) do
+		local b = f.subTabs[j]
+		if not b then
+			b = ns.TextButton(f, "", 48, function(btn) WN:SelectPatch(btn.index) end)
+			b:SetHeight(SUB_H)
+			f.subTabs[j] = b
+		end
+		b.index = j
+		b.label:SetText(tabLabel(p))
+		local w = math.max(48, math.ceil(b.label:GetStringWidth()) + 18)
+		b:SetWidth(w)
+		b:ClearAllPoints(); b:SetPoint("TOPLEFT", f, "TOPLEFT", sx, -(top - 4))
+		if b.SetClassic then b:SetClassic(classic) end
+		b:SetActive(j == f.sub)
+		b.tip = p.heading or ("BagSmith " .. tostring(p.v))
+		b:Show()
+		local new = WN:PatchNew(p)
+		if ns.SettingsPanel and ns.SettingsPanel.NewTag then ns.SettingsPanel.NewTag(b, new, b, w + 4) end
+		sx = sx + w + 6 + (new and 30 or 0)
+	end
+	for j = #patches + 1, #f.subTabs do
+		f.subTabs[j]:Hide()
+		if f.subTabs[j].newTag then f.subTabs[j].newTag:Hide() end
+	end
+	if anyPatches then top = top + SUB_H + 6 end
 	-- The intro line, then the body below it.
 	f.intro:SetWidth(textW)
 	f.intro:SetText(WN.INTRO)
@@ -500,12 +613,15 @@ function WN:Fill(entries, sel)
 	-- The body: the selected release's heading, then its bullets with a
 	-- hanging indent (wrapped lines line up with the text, not the dash), a
 	-- stripe behind every other bullet and a light line between bullets.
-	local e = entries[sel]
+	local e = f.sub and patches[f.sub] or entries[sel]
 	-- (1.7.0-beta12) The body's height first: as tall as the tallest release, at most WN.MAX_BODY, and never more than
 	-- the screen allows (MAX_SCREEN, with the footer). A release taller than that scrolls, laid out narrower beside its
 	-- scrollbar; one that fits uses the full width and shows no bar.
 	local tallest = 0
-	for _, other in ipairs(entries) do tallest = math.max(tallest, measure(f, other, textW)) end
+	for _, other in ipairs(entries) do
+		tallest = math.max(tallest, measure(f, other, textW))
+		for _, p in ipairs(other.patches or {}) do tallest = math.max(tallest, measure(f, p, textW)) end   -- (1.9.2-beta1)
+	end
 	f.more:SetWidth(textW)
 	f.more:SetText(WN.CHANGELOG_LINE)
 	local footerH = 16 + 2 + 10 + f.more:GetStringHeight() + 4 + 22 + 16 + 12 + 22 + PAD
@@ -632,7 +748,7 @@ end
 -- From Settings or /bs new: the latest notable entries, nothing changes.
 -- A tab for each of the last five releases (up to the running version).
 function WN:Tabs()
-	local list, out = self:Latest(), {}
+	local list, out = groups(self:Latest()), {}   -- (1.9.2-beta1) a tab per release, its updates under it
 	for i = 1, math.min(#list, self.MAX_SHOWN) do out[i] = list[i] end
 	return out
 end
@@ -647,7 +763,8 @@ end
 function WN:Check()
 	if not self:Pending() or InCombatLockdown() then return end
 	-- Opens on the newest release you haven't seen (the update you just got).
-	local unseen, tabs = self:Unseen(), self:Tabs()
+	-- (1.9.2-beta1) on that release's own notes ("we always open on the primary"); its updates are a click away
+	local unseen, tabs = self:UnseenReleases(), self:Tabs()
 	local sel = 1
 	for i, e in ipairs(tabs) do if unseen[1] and e.v == unseen[1].v then sel = i end end
 	self:Open(tabs, sel)
@@ -655,19 +772,21 @@ end
 
 -- Hidden testing: make the next bag open behave as the first after updating.
 function WN:ResetForTesting(skipped)
-	-- The newest entry for the running version (or, for "skipped", the oldest).
-	local list = self:Latest()
+	-- The newest release for the running version (or, for "skipped", the oldest). (1.9.2-beta1) its main release, not
+	-- its newest update: only a main release opens the card, so one step before 1.9.2 (1.9.1) would show nothing
+	local list = groups(self:Latest())
 	local pick = list[skipped and #list or 1]
-	local p = parse(pick and pick.v or ns.version)
+	local p = parse(pick and pick.primary.v or ns.version)
 	-- One step before that release (never empty, which would count as a first install).
 	if p[3] > 0 then p[3] = p[3] - 1 elseif p[2] > 0 then p[2] = p[2] - 1 else p[1] = math.max(0, p[1] - 1) end
 	BagSmithDB.whatsNewSeen = ("%d.%d.%d"):format(p[1], p[2], p[3])
+	BagSmithDB.whatsNewPatchSeen, BagSmithDB.whatsNewButtonSeen = nil, nil   -- (1.9.2-beta1) the updates' NEW tags too
 end
 
 ns:OnSignal("ADDON_READY", function()
 	-- A first install has nothing to compare against: mark this version seen.
 	if BagSmithDB.whatsNewSeen == nil then
-		WN:MarkSeen()
+		WN:MarkAllSeen()   -- (1.9.2-beta1) the updates' notes too
 		-- (1.8.0-beta19, after FlareUI) and nothing in Settings is NEW to them either
 		if ns.SettingsPanel and ns.SettingsPanel.MarkAllNewSeen then ns.SettingsPanel:MarkAllNewSeen() end
 	end

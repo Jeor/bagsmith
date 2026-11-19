@@ -1725,7 +1725,7 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 			self.compactCountMeasure:SetText(lane.pinnedSection and ("(%d)   |TInterface\\AddOns\\BagSmith\\Media\\ui-pin.tga:12:12|t Pinned"):format(n) or ("(%d)"):format(n))
 			boxes[i] = { count = #lane.items,
 				minWidth = 20 + self.compactMeasure:GetStringWidth() + 6 + self.compactCountMeasure:GetStringWidth() + 4 + (hasShardAction(lane) and 94 or 0) + (lane.recent and 94 or 0),
-				fullWidth = (lane.recent and db.splitViewRecentWide) or lane.gearSet or lane.noteOnly or lane.emptyCustom }
+				fullWidth = (lane.recent and db.splitViewRecentWide) or (lane.pinnedSection and db.splitViewPinnedWide) or lane.gearSet or lane.noteOnly or lane.emptyCustom }   -- (1.9.1-beta2) Full-Width Pinned
 		end
 		local planned = ns.CompactCategories.Rows(boxes, width, cell, GAP, gutter, COL_GAP, LANE_H + 4 + 2 + 8)
 		ns.CompactCategories.Justify(planned, boxes, width, cell, GAP, gutter, COL_GAP)   -- (1.9.0-beta6) rows fill the width
@@ -1747,8 +1747,9 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 	else
 		local inRow, rowTop, rowBottom = false, y, y
 		for _, lane in ipairs(lanes) do
-			-- (1.7.0-beta2, Shweep) Full-Width Recent: in Split View, Recent spans both columns, a row of its own
-			if twoCol and lane.recent and db.splitViewRecentWide then
+			-- (1.7.0-beta2, Shweep) Full-Width Recent: in Split View, Recent spans both columns, a row of its own;
+			-- (1.9.1-beta2, Shweep) Full-Width Pinned: each pinned section the same
+			if twoCol and ((lane.recent and db.splitViewRecentWide) or (lane.pinnedSection and db.splitViewPinnedWide)) then
 				if inRow then y = rowBottom; inRow = false end
 				y = placeLane(lane, 0, width, y)
 			elseif not twoCol then

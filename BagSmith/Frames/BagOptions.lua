@@ -135,6 +135,26 @@ function O.Build(v)
 		end)
 		b.mode=it[1]; v.optionsLayout[#v.optionsLayout+1]=b
 	end
+	v.optionsExpanded={}
+	v.optionsSections={}
+	for _,it in ipairs({{'sorting','Sorting & stacking'},{'details','Category details'},{'tools','Tools'}}) do
+		local key,title=it[1],it[2]
+		local b=button(content,title,function() v.optionsExpanded[key]=not v.optionsExpanded[key]; O.Layout(v) end)
+		b.sectionTitle=title
+		b.label:ClearAllPoints(); b.label:SetPoint('LEFT',0,0)
+		b.arrow=label(b,'>'); b.arrow:SetPoint('RIGHT',-2,0)
+		v.optionsSections[key]=b
+	end
+	v.optionsLayoutMenu=button(content,'Layout',function(b)
+		local items={}
+		for _,choice in ipairs(v.optionsLayout) do
+			local chosen=choice
+			items[#items+1]={text=chosen.mode,checked=chosen.active,onClick=function() chosen:GetScript('OnClick')(chosen) end}
+		end
+		ns.ShowMenu(items,b)
+	end)
+	v.optionsLayoutMenu.label:ClearAllPoints(); v.optionsLayoutMenu.label:SetPoint('LEFT',8,0)
+	v.optionsLayoutMenu.arrow=label(v.optionsLayoutMenu,'v'); v.optionsLayoutMenu.arrow:SetPoint('RIGHT',-7,0)
 	v.optionsDetails={}
 	for _,it in ipairs({{'Item Count','categoryCount'},{'Vendor Value','categoryVendor'},{'Auction Value','categoryAuction'}}) do
 		local b=button(content,it[1],function()
@@ -255,25 +275,60 @@ function O.Layout(v)
 		end
 		y=y+32
 	end
-	-- All original callbacks and GlobalOff tooltips remain on the same buttons.
-	heading('View'); segments(v.viewSegBtns)
-	heading('Layout'); segments(v.optionsLayout)
-	for _,b in ipairs(v.optionsLayout) do
-			b:SetActive(b.mode==(ns.db.compactCategories and 'Compact' or ns.db.splitView and 'Split' or 'Standard'))
-		if v:Pref('view')=='icons' and v:Pref('grp')~='none' then b:Enable() else b:Disable() end
+	-- Always attach controls to the scroll child before hiding them. Otherwise
+	-- old toolbar ownership can leave icons floating outside a collapsed section.
+	for _,f in pairs(v.optionsLabels) do f:Hide() end
+	for _,b in ipairs(v.optionsLayout) do b:Hide() end
+	for _,b in ipairs(v.grpSegBtns or {}) do b:Hide() end
+	local function inline(text,b)
+		local f=v.optionsLabels[text]; f:ClearAllPoints(); f:SetPoint('TOPLEFT',c,'TOPLEFT',PAD,-y-6)
+		f:SetTextColor(unpack(s.muted)); f:Show()
+		place(b,c,y,WIDTH-2*PAD-58); b:ClearAllPoints(); b:SetPoint('TOPLEFT',c,'TOPLEFT',PAD+58,-y); b:Show()
+		y=y+34
 	end
-	heading('Grouping'); for _,b in ipairs(v.grpSegBtns) do b:Hide() end
-	row(v.btnGrpMenu); v:SyncGrpMenu(); row(v.btnLanes,v.btnLanes.tip)
-	heading('Sorting'); row(v.btnSort); v.btnSort.label:SetText(((v.btnSort.label:GetText() or ''):gsub('^Sort: ',''))); row(v.btnMerge)
-	heading('Category Details')
-	for _,b in ipairs(v.optionsDetails) do row(b); b:SetActive(ns.db[b.key]) end
-	heading('Tools')
+	local f=v.optionsLabels.View; f:ClearAllPoints(); f:SetPoint('TOPLEFT',c,'TOPLEFT',PAD,-y-6); f:SetTextColor(unpack(s.muted)); f:Show()
+	local width=(WIDTH-2*PAD-58)/#v.viewSegBtns
+	for j,b in ipairs(v.viewSegBtns) do
+		place(b,c,y,width); b:ClearAllPoints(); b:SetPoint('TOPLEFT',c,'TOPLEFT',PAD+58+(j-1)*width,-y); b:Show()
+		if b.divider then b.divider:Hide() end
+		b:SetBackdropBorderColor(0,0,0,0); b:SetBackdropColor(1,1,1,b.active and 0.06 or 0)
+		if not b.optionsUnderline then
+			b.optionsUnderline=b:CreateTexture(nil,'ARTWORK'); b.optionsUnderline:SetHeight(1)
+			b.optionsUnderline:SetPoint('BOTTOMLEFT',3,0); b.optionsUnderline:SetPoint('BOTTOMRIGHT',-3,0)
+		end
+		b.optionsUnderline:SetColorTexture(ns.Skins:Accent()); b.optionsUnderline:SetShown(b.active)
+	end
+	y=y+36
+	local mode=ns.db.compactCategories and 'Compact' or ns.db.splitView and 'Split' or 'Standard'
+	for _,b in ipairs(v.optionsLayout) do b:SetActive(b.mode==mode) end
+	v.optionsLayoutMenu.label:SetText(mode)
+	inline('Layout',v.optionsLayoutMenu)
+	if v:Pref('view')=='icons' and v:Pref('grp')~='none' then v.optionsLayoutMenu:Enable() else v.optionsLayoutMenu:Disable() end
+	v.optionsLabels.Grouping:SetText('Group by')
+	inline('Grouping',v.btnGrpMenu); v:SyncGrpMenu()
+	row(v.btnLanes,v.btnLanes.tip); y=y+8
+	local function section(key)
+		local b=v.optionsSections[key]; row(b)
+		b:SetBackdropColor(0,0,0,0); b:SetBackdropBorderColor(0,0,0,0)
+		b.label:SetTextColor(unpack(s.text)); b.arrow:SetText(v.optionsExpanded[key] and 'v' or '>'); b.arrow:SetTextColor(unpack(s.muted))
+		y=y+7
+		return v.optionsExpanded[key]
+	end
+	local function optional(b,show,text)
+		if not b then return end
+		if show then row(b,text) else place(b,c,y); b:Hide() end
+	end
+	local show=section('sorting')
+	optional(v.btnSort,show); v.btnSort.label:SetText(((v.btnSort.label:GetText() or ''):gsub('^Sort: ','')))
+	optional(v.btnMerge,show)
+	show=section('details')
+	for _,b in ipairs(v.optionsDetails) do optional(b,show); b:SetActive(ns.db[b.key]) end
+	show=section('tools')
 	for _,key in ipairs({'btnClean','btnDisenchant','btnGearSets','btnBank','btnCurrency','btnGlobal','btnTravel'}) do
-		local b=v[key]
-		local show=key~='btnDisenchant' or ns.db.deEnabled
-		if key=='btnGearSets' then show=ns.GearSets and ns.GearSets:Available() end
-		if b then if show then row(b) else b:Hide() end end
-		if b and key=='btnDisenchant' then b:SetActive(show and ns.Disenchant and ns.Disenchant.frame and ns.Disenchant.frame:IsShown() or false) end
+		local available=key~='btnDisenchant' or ns.db.deEnabled
+		if key=='btnGearSets' then available=ns.GearSets and ns.GearSets:Available() end
+		optional(v[key],show and available)
+		if v[key] and key=='btnDisenchant' then v[key]:SetActive(available and ns.Disenchant and ns.Disenchant.frame and ns.Disenchant.frame:IsShown() or false) end
 	end
 	c:SetHeight(y+8)
 	v.optionsDrawer.footerLine:SetColorTexture(unpack(s.line))

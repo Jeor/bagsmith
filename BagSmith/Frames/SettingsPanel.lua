@@ -24,7 +24,7 @@ end
 ------------------------------------------------------------------------
 -- (1.8.0-beta6, Shweep) the page side 15% wider: 510 px beside the page list, now 587 (the window 680 to 757)
 local NAV_W, WIN_W, WIN_H = 170, 757, 588   -- (1.9.0-beta6, Shweep) 5% taller (was 560): the Global sub-pages
-local SEARCH_W = 200   -- NAV_W fits the longest page name, "Automations & Actions"
+local SEARCH_W = 200   -- NAV_W fits the longest page name (1.9.0-beta22: "Automations & Actions" is "Automations")
 -- A third field names the page an entry sits under: it's listed (indented)
 -- only while that page or one of its sub-pages is open.
 local PAGES = {
@@ -32,7 +32,7 @@ local PAGES = {
 	{ "sections", "Sections" }, { "dynamic", "Dynamic Sections", "sections" }, { "custom", "Custom Sections", "sections" }, { "globalsections", "Global Inv Sections", "sections" },
 	{ "columns", "Columns" }, { "bagcols", "Bag Columns", "columns" }, { "bankcols", "Bank Columns", "columns" }, { "globalcols", "Global Inv Columns", "columns" },
 	{ "sheets", "Sheets" }, { "bagsheets", "Bag Sheets", "sheets" }, { "banksheets", "Bank Sheets", "sheets" }, { "globalsheets", "Global Inv Sheets", "sheets" },
-	{ "sorting", "Sorting & Filters" }, { "automation", "Automations & Actions" }, { "loothelper", "Loot Helper", "automation" }, { "dehelper", "Disenchant Helper", "automation" },
+	{ "sorting", "Sorting & Filters" }, { "automation", "Automations" }, { "loothelper", "Loot Helper", "automation" }, { "dehelper", "Disenchant Helper", "automation" },
 	{ "keys", "Keybindings" }, { "plugins", "Plugins" }, { "profile", "Profile" }, { "advanced", "Advanced" },
 }
 -- (1.9.0-beta8, Shweep: "in each's header in settings and in the settings left hand can each also get their icon") the
@@ -79,34 +79,93 @@ end
 -- other than NEW.release shows none, so the list is replaced each release. heads and keys name the page they're on.
 -- (1.9.0-beta1) 1.9's list (1.8's: Style, Item Icons and Profile; Special Bag Slot Indicators, Shared Between Characters;
 -- Text Size, Font, Gold Frame for Quest Items).
+-- (1.9.1-beta3, Shweep: "point releases getting new tags would be good going forward as well") A point release adds its
+-- own entries under added["x.y.z"]; the lists above are the release's own (x.y.0). A page remembers the version it was
+-- last opened at (newSeen[release][page] = "1.9.1"; an older save's true reads as x.y.0), and it and its entries show
+-- NEW while it holds anything added after that: a 1.9.1 setting on a page opened in 1.9.0 is NEW, the rest there isn't.
+-- Someone coming straight from an older release sees all of them.
 Panel.NEW = {
 	release = "1.9",
 	pages = { general = true, window = true, icons = true, look = true, sections = true, columns = true, sheets = true,
 		globalsections = true, globalcols = true, globalsheets = true },
 	heads = {},
 	keys = { tipInventory = "general", tipAHPrice = "general", bagSlotCount = "window", borderWeight = "icons", iconLayout = "look", footerTextScale = "look", globalResize = "window" },
+	added = {
+		["1.9.1"] = { keys = { splitViewPinnedWide = "look" } },   -- (1.9.1-beta2) Full-Width Pinned
+		["1.9.2"] = { keys = { unusableOverlay = "icons" } },   -- (1.9.2-beta1) Jeor's Unusable Item Overlay
+	},
 }
 Panel.NEW_COLOR = { 0.55, 0.78, 1 }   -- the soft blue of What's New's links
 local function release() return tostring(ns.version or ""):match("^(%d+%.%d+)") end
+-- The point version running ("1.9.1" in 1.9.1-beta3), and a version's patch number (true, from an older save: 0).
+local function point() return tostring(ns.version or ""):match("^(%d+%.%d+%.%d+)") end
+local function patchOf(v)
+	if v == true then return 0 end
+	return tonumber(type(v) == "string" and v:match("^%d+%.%d+%.(%d+)") or nil) or 0
+end
+Panel.NewPatchOf = patchOf
+-- Every entry on a page, as { kind, id, patch } (pages: the page itself), up to the version running.
+local function entriesOn(N, page)
+	local out, cur = {}, patchOf(point())
+	local function scan(list, patch)
+		if patch > cur then return end
+		if list.pages and list.pages[page] then out[#out + 1] = { "pages", page, patch } end
+		for _, kind in ipairs({ "heads", "keys" }) do
+			for id, pg in pairs(list[kind] or {}) do if pg == page then out[#out + 1] = { kind, id, patch } end end
+		end
+	end
+	scan(N, 0)
+	for ver, list in pairs(N.added or {}) do scan(list, patchOf(ver)) end
+	return out
+end
+-- An entry's page and the patch that added it, or nil.
+local function entryOf(N, kind, id)
+	if id == nil then return nil end
+	if kind == "pages" then if N.pages and N.pages[id] then return id, 0 end
+	elseif N[kind] and N[kind][id] then return N[kind][id], 0 end
+	local cur = patchOf(point())
+	for ver, list in pairs(N.added or {}) do
+		local pg = kind == "pages" and (list.pages and list.pages[id] and id) or (list[kind] and list[kind][id])
+		if pg and patchOf(ver) <= cur then return pg, patchOf(ver) end
+	end
+end
+-- The patch a page was last opened at, while Settings is open (nil: never).
+function Panel:SeenPatch(page)
+	local v = self.seenAtOpen and self.seenAtOpen[page]
+	if v == nil then return nil end
+	return patchOf(v)
+end
 function Panel:NewPage(page)
 	local N = self.NEW
-	if not (N and page and N.pages[page] and release() == N.release) then return false end
-	return not (self.seenAtOpen and self.seenAtOpen[page])
+	if not (N and page and release() == N.release) then return false end
+	local seen = self:SeenPatch(page)
+	for _, e in ipairs(entriesOn(N, page)) do if seen == nil or e[3] > seen then return true end end
+	return false
 end
 function Panel:IsNew(kind, id)
 	local N = self.NEW
-	local page = N and N[kind] and id ~= nil and N[kind][id]
-	return page and self:NewPage(page) or false
+	if not (N and release() == N.release) then return false end
+	local page, patch = entryOf(N, kind, id)
+	if not page then return false end
+	local seen = self:SeenPatch(page)
+	return seen == nil or patch > seen
 end
 -- Listed for this release, seen or not (searching "new" finds these all release long).
 function Panel:InRelease(kind, id)
 	local N = self.NEW
-	return (N and N[kind] and id ~= nil and N[kind][id] and release() == N.release) and true or false
+	return (N and release() == N.release and entryOf(N, kind, id) ~= nil) and true or false
 end
 -- (1.8.0-beta19, after FlareUI) A first install: nothing is new to this player.
 function Panel:MarkAllNewSeen()
 	local N = self.NEW
-	for page in pairs(N and N.pages or {}) do self:MarkPageSeen(page) end
+	local pages = {}
+	for page in pairs(N and N.pages or {}) do pages[page] = true end
+	for _, list in pairs(N and N.added or {}) do
+		for page in pairs(list.pages or {}) do pages[page] = true end
+		for _, kind in ipairs({ "heads", "keys" }) do for _, pg in pairs(list[kind] or {}) do pages[pg] = true end end
+	end
+	for _, kind in ipairs({ "heads", "keys" }) do for _, pg in pairs(N and N[kind] or {}) do pages[pg] = true end end
+	for page in pairs(pages) do self:MarkPageSeen(page) end
 end
 -- (1.8.0-beta20) /bs new reset: this release's tags show again, as just after an update (at once, if Settings is open).
 function Panel:ResetNewForTesting()
@@ -123,11 +182,12 @@ function Panel:SnapshotNew()
 end
 function Panel:MarkPageSeen(page)
 	local N = self.NEW
-	if not (N and page and N.pages[page] and release() == N.release and type(BagSmithDB) == "table") then return end
+	if not (N and page and release() == N.release and type(BagSmithDB) == "table") then return end
+	if #entriesOn(N, page) == 0 then return end   -- (nothing listed there: nothing to remember)
 	if type(BagSmithDB.newSeen) ~= "table" then BagSmithDB.newSeen = {} end
 	local t = BagSmithDB.newSeen[N.release]
 	if type(t) ~= "table" then t = {}; BagSmithDB.newSeen[N.release] = t end
-	t[page] = true
+	t[page] = point() or true   -- (1.9.1-beta3) the version it was opened at
 end
 -- The tag itself, on owner, just right of anchor (x on screen, from its left). Blizzard's NEW label (the game's own soft
 -- blue with its glow, as FlareUI shows it), smaller and with its text at the left; a plain soft-blue NEW where the
@@ -196,7 +256,7 @@ function Panel:Create()
 	end)
 	title.band = f:CreateTexture(nil, "BACKGROUND")
 	title.band:SetPoint("TOPLEFT", f, "TOPLEFT", 4, -4); title.band:SetPoint("TOPRIGHT", f, "TOPRIGHT", -4, -4)
-	title.band:SetPoint("BOTTOM", title, "BOTTOM", 0, -8)
+	title.band:SetPoint("BOTTOM", title, "BOTTOM", 0, -11)   -- (1.9.0-beta20) down to the header's line (was -8: a gap)
 	title.band:SetTexture("Interface\\Buttons\\WHITE8X8"); title.band:SetVertexColor(1, 1, 1, 0.045)
 	local mark = title:CreateTexture(nil, "ARTWORK"); mark:SetSize(16, 16); mark:SetPoint("LEFT", 2, 0)
 	mark:SetTexture("Interface\\AddOns\\BagSmith\\Media\\mark.tga"); self.mark = mark
@@ -248,8 +308,10 @@ function Panel:Create()
 		end
 		b.parent = page[3]
 		if HAS_SUBS[page[1]] then
-			-- A page with sub-pages: a small arrow, right when folded, down when open.
-			b.arrow = b:CreateTexture(nil, "ARTWORK"); b.arrow:SetSize(10, 10); b.arrow:SetPoint("RIGHT", -6, 0)
+			-- A page with sub-pages: a small arrow, right when folded, down when open. (1.9.0-beta22, Shweep: "pull in the
+			-- carrots closer to the words so the new fits better beside them") just after the page's name, not at the
+			-- row's right, so every NEW tag lines up at the right edge.
+			b.arrow = b:CreateTexture(nil, "ARTWORK"); b.arrow:SetSize(10, 10); b.arrow:SetPoint("LEFT", b.text, "RIGHT", Panel.NAV_ARROW_GAP, 0)
 		end
 		b.bar = b:CreateTexture(nil, "ARTWORK"); b.bar:SetPoint("TOPLEFT", 0, -4); b.bar:SetPoint("BOTTOMLEFT", 0, 4); b.bar:SetWidth(3)
 		b.bar:SetTexture("Interface\\Buttons\\WHITE8X8")
@@ -261,7 +323,12 @@ function Panel:Create()
 	end
 
 	-- What's New, at the bottom left under the categories.
-	f.whatsNew = ns.TextButton(f, "What's New", NAV_W - 10, function() ns.WhatsNew:ShowLatest() end)
+	-- (1.9.2-beta1, Shweep) NEW while an update has notes you haven't opened, until you click it
+	f.whatsNew = ns.TextButton(f, "What's New", NAV_W - 10, function()
+		if ns.WhatsNew.MarkButtonSeen then ns.WhatsNew:MarkButtonSeen() end
+		Panel:SyncWhatsNewTag()
+		ns.WhatsNew:ShowLatest()
+	end)
 	f.whatsNew:SetHeight(22)
 	f.whatsNew:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 12, 14)
 	f.whatsNew.tip = "What's new in this version of BagSmith"
@@ -290,11 +357,31 @@ function Panel:Create()
 		local new = math.max(0, math.min(range, (s:GetVerticalScroll() or 0) - delta * WHEEL_STEP))
 		if s.ScrollBar and s.ScrollBar.SetValue then s.ScrollBar:SetValue(new) end
 		s:SetVerticalScroll(new)
+		Panel:SyncHeadShade()
 	end)
 	local child = CreateFrame("Frame", nil, scroll)
 	child:SetSize(1, 1)
 	scroll:SetScrollChild(child)
 	f.child, self.scroll = child, scroll
+	-- (1.9.0-beta20, Shweep: "when you scroll in settings things scroll under the header... a soft shadow or line there
+	-- would help give the header some indication of existing") A line in the skin's line color under the header, across
+	-- the window, where the page is cut off (Modern's title band reaches down to it); and under it, over the page, a soft
+	-- shadow that shows once the page is scrolled, fading in over its first pixels. Above the page's own rows.
+	local shade = CreateFrame("Frame", nil, f)
+	shade:SetPoint("TOPLEFT", nav, "TOPLEFT", 0, 1)
+	shade:SetPoint("TOPRIGHT", scroll, "TOPRIGHT", 22, 1)
+	shade:SetHeight(Panel.HEAD_SHADE_H + 1)
+	shade:SetFrameLevel(scroll:GetFrameLevel() + 50)
+	shade.line = shade:CreateTexture(nil, "ARTWORK")
+	shade.line:SetPoint("TOPLEFT", 0, 0); shade.line:SetPoint("TOPRIGHT", 0, 0); shade.line:SetHeight(1)
+	shade.fade = shade:CreateTexture(nil, "ARTWORK")
+	shade.fade:SetTexture("Interface\\AddOns\\BagSmith\\Media\\ui-shade.tga")
+	shade.fade:SetPoint("TOPLEFT", nav, "TOPRIGHT", 1, 0); shade.fade:SetPoint("TOPRIGHT", scroll, "TOPRIGHT", 0, 0)
+	shade.fade:SetHeight(Panel.HEAD_SHADE_H)
+	shade.fade:SetVertexColor(0, 0, 0, 0.55)
+	shade.fade:SetAlpha(0)
+	f.headShade = shade
+	scroll:HookScript("OnVerticalScroll", function() Panel:SyncHeadShade() end)
 	self.pools = { cornerCards = {}, head = {}, check = {}, seg = {}, step = {}, dropdown = {}, list = {}, text = {}, edit = {}, btn = {}, color = {}, profiles = {}, cmd = {}, bind = {}, about = {}, csec = {}, csechead = {}, moved = {}, gset = {}, ptitle = {}, pagetitle = {}, listhead = {}, card = {}, sep = {}, plug = {}, pnotice = {}, feat = {}, sub = {} }   -- (1.6.0) sub: sub-headings inside a card
 	self.page = self.page or "general"
 	table.insert(UISpecialFrames, "BagSmithSettings")
@@ -333,12 +420,24 @@ function Panel:Create()
 	self:ApplyPosition()
 end
 
+-- (1.9.0-beta22) the gap between a page's name and its arrow in the side list
+Panel.NAV_ARROW_GAP = 4
+-- (1.9.0-beta20) the header's shadow: clear at the top of a page, full once scrolled HEAD_SHADE_RAMP px
+Panel.HEAD_SHADE_H, Panel.HEAD_SHADE_RAMP = 10, 12
+function Panel:SyncHeadShade()
+	local shade = self.frame and self.frame.headShade
+	if not (shade and self.scroll) then return end
+	local y = tonumber(self.scroll:GetVerticalScroll()) or 0
+	shade.fade:SetAlpha(math.max(0, math.min(1, y / Panel.HEAD_SHADE_RAMP)))
+end
+
 function Panel:ApplySkin()
 	local s = Skins:Current()
 	self.mark:SetVertexColor(unpack(s.heading))
 	self.frame.title:SetTextColor(unpack(s.heading))
 	self.frame.sub:SetTextColor(unpack(s.muted))
 	self.nav.line:SetColorTexture(unpack(s.line))
+	if self.frame.headShade then self.frame.headShade.line:SetColorTexture(unpack(s.line)) end   -- (1.9.0-beta20)
 	self:SyncNav()
 end
 
@@ -350,7 +449,16 @@ function Panel:NavRoom()
 	return (f:GetHeight() or WIN_H) - top - NAV_RESERVE
 end
 
+-- (1.9.2-beta1, Shweep: "show a new by it's button in settings if there are new patches until you click that button")
+function Panel:SyncWhatsNewTag()
+	local b = self.frame and self.frame.whatsNew
+	if not b then return end
+	local show = ns.WhatsNew and ns.WhatsNew.ButtonNew and ns.WhatsNew:ButtonNew() or false
+	newTag(b, show, b, 0)
+	if b.newTag and b.newTag:IsShown() then newTag(b, true, b, (NAV_W - 10) - tagWidth(b.newTag) - 8) end
+end
 function Panel:SyncNav()
+	self:SyncWhatsNewTag()
 	local s = Skins:Current()
 	-- Sub-pages show under their page while it or one of them is open (not while searching).
 	local open = not self.query and (PARENT[self.page] or (HAS_SUBS[self.page] and self.page)) or nil
@@ -372,10 +480,12 @@ function Panel:SyncNav()
 		-- (beta18) at the right of the page's row, as FlareUI has it
 		newTag(b, self:NewPage(b.page), b, 0)
 		if b.newTag and b.newTag:IsShown() then
-			-- (beta9, Shweep: "pull them left a hair") a sub-page has no arrow, so its tag may use the arrow's room
-			local x = (NAV_W - 10) - (b.arrow and 12 or 0) - tagWidth(b.newTag)
+			-- (beta9, Shweep: "pull them left a hair") at the row's right edge; (beta22) every row's at the same edge, the
+			-- arrow now beside the page's name
+			local x = (NAV_W - 10) - tagWidth(b.newTag)
 			-- (1.9.0-beta8) a sub-page whose name reaches the tag shows none here: its page above and its heading say NEW
 			local textEnd = (b.icon and ((b.parent and 18 or 8) + 14 + 4) or (b.parent and 24 or 10)) + (b.text:GetStringWidth() or 0)
+				+ (b.arrow and (Panel.NAV_ARROW_GAP + 10) or 0)
 			if b.parent and textEnd + 6 > x then newTag(b, false) else newTag(b, true, b, x) end
 		end
 		if on then b.bar:SetVertexColor(Skins:Accent()); b.bar:Show() else b.bar:Hide() end
@@ -429,6 +539,7 @@ function Panel:ShowPage(page)
 	self.page = page
 	self:MarkPageSeen(page)   -- (beta18) its NEW tags go from the next time Settings opens
 	self.scroll:SetVerticalScroll(0)
+	self:SyncHeadShade()   -- (1.9.0-beta20)
 	self:SyncNav()
 	self:Refresh()
 end
@@ -627,10 +738,24 @@ local function layoutRow(w, label, help, controlW, controlH)
 	if not fits then w.text:SetWidth(rowW - 4) end
 	local helpH = 0
 	w.help:ClearAllPoints(); w.help:SetPoint("TOPLEFT", 2, -(y + 2))
+	w.helpBelow = nil
 	if help and help ~= "" then
 		w.help:SetText(help); w.help:SetTextColor(Skins:Color("muted"))
 		-- Keep the help clear of a control sitting on the label line.
 		helpH = wrapText(w.help, fits and (rowW - controlW - 16) or (rowW - 4)) + 2
+		-- (1.9.1-beta5, Shweep: "descriptions in settings like this one where the word wrap seems excessive") beside a
+		-- wide control the help can wrap into a narrow column; it runs the full width under the control instead
+		-- whenever that makes the row shorter
+		if fits then
+			local belowTop = 4 + (controlH or 22) + 4
+			local belowH = wrapText(w.help, rowW - 4) + 2
+			if belowTop + belowH < (y + 2) + helpH then
+				w.help:ClearAllPoints(); w.help:SetPoint("TOPLEFT", 2, -belowTop)
+				y, helpH, w.helpBelow = belowTop - 2, belowH, true
+			else
+				wrapText(w.help, rowW - controlW - 16)   -- (beside, as before)
+			end
+		end
 		w.help:Show()
 	else
 		w.help:SetText(""); w.help:Hide()
@@ -1591,7 +1716,8 @@ pages.look = function(self, db)
 	do
 		local choices = ns.Fonts and ns.Fonts:Choices() or { { key = "", label = "Default Font" } }
 		for _, c in ipairs(choices) do c.path = ns.Fonts and ns.Fonts:PathOf(c.key) end
-		self:Dropdown("fontName", "Font", choices, "The same item text in another font: BagSmith's own, the game's, or one another addon shares.")
+		-- (1.9.0-beta19) the buttons along the top, the tabs and the character picker too, at their own size
+		self:Dropdown("fontName", "Font", choices, "Your item text and the buttons along the top of your bags in another font: BagSmith's own, the game's, or one another addon shares.")
 	end
 	self:Head("Layout")
 	-- (1.9.0-beta5, Jeor's compact layout; Shweep: "a 3-way button with Full Width, Split View and Compact View") two
@@ -1605,6 +1731,10 @@ pages.look = function(self, db)
 	self:Indented(function()
 		self:Check("splitViewRecentWide", "Full-Width Recent", "Gives Recent Items its own full-width row instead of sharing space with other sections.",
 			layout == "full" and { disabled = true, checked = db.splitViewRecentWide } or nil)
+		-- (1.9.1-beta2, Shweep: "let's have pinned also get a sub-setting under icon layout so like recent can decide if
+		-- full width or not")
+		self:Check("splitViewPinnedWide", "Full-Width Pinned", "Gives each pinned section its own full-width row instead of sharing space with other sections.",
+			layout == "full" and { disabled = true, checked = db.splitViewPinnedWide } or nil)
 	end)
 	self:Check("emptySlots", "Show Empty Slots", "Shows your free bag spaces as empty squares in Icons view. Not shown in By Section.")
 end
@@ -1624,6 +1754,11 @@ pages.icons = function(self, db)
 		keywords = "cooldown cooldowns timer timers countdown",
 	})
 	self:Check("dimJunk", "Dim Junk", "Greys out junk so the rest of your items stand out.")
+	self:Check("unusableOverlay", "Unusable Item Overlay", "Marks equipment, recipes and consumables whose requirements your current character does not meet with a translucent red overlay.")
+	self:Indented(function()
+		-- (1.9.2-beta1, Shweep) "Unusable Item Opacity" (Jeor's "Unusable Overlay Opacity")
+		self:Step("unusableOverlayOpacity", "Unusable Item Opacity", 0.05, "%d%%", "How strong the red tint is on unusable items.", nil, { disabled = not db.unusableOverlay })
+	end)
 	self:Head("Marks")
 	self:Check("newdot", "Green Dot on New Items", "Marks new items with a green dot until you point at them.")
 	if db.newdot then
@@ -1657,6 +1792,16 @@ pages.icons = function(self, db)
 end
 
 pages.automation = function(self, db)
+	-- (1.9.1-beta4, Shweep: "in automation please move BagScleanup, Vendors and Warlock to be first 3 followed by Travel
+	-- Mode and then prompts") Bag Cleanup, Vendors, Clear Soul Shards, Auto Travel Mode, Prompts
+	self:Head("Bag Cleanup")
+	-- (1.9.1-beta5, Shweep: "can we cleanup these descriptions") the three help lines, shorter
+	self:Check("cleanOnOpen", "Clean Up Bags When Opened", "Tidies your bags each time you open them, except in combat or at the bank.")
+	self:Head("Vendors")
+	self:Check("autoSellJunk", "Sell Junk Automatically at Vendors", "Sells your grey and junk-marked items whenever you visit a vendor, grey favorites included. You can buy back the last 12.")
+	self:Head("Clear Soul Shards")
+	-- (Shweep: "clear shards button where? that needs context. Also does it auto destroy any that exceed that count?")
+	self:Step("shardKeep", "Soul Shards to Keep", 1, "%d", "|cff8788eeWarlocks|r only. Soul Shards are only cleared when you click Clear Shards (on their section in your bags) or use the Loot Helper, and you always keep this many. Shards in your soul bag count toward it and are never cleared.")
 	self:Head("Auto Travel Mode")
 	self:Text("Travel Mode is a compact view for adventuring. The signpost by the close button turns it on and off. These settings turn it off when you need your full bags, and back on afterwards.")
 	self:Check("travelLeaveBank", "Leave Travel Mode at the Bank", "Turns it back on when you close the bank.")
@@ -1665,10 +1810,6 @@ pages.automation = function(self, db)
 	self:Check("travelLeaveVendor", "Leave Travel Mode at Vendors", "Turns it back on when you close the vendor.")
 	self:Check("travelLeaveTaxi", "Leave Travel Mode During Flight Paths", "Turns it back on when you land.")
 	self:Check("travelLeaveTrade", "Leave Travel Mode When Trading", "Turns it back on when the trade is finished or canceled.")
-	self:Head("Bag Cleanup")
-	self:Check("cleanOnOpen", "Clean Up Bags When Opened", "Tidies your bags with Blizzard's Clean Up each time you open them, except in combat or at the bank.")
-	self:Head("Vendors")
-	self:Check("autoSellJunk", "Sell Junk Automatically at Vendors", "Sells your grey and junk-marked items when you visit a vendor. You can buy back the last 12. Like Blizzard's own Sell All Junk, it includes grey favorites.")
 	self:Head("Prompts")
 	self:Text("Some actions ask yes or no first, like equipping gear that binds or replacing an enchant. BagSmith can answer Yes for you on the kinds you choose. Hold Shift to answer yourself.")
 	self:Check("autoConfirm", "Auto-Confirm Prompts From BagSmith Actions", "Answers Yes only right after you do one of these in BagSmith. Each one is noted in chat.")
@@ -1688,8 +1829,6 @@ pages.automation = function(self, db)
 			for _, g in ipairs(ns.Prompts and ns.Prompts.GROUPS or {}) do self:Check(g.key, g.label) end
 		end)
 	end)
-	self:Head("Clear Soul Shards")
-	self:Step("shardKeep", "Soul Shards to Keep", 1, "%d", "|cff8788eeWarlock|r only. Clear Soul Shards always leaves you this many. Shards in a soul bag count and are never destroyed.")
 end
 
 pages.loothelper = function(self, db)
@@ -2543,6 +2682,7 @@ function Panel:Refresh()
 		local need = self.y + 10 > h + 1
 		sb:SetShown(need)
 		if not need then self.scroll:SetVerticalScroll(0) end
+		self:SyncHeadShade()   -- (1.9.0-beta20)
 	end
 	if ns.Classic then ns.Classic:DressButtons(self.frame) end   -- new rows match the current skin
 end
@@ -2580,6 +2720,7 @@ function Panel:Open(page, heading)
 	if y and self.scroll then
 		local room = math.max(0, (self.frame.child:GetHeight() or 0) - (self.scroll:GetHeight() or 0))
 		self.scroll:SetVerticalScroll(math.max(0, math.min(room, y - 4)))
+		self:SyncHeadShade()   -- (1.9.0-beta20)
 	end
 	return true, y
 end
@@ -2666,6 +2807,7 @@ function Panel:SetQuery(text)
 	if q and ns.KeyBinds then ns.KeyBinds:CancelCapture() end
 	self.query = q
 	if self.scroll then self.scroll:SetVerticalScroll(0) end
+	self:SyncHeadShade()   -- (1.9.0-beta20)
 	self:SyncNav()
 	self:Refresh()
 end
