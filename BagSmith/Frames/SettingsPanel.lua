@@ -2000,7 +2000,9 @@ pages.sections = function(self, db)
 	self:Seg("grp", "Open with Sections", { { "none", "None" }, { "type", "By Section" }, { "bag", "By Bag" } })
 	self:Check("remember", "Remember Which Sections Are Collapsed")
 	-- (1.9.4-beta2, Shweep: "let's make that a setting to turn showing V and AH in section headers")
-	self:Check("sectionValues", "Show Section Values", "Each section's header shows what its items are worth: V for vendor, and AH while the AH Price column is on. Turn it off to keep headers clean; you can still hover a section's name to see them.")
+	-- (1.9.4, Shweep: "add one sentence to end ... At smaller widths this is displayed as a coin (show coin icon)") the
+	-- coin drawn inline, the header coin's own texture at the text's height
+	self:Check("sectionValues", "Show Section Values", "Each section's header shows what its items are worth: V for vendor, and AH while the AH Price column is on. Turn it off to keep headers clean; you can still hover a section's name to see them. At smaller widths this is displayed as a coin |TInterface\\MoneyFrame\\UI-GoldIcon:0|t.")
 	self:Head("Which Section an Item Goes To")
 	self:Text("An item goes to the first of these that fits: its gear set, Junk if you marked it, Favorites if starred, the section you moved it to, or its usual section.")
 	self:Head("Keys & Reagent Bag")

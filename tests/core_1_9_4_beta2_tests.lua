@@ -59,7 +59,9 @@ end
 	local c
 	for _, w in ipairs(P.pools.check) do if w:IsShown() and w.key == "sectionValues" then c = w end end
 	check(c and c.text.text == "Show Section Values", "Settings > Sections: Show Section Values")
-	check(c and c.help.text == "Each section's header shows what its items are worth: V for vendor, and AH while the AH Price column is on. Turn it off to keep headers clean; you can still hover a section's name to see them.", "its help, as planned")
+	-- (by design since 1.9.4: Shweep's sentence at the end, with the coin drawn inline)
+	check(c and c.help.text == "Each section's header shows what its items are worth: V for vendor, and AH while the AH Price column is on. Turn it off to keep headers clean; you can still hover a section's name to see them. At smaller widths this is displayed as a coin |TInterface\\MoneyFrame\\UI-GoldIcon:0|t.", "its help, as planned, with Shweep's sentence about the coin")
+	check(c and c.help.text:find("|TInterface\\MoneyFrame\\UI-GoldIcon:0|t", 1, true) and c.help.text:find("UI-GoldIcon", 1, true) and select(2, c.help.text:gsub("|T", "")) == 1, "the coin in it: the same gold coin texture the headers use, once")
 	local r
 	for _, w in ipairs(P.pools.check) do if w:IsShown() and w.key == "remember" then r = w end end
 	check(c and r and c.points[1][5] < r.points[1][5], "right after Remember Which Sections Are Collapsed")
