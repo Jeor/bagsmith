@@ -114,6 +114,7 @@ local DEFAULTS = {
 	grp = "type",              -- none | type | bag
 	sort = "quality",          -- quality | name | newest | oldest | ilvl | off (bag order)
 	remember = true,
+	sectionValues = true,      -- (1.9.4-beta2, Shweep) Show Section Values: V and AH on section headers (off: on the name's hover)
 	collapsed = {},
 	bankCollapsed = {},   -- the bank window's own collapsed sections
 	hideJunk = false, minimap = true, animations = true,

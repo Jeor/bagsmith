@@ -88,6 +88,7 @@ QUICK.append("tests/core_1_9_2_beta1_tests.lua")
 QUICK.append("tests/core_1_9_2_beta2_tests.lua")
 QUICK.append("tests/core_1_9_3_beta1_tests.lua")
 QUICK.append("tests/core_1_9_4_beta1_tests.lua")
+QUICK.append("tests/core_1_9_4_beta2_tests.lua")
 
 QUICK.append("tests/core_unusable_overlay_tests.lua")
 
