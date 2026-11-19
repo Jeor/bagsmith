@@ -3,7 +3,7 @@
 Changed:
 - Global Inventory opens and searches faster: it keeps its list until something on your characters changes, instead
   of building it again every time the window redraws.
-- BagSmith takes up about half the space it did: its images are stored compressed, and look the same.
+- BagSmith takes up about a third less space: its images are stored compressed, and look the same.
 - Tracking an item as a currency no longer makes BagSmith redo the currency list every time the game loads an item's
   details (hundreds of times at the auction house); only that item's details do.
 
