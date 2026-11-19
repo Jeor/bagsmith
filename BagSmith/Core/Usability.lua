@@ -42,6 +42,18 @@ local function unmet(text, color, rec)
 	for _, key in ipairs(REQUIREMENTS) do if matches(s, _G[key]) then return true end end
 	return (rec.classID == 2 or rec.classID == 4) and rec.itemSubType ~= nil and s == rec.itemSubType
 end
+-- (1.9.3-beta1, Shweep: "it thinks I can use a gun and sword as a priest - the leather pants tho are correctly red")
+-- A weapon's or armor's type sits on the right of its slot line ("Ranged ... Gun", "One-Hand ... Sword"), red when your
+-- character can't use it. The item's type name is often not what the tooltip says ("Guns", "One-Handed Swords",
+-- "Staves", "Shields"), so only cloth, leather, mail and plate matched above: the slot line decides. Its left side is
+-- the game's own name for the item's slot (INVTYPE_*), so this holds in any language. Read in game on Forever: a
+-- priest's gun shows "Ranged | Gun" in (1, 0.13, 0.13); INVTYPE_RANGEDRIGHT is "Ranged".
+local function slotLine(line, rec)
+	if rec.classID ~= 2 and rec.classID ~= 4 then return false end
+	local slot = type(rec.equipLoc) == "string" and rec.equipLoc ~= "" and _G[rec.equipLoc]
+	if type(slot) ~= "string" or slot == "" or plain(line.leftText) ~= plain(slot) then return false end
+	return type(line.rightText) == "string" and plain(line.rightText) ~= "" and redText(line.rightText, line.rightColor)
+end
 local function unmetLine(line, rec)
 	local types = Enum and Enum.TooltipDataLineType or {}
 	for _, name in ipairs(RESTRICTED) do
@@ -49,6 +61,7 @@ local function unmetLine(line, rec)
 			return redText(line.leftText, line.leftColor) or redText(line.rightText, line.rightColor)
 		end
 	end
+	if slotLine(line, rec) then return true end
 	-- ITEM_REQ_SKILL is just "Requires %s": without a typed line that is ambiguous.
 	return unmet(line.leftText, line.leftColor, rec) or unmet(line.rightText, line.rightColor, rec)
 end

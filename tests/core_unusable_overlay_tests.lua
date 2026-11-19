@@ -52,6 +52,8 @@ for _, skin in ipairs({ "modern", "classic" }) do
 		answer("Requires Alchemy (150)", true); check(U:IsUnusable(rec), "red skill requirement")
 		answer("Requires Alchemy (150)", false); check(not U:IsUnusable(rec), "met skill requirement")
 		answer("Classes: Mage", true); check(U:IsUnusable(rec), "class restriction")
+		-- (1.9.3-beta1) this checks the type-name match only: the game's tooltip says "Sword" on the slot line, not
+		-- "Swords" (Shweep's priest, 19 Nov); the real line is in core_1_9_3_beta1_tests.lua
 		rec.classID = 2; answer("Swords", true, true); check(U:IsUnusable(rec), "unlearned weapon proficiency")
 		for _, text in ipairs({"Cooldown remaining: 10 sec", "Already Known", "Not enough mana", "You are in combat", "Requires a target"}) do
 			answer(text, true); check(not U:IsUnusable(rec), "ignore temporary/known text: " .. text)

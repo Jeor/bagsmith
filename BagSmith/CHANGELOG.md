@@ -1,3 +1,9 @@
+## 1.9.3
+
+Fixed:
+- Unusable Item Overlay now marks weapons, shields and librams, idols or totems your class can't use, like guns and
+  swords on a priest. Before, it only caught armor types such as leather or plate.
+
 ## 1.9.2
 
 New:
