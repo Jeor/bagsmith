@@ -78,3 +78,8 @@ The GitHub Pages demo now includes independent character inventories, all rarity
 - 2.0 focused suite and renamed installed-package suite: 133 checks each passed. Global By Bag restrictions: 10 shipping-appearance checks passed.
 - Upstream font suite: 30 checks passed in its intended legacy-toolbar fixture. Running that historical suite with shipping UI hits one inapplicable legacy hidden-toolbar width assertion; font-face checks pass.
 - Installed 140 verified files, backed up alpha5, and preserved regular BagSmith and saved settings. Actual in-game visual review is still required.
+
+## Alpha7: combined Display choices
+
+- 138 focused checks passed in both source and renamed package; all package Lua files parsed. Coverage includes List-to-icon transitions, grouping restoration, global restrictions and expanded defaults.
+- Installed 140 hash-verified files, with alpha6 backed up and regular BagSmith/settings unchanged. In-game visual confirmation remains required.

@@ -41,3 +41,7 @@ The in-game sidebar now uses the Minimal concept: inline view, layout and groupi
 ## Alpha6 refinement
 
 View, Layout and Group by use direct text choices with subtle fill and a gold selection underline. Layout choices hide when upstream would not use them (List or All Items). Sorting, category details and tools start expanded in each window and can be collapsed for the session. The drawer is 280 UI pixels wide to give the three-choice rows enough space.
+
+## Alpha7 refinement
+
+Display combines List, Standard, Compact and Split on one row. Icon modes switch directly out of List. Compact and Split restore Category grouping when currently viewing All Items. Group by is below Display; all secondary sections remain expanded by default. Global Inventory keeps its list-only restriction.

@@ -73,13 +73,19 @@ for _,button in ipairs(V.grpSegBtns) do
  check(button:IsShown() and button:GetParent()==V.optionsContent,'group choice is directly accessible')
 end
 V.grpSegBtns[1]:GetScript('OnClick')(); M.runTimers()
-check(V:Pref('grp')=='none' and not V.optionsLayout[1]:IsShown(),'All choice hides irrelevant layouts')
+check(V:Pref('grp')=='none' and V.optionsLayout[1]:IsShown(),'display choices remain accessible with All grouping')
 V.grpSegBtns[2]:GetScript('OnClick')(); M.runTimers()
 check(V:Pref('grp')=='type' and V.optionsLayout[1]:IsShown(),'Category choice restores layouts')
 V.viewSegBtns[1]:GetScript('OnClick')(); M.runTimers()
-check(V:Pref('view')=='list' and not V.optionsLayout[1]:IsShown(),'List view hides irrelevant layouts')
-V.viewSegBtns[2]:GetScript('OnClick')(); M.runTimers()
-check(V:Pref('view')=='icons' and V.optionsLayout[1]:IsShown(),'Icons view restores layouts')
+check(V:Pref('view')=='list' and V.optionsLayout[1]:IsShown() and not V.optionsLayout[1].active,'List selects only the list display choice')
+V.optionsLayout[2]:GetScript('OnClick')(); M.runTimers()
+check(V:Pref('view')=='icons' and V.optionsLayout[1]:IsShown(),'Compact display switches directly from List to Icons')
+V.grpSegBtns[1]:GetScript('OnClick')(); M.runTimers()
+V.optionsLayout[3]:GetScript('OnClick')(); M.runTimers()
+check(V:Pref('grp')=='type' and n.db.splitView,'Split restores category grouping when needed')
+V.optionsLayout[2]:GetScript('OnClick')(); M.runTimers()
+check(not V.viewSegBtns[2]:IsShown(),'redundant Icons choice stays hidden')
+
 
 check(V.btnSettings:GetParent()==V.optionsDrawer, 'settings moved out of title bar')
 check(not V.tools:IsShown(), 'old toolbar is hidden')
@@ -126,6 +132,7 @@ check(not wrapped,'compact metadata never grows the category row')
 n:Set('compactCategories',false); n:Set('splitView',true); M.runTimers(); M.runTimers()
 checkHeaders('split')
 V:SetGlobal(true); M.runTimers(); M.runTimers()
+for _,b in ipairs(V.optionsLayout) do check(not b:IsEnabled(),'icon displays are disabled in Global Inventory') end
 for _, b in ipairs(V.grpSegBtns) do if b.value=='bag' then check(not b:IsEnabled(),'Global Inventory still disables By Bag') end end
 V:SetGlobal(false); M.runTimers(); M.runTimers()
 -- Optional details are independently controllable and pooled headers reset.

@@ -124,12 +124,15 @@ function O.Build(v)
 		local paint=b.SetActive
 		b.SetActive=function(self,on) paint(self,on); self:SetFrameLevel(self:GetParent():GetFrameLevel()+2); if not on then self:SetBackdropBorderColor(unpack(ns.Skins:Current().line)); self:SetBackdropColor(1,1,1,0.025) end end
 	end
-	for _,text in ipairs({'View','Layout','Grouping','Sorting','Category Details','Tools'}) do
+	for _,text in ipairs({'View','Display','Layout','Grouping','Sorting','Category Details','Tools'}) do
 		v.optionsLabels[text]=label(content,text)
 	end
 	v.optionsLayout={}
 	for _,it in ipairs({{'Standard',false,false},{'Compact',true,false},{'Split',false,true}}) do
 		local b=button(content,it[1],function()
+			if v.isMain and ns.ui.global then return end
+			v:SetPref('view','icons')
+			if it[1]~='Standard' and v:Pref('grp')=='none' then v:SetPref('grp','type') end
 			ns:Set('compactCategories',it[2],true); ns:Set('splitView',it[3],true)
 			v:FreshLayout(); ns:RefreshViews(true); O.Layout(v)
 		end)
@@ -279,9 +282,10 @@ function O.Layout(v)
 	local function choices(text,buttons)
 		local f=v.optionsLabels[text]; f:ClearAllPoints(); f:SetPoint('TOPLEFT',c,'TOPLEFT',PAD,-y-6)
 		f:SetTextColor(unpack(s.muted)); f:Show()
-		local width=(WIDTH-2*PAD-58)/#buttons
+		y=y+19
+		local width=(WIDTH-2*PAD)/#buttons
 		for j,b in ipairs(buttons) do
-			place(b,c,y,width); b:ClearAllPoints(); b:SetPoint('TOPLEFT',c,'TOPLEFT',PAD+58+(j-1)*width,-y); b:Show()
+			place(b,c,y,width); b:ClearAllPoints(); b:SetPoint('TOPLEFT',c,'TOPLEFT',PAD+(j-1)*width,-y); b:Show()
 			if b.divider then b.divider:Hide() end
 			if not b.optionsChoice then
 				b.optionsUnderline=b:CreateTexture(nil,'ARTWORK'); b.optionsUnderline:SetHeight(1)
@@ -296,13 +300,19 @@ function O.Layout(v)
 			end
 			b:SetActive(b.active)
 		end
-		y=y+34
+		y=y+28
 	end
-	choices('View',v.viewSegBtns)
+	for _,b in ipairs(v.viewSegBtns) do b:Hide() end
 	local mode=ns.db.compactCategories and 'Compact' or ns.db.splitView and 'Split' or 'Standard'
-	for _,b in ipairs(v.optionsLayout) do b:SetActive(b.mode==mode) end
-	-- Upstream layout options only affect grouped icon view.
-	if v:Pref('view')=='icons' and v:Pref('grp')~='none' then choices('Layout',v.optionsLayout) end
+	local list=v:Pref('view')=='list'
+	local display={}
+	for _,b in ipairs(v.viewSegBtns) do if b.value=='list' then b:SetActive(list); display[#display+1]=b end end
+	for _,b in ipairs(v.optionsLayout) do
+		b:SetActive(not list and b.mode==mode)
+		if v.isMain and ns.ui.global then b:Disable() else b:Enable() end
+		display[#display+1]=b
+	end
+	choices('Display',display)
 	v.optionsLabels.Grouping:SetText('Group by')
 	for _,b in ipairs(v.grpSegBtns) do b.label:SetText(b.value=='type' and 'Category' or b.value=='bag' and 'Bag' or 'All') end
 	choices('Grouping',v.grpSegBtns)

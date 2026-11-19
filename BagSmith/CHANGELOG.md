@@ -1,3 +1,8 @@
+## 2.0.0-alpha7
+
+- Combine View and Layout into one Display row: List, Standard, Compact, Split. Icon layout choices switch views directly; Compact/Split restore category grouping when needed.
+- Keep grouping below Display, with the remaining sections expanded by default.
+
 ## 2.0.0-alpha6
 
 - Replace layout/grouping dropdowns with direct text choices and gold selection underlines. Hide irrelevant layouts in List and All Items views.
