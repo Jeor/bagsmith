@@ -17,7 +17,8 @@ handled, so yours gets in smoothly.
 - How to see it in game: the steps, and a screenshot for anything visual (in both skins, Modern and Classic, where it
   applies).
 - That the tests pass: run `python3 tools/run_tests.py` from the repository root (see "Running the tests" in the
-  README). Add or adjust a test in `tests/` when it makes sense; the existing sets show how.
+  README). Add or adjust a test in `tests/` when it makes sense; the existing sets show how, and `tests/README.md`
+  says where a new one goes.
 
 ## House style
 

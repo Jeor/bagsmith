@@ -84,7 +84,8 @@ end
 		check(h ~= nil, f .. " is in the addon")
 		if h then
 			local head = h:read(18); h:close()
-			check(head and head:byte(3) == 2 and head:byte(13) == 64 and head:byte(15) == 64 and head:byte(17) == 32, f .. ": 64x64, 32-bit, like the other icons")
+			-- (by design since 1.9.5-beta1: stored compressed, type 10, or plainly, type 2)
+			check(head and (head:byte(3) == 2 or head:byte(3) == 10) and head:byte(13) == 64 and head:byte(15) == 64 and head:byte(17) == 32, f .. ": 64x64, 32-bit, like the other icons")
 		end
 	end
 	check((n.errors or 0) == 0, "no errors")

@@ -1,6 +1,6 @@
 # QA tools
 
-Run from `/home/claude` (the folder holding `BagSmith/` and `tests/`), with `lupa`:
+Run from the repository root (the folder holding `BagSmith/` and `tests/`), with `lupa`. None of these run with the suite:
 
 - `leak.lua` ... `leak6.lua`: leak probes. Each cycles windows, skins and features many times and prints frames, regions and memory before and after; all three must stay flat. `leak6.lua` covers the most (Travel Mode, junk marks, the share window, trades, Make Room, the new Settings pages).
   `python3 -c "from lupa.lua51 import LuaRuntime; l=LuaRuntime(unpack_returned_tuples=True); l.execute(open('tests/tools/leak6.lua').read())"`
@@ -9,3 +9,5 @@ Run from `/home/claude` (the folder holding `BagSmith/` and `tests/`), with `lup
 - `lc_only.lua`: runs just the lifecycle scenarios (`tests/lifecycle.lua`) and prints failures; handy for red checks against an older build (copy the current tests into the old build's folder).
 - `snapall.py`: `python3 tests/tools/snapall.py modern_check.lua fresh` (or `classic_check.lua classic toClassic`) writes the current layout snapshot to `/tmp/snap_<scenario>.txt`, to diff against the baselines when re-recording.
 - `capture010.lua`: captures saved variables from a prod build (run inside an unzipped prod folder with the tests copied in) to make an upgrade fixture.
+- `zz_dup.lua`: a 1.5.0-beta10 probe (stacked duplicates in a pinned custom section, Sort: Off, Merge Stacks off and on);
+  it prints what each cell shows and checks nothing. Moved here from `tests/` in 1.9.4, when sets moved into folders.

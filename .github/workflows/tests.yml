@@ -1,5 +1,5 @@
 # BagSmith's test suite on every pull request, and on every push to main and dev.
-# It runs the same command as on a desktop: python3 tools/run_tests.py (about ten minutes).
+# It runs the same command as on a desktop: python3 tools/run_tests.py (a few minutes; several sets at once).
 # Mock results: they show the code's behaviour against a mock client, not the real game.
 name: Tests
 
