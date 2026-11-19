@@ -529,16 +529,28 @@ local function headerCoin(h)
 	h.valCoin = b
 	return b
 end
+-- (1.9.4-beta1, Shweep: "Icon View Compact Mode is not showing AH and V in the section headers - prob would use the coin
+-- version tho due to space issues") a Compact View section shows the coin; Recent has no values, so nothing
+local function compactCoin(h, i)
+	h.sub:Hide(); h.vLabel:Hide(); h.vAmt:Hide(); h.aLabel:Hide(); h.aAmt:Hide()
+	if i.recent then
+		if h.valCoin then h.valCoin:Hide() end
+		return
+	end
+	local b = headerCoin(h)
+	b.v, b.ah = i.v, i.ah
+	b:ClearAllPoints(); b:SetPoint("RIGHT", -EDGE, 0); b:Show()
+end
+View.COMPACT_COIN_ROOM = COIN + 8   -- the coin and a gap before it: part of a compact section's minimum width
 local function writeHeaderValues(infos)
-	-- Compact categories keep totals on the heading's tooltip. Specials still
-	-- use their existing notes and controls, with a full row to fit them.
+	-- Compact categories: the coin (hover or click for the values; the heading's own tooltip shows them too).
+	-- Specials still use their existing notes and controls, with a full row to fit them.
 	local regular = {}
 	for _, i in ipairs(infos) do
 		local h = i.h
 		h.compactValues = i.compact and { v = i.v, ah = i.ah } or nil
 		if i.compact and not i.emptyCustom and not i.emptySet then
-			h.sub:Hide(); h.vLabel:Hide(); h.vAmt:Hide(); h.aLabel:Hide(); h.aAmt:Hide()
-			if h.valCoin then h.valCoin:Hide() end
+			compactCoin(h, i)
 		else
 			regular[#regular + 1] = i
 		end
@@ -1634,6 +1646,7 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 					+ (h.clearShards and h.clearShards:IsShown() and h.clearShards:GetWidth() + 8 or 0)
 					+ (h.equipSet and h.equipSet:IsShown() and h.equipSet:GetWidth() + 8 or 0)
 					+ (h.wornTag and h.wornTag:IsShown() and h.wornTag:GetStringWidth() + 10 or 0)
+					+ ((lane.recent or lane.emptyCustom or lane.noteOnly) and 0 or View.COMPACT_COIN_ROOM)   -- (1.9.4-beta1) the coin
 				local room = math.max(1, colW - shift - 6 - h.count:GetStringWidth() - actions - 4)
 				if h.text:GetStringWidth() > room then
 					h.compactWrap = not h.text.CanWordWrap or h.text:CanWordWrap()
@@ -1721,7 +1734,8 @@ function View:Layout(shown, all, plan, width, bagInfo, bank, cached)
 			self.compactMeasure:SetText(lane.label)
 			self.compactCountMeasure:SetText(lane.pinnedSection and ("(%d)   |TInterface\\AddOns\\BagSmith\\Media\\ui-pin.tga:12:12|t Pinned"):format(n) or ("(%d)"):format(n))
 			boxes[i] = { count = #lane.items,
-				minWidth = 20 + self.compactMeasure:GetStringWidth() + 6 + self.compactCountMeasure:GetStringWidth() + 4 + (hasShardAction(lane) and 94 or 0) + (lane.recent and 94 or 0),
+				minWidth = 20 + self.compactMeasure:GetStringWidth() + 6 + self.compactCountMeasure:GetStringWidth() + 4 + (hasShardAction(lane) and 94 or 0) + (lane.recent and 94 or 0)
+					+ ((lane.recent or lane.emptyCustom or lane.noteOnly) and 0 or View.COMPACT_COIN_ROOM),   -- (1.9.4-beta1) the coin
 				fullWidth = (lane.recent and db.splitViewRecentWide) or (lane.pinnedSection and db.splitViewPinnedWide) or lane.gearSet or lane.noteOnly or lane.emptyCustom }   -- (1.9.1-beta2) Full-Width Pinned
 		end
 		local planned = ns.CompactCategories.Rows(boxes, width, cell, GAP, gutter, COL_GAP, LANE_H + 4 + 2 + 8)

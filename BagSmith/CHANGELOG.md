@@ -1,3 +1,8 @@
+## 1.9.4
+
+Changed:
+- Compact View: each section header shows a small coin; hover or click it for that section's vendor and AH value.
+
 ## 1.9.3
 
 Fixed:

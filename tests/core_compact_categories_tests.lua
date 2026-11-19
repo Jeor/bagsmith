@@ -128,7 +128,8 @@ for _, skin in ipairs({ "classic", "modern" }) do
 	local first, width, x = hs[1], hs[1]:GetWidth(), hs[1].points[1][4]
 	local positions = {}
 	for _, h in ipairs(hs) do positions[h.laneId] = { x = h.points[1][4], width = h:GetWidth() } end
-	check(not first.sub:IsShown() and not first.vAmt:IsShown() and not (first.valCoin and first.valCoin:IsShown()), skin .. ": totals leave compact header")
+	-- (by design since 1.9.4-beta1, Shweep: "prob would use the coin version": the totals leave the header's text for the coin)
+	check(not first.sub:IsShown() and not first.vAmt:IsShown() and first.valCoin and first.valCoin:IsShown(), skin .. ": totals leave compact header for the coin")
 	first.scripts.OnEnter(first)
 	check(GameTooltip.shown and table.concat(GameTooltip.lines or {}, " "):find("V:", 1, true), skin .. ": totals accessible on heading hover")
 	V:ToggleLane(first.laneId); M.runTimers()
@@ -229,8 +230,13 @@ for _, skin in ipairs({ "classic", "modern" }) do
 	n:RefreshViews(true); M.runTimers()
 	merged = shardCategory()
 	check(merged.clearShards and merged.clearShards:IsShown(), skin .. ": clear-shards action remains available")
+	-- (by design since 1.9.4-beta1: each section's minimum also holds the coin, so in this 600 px window Modern moves
+	-- Trade Goods to a second row and the first row's two sections widen to fill it; "not a full row" is now checked as
+	-- sharing its row, not as under 300 px)
+	local sharing = false
+	for _, x in ipairs(headers(V)) do if x ~= merged and x.points[1][5] == merged.points[1][5] then sharing = true end end
 	check(merged:GetWidth() >= 30 + merged.text:GetStringWidth() + merged.count:GetStringWidth() + 94
-		and merged:GetWidth() < 300, skin .. ": reserve actual action width without forcing a row")
+		and sharing, skin .. ": reserve actual action width without forcing a row")
 	n.MakeRoom.IsWarlock = function() return false end
 	n:Set("mergeStacks", false); M.runTimers()
 	local restored, restoredIcons = shardCategory()
