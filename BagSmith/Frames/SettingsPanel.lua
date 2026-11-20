@@ -1508,7 +1508,14 @@ end
 function Panel:CustomSectionRow(c)
 	local w = acquire(self, "csec", function(p)
 		local w = CreateFrame("Frame", nil, p); w:SetHeight(26)
-		w.text = fs(w); w.text:SetPoint("LEFT", 6, 0)
+		-- (1.10.0-beta1) its place in the list is its priority: the higher section gets an item first
+		w.up = ns.IconButton(w, "Interface\\AddOns\\BagSmith\\Media\\ui-chev-up.tga", "Move this section up. When an item fits more than one section, the higher one gets it.", function(b) if ns.Sections:Reorder(b:GetParent().id, -1) then Panel:Refresh() end end)
+		w.up:SetSize(12, 12); w.up:SetPoint("LEFT", 4, 6)
+		w.down = ns.IconButton(w, "Interface\\AddOns\\BagSmith\\Media\\ui-chev-down.tga", "Move this section down.", function(b) if ns.Sections:Reorder(b:GetParent().id, 1) then Panel:Refresh() end end)
+		w.down:SetSize(12, 12); w.down:SetPoint("LEFT", 4, -6)
+		w.text = fs(w); w.text:SetPoint("LEFT", 22, 0)
+		-- its rules, in words, on a line of their own under the name
+		w.sub = fs(w); w.sub:SetPoint("TOPLEFT", w, "BOTTOMLEFT", 22, 4); w.sub:SetPoint("RIGHT", -8, 0)
 		w.del = ns.IconButton(w, "Interface\\AddOns\\BagSmith\\Media\\ui-close.tga", "Delete this section", function(b) ns.Sections:ConfirmDelete(b:GetParent().id, b) end)
 		w.del:SetSize(18, 18); w.del:SetPoint("RIGHT", -4, 0)
 		w.ren = ns.IconButton(w, "Interface\\AddOns\\BagSmith\\Media\\ui-pencil.tga", "Rename this section", function(b) ns.Sections:PromptRename(b:GetParent().id) end)
@@ -1519,12 +1526,17 @@ function Panel:CustomSectionRow(c)
 		return w
 	end)
 	w.id = c.id
-	local n = ns.Sections:ItemCount(c.id)
+	-- (1.10.0-beta1) the items you put in it and the ones its rules bring in (each once)
+	local n = ns.Sections.SectionCount and ns.Sections:SectionCount(c.id) or ns.Sections:ItemCount(c.id)
 	w.text:SetText(("%s  |cff9a9a9a(%d %s)|r"):format(c.name, n, n == 1 and "item" or "items"))
 	w.text:SetTextColor(Skins:Color("text"))
 	w.empty:SetChecked(c.showEmpty ~= false)
 	w.empty:SetAlpha(ns.db.showEmptySections and 1 or 0.5)
-	self.y = self.y + 28
+	local at, count = ns.Sections:Priority(c.id) or 1, #ns.Sections:Customs()
+	w.up:SetAlpha(at > 1 and 1 or 0.3); w.down:SetAlpha(at < count and 1 or 0.3)
+	local summary = (c.rules and ns.Rules) and ns.Rules:Summary(c.rules) or ""
+	w.sub:SetText(summary); w.sub:SetTextColor(Skins:Color("muted")); w.sub:SetShown(summary ~= "")
+	self.y = self.y + 28 + (summary ~= "" and 14 or 0)
 end
 -- A gear set: its icon (click or drag it to put the set on an action bar),
 -- its name and how many items it holds, then a pencil (Rename) and an x (Delete).
@@ -2149,11 +2161,14 @@ pages.custom = function(self, db)
 	self:PageHead("Custom Sections", "custom")
 	self:Text("Make your own sections. Drag an item onto a section's title, or Alt+Left-click it, to move it there. Every copy of the item moves with it.")
 	self:Button("New Section...", function() ns.Sections:PromptNew() end)
+	-- (1.10.0-beta1) sections that fill themselves
+	self:Text("A section can also fill itself: Alt+Left-click an item and pick New Section From This Item.")
 	self:Check("showEmptySections", "Show Empty Custom Sections", "Shows your sections even when they're empty, so you can drag items onto them.")
 	local customs = ns.Sections:Customs()
 	if #customs == 0 then
 		self:Text("No sections yet. New Section... makes one.")
 	else
+		if #customs > 1 then self:Text("If an item fits more than one of your sections, the higher one gets it. Use the arrows to change their order.") end
 		self:CustomSectionHeader()
 		for _, c in ipairs(customs) do self:CustomSectionRow(c) end
 	end

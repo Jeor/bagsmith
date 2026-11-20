@@ -1,3 +1,14 @@
+## 1.10.0
+
+New:
+- Custom sections can fill themselves. Alt+Left-click an item and pick New Section From This Item, tick what the
+  items should have in common with it (its type, slot, quality or binding), and see what would go in the section
+  before you create it.
+- When an item fits more than one of your sections, the higher one in Settings > Custom Sections gets it. Arrows
+  there change their order, and each section shows its rules in words.
+Changed:
+- An item you move back to its usual section by hand stays there, even when one of your sections would take it.
+
 ## 1.9.5
 
 Changed:

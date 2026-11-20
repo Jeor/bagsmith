@@ -147,7 +147,8 @@ local DEFAULTS = {
 	bankColOrder = { "c", "n", "t", "bd", "v", "w", "age", "fv", "cc", "jk", "il", "rq", "sl", "ah" },
 	fvccCols = true,           -- the Favorite and Currency columns have been added to this profile's columns once (0.13)
 	favItems = {},             -- favorited items (item IDs), shown in the Favorites section
-	customSections = {},       -- your own sections: { id = "c1", name = "Professions" }, ...
+	customSections = {},       -- your own sections: { id = "c1", name = "Professions" }, ...; (1.10.0-beta1) in priority order,
+	                           -- each with optional rules = { mode = "all" | "any", rows = { { k, v = {...}, n }, ... } }
 	sectionMoves = {},         -- [itemID] = section id: items moved to another section
 	sectionHide = {},          -- [section id] = { vendor = true, ah = true }: hidden there
 	newdotClearRecent = true,  -- Clear Recent also clears the green dots
@@ -433,6 +434,8 @@ local validators = {
 				-- showEmpty: only "false" is stored (missing means on).
 				local entry = { id = c.id, name = c.name:sub(1, 40) }
 				if c.showEmpty == false then entry.showEmpty = false end
+				-- (1.10.0-beta1) its rules, cleaned (Core/Rules.lua): a saved or imported profile is never trusted as it comes
+				if c.rules ~= nil and ns.Rules and ns.Rules.Clean then entry.rules = ns.Rules.Clean(c.rules) end
 				out[#out + 1] = entry
 			end
 		end
