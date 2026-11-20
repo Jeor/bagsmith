@@ -23,6 +23,9 @@ Buttons.cached, Buttons.lanes = {}, {}   -- keyed by host frame
 Buttons.created = false
 
 local ICON_ROW = 20
+local CLASSIC_FRAME = "Interface\\AddOns\\BagSmith\\Media\\ui-icon-frame.tga"
+local CLASSIC_FRAME_BOLD = "Interface\\AddOns\\BagSmith\\Media\\ui-icon-frame-bold.tga"
+local CLASSIC_MASK = "Interface\\AddOns\\BagSmith\\Media\\ui-icon-mask.tga"
 local COL_KEYS = { "colName", "colWho", "colQty", "colLevel", "colReq", "colType", "colSlot", "colBind", "colValue", "colWhere", "colAge", "colAH" }
 Buttons.COL_KEYS = COL_KEYS
 
@@ -144,6 +147,7 @@ Buttons.PixelSize = pixelSize   -- (1.7.3-beta3) also the resize outline's line 
 
 -- Classic frames share the icon bounds without changing the slot footprint.
 function Buttons:DrawClassicFrame(b, frame, r, g, bl, a)
+	frame:SetTexture(ns.db and ns.db.borderWeight == "bold" and CLASSIC_FRAME_BOLD or CLASSIC_FRAME)
 	frame:SetVertexColor(r, g, bl, a)
 	frame:Show()
 end
@@ -227,19 +231,18 @@ function Buttons.AddFrame(b)
 	b.qRing:SetTexture("Interface\\Buttons\\WHITE8X8")
 	if b.qRing.SetRoundLayoutToNearestPixel then b.qRing:SetRoundLayoutToNearestPixel(false) end
 	b.qRing:Hide()
-	-- Classic cells: Blizzard's own slot ring (UI-Quickslot2) and its white
-	-- icon frame tinted by rarity, exactly what the default bags draw.
+	-- Classic cells share one contour for the artwork mask and tinted frame.
 	b.slotRing = b:CreateTexture(nil, "OVERLAY", nil, 1)
 	b.slotRing:SetTexture("Interface\\Buttons\\UI-Quickslot2")
 	b.slotRing:Hide()
 	b.qFrame = b:CreateTexture(nil, "OVERLAY", nil, 2)
-	b.qFrame:SetTexture("Interface\\Common\\WhiteIconFrame")
+	b.qFrame:SetTexture(CLASSIC_FRAME)
 	if b.qFrame.SetRoundLayoutToNearestPixel then b.qFrame:SetRoundLayoutToNearestPixel(false) end
 	b.qFrame:Hide()
 	-- The neutral item outline must be above the picture, independently of
 	-- the empty-slot background. Full-size icons otherwise cover its rim.
 	b.defaultFrame = b:CreateTexture(nil, "OVERLAY", nil, 2)
-	b.defaultFrame:SetTexture("Interface\\Common\\WhiteIconFrame")
+	b.defaultFrame:SetTexture(CLASSIC_FRAME)
 	b.defaultFrame:SetVertexColor(0.72, 0.72, 0.72, 1)
 	b.defaultFrame:SetAllPoints(b.icon)
 	if b.defaultFrame.SetRoundLayoutToNearestPixel then b.defaultFrame:SetRoundLayoutToNearestPixel(false) end
@@ -437,8 +440,18 @@ function Buttons:ApplyQuality(b, rec)
 end
 
 function Buttons:ApplyIconCrop(b)
-	if not b.icon or b.globalChildIcon then return end
+	if not b.icon then return end
 	local modern = (ns.db and ns.db.skin or "modern") == "modern"
+	local masked = not modern and b.mode == "cell" and not b.globalChildIcon
+	if masked and not b.classicMask and b.CreateMaskTexture and b.icon.AddMaskTexture then
+		b.classicMask = b:CreateMaskTexture()
+		b.classicMask:SetAllPoints(b.icon)
+		if b.classicMask.SetRoundLayoutToNearestPixel then b.classicMask:SetRoundLayoutToNearestPixel(false) end
+		b.icon:AddMaskTexture(b.classicMask)
+		if b.slotBG and b.slotBG.AddMaskTexture then b.slotBG:AddMaskTexture(b.classicMask) end
+	end
+	if b.classicMask then b.classicMask:SetTexture(masked and CLASSIC_MASK or "Interface\\Buttons\\WHITE8X8") end
+	if b.globalChildIcon then return end
 	local left, right = modern and 0.08 or 0.07, modern and 0.92 or 0.93
 	b.icon:SetTexCoord(left, right, left, right)
 end

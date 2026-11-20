@@ -106,7 +106,7 @@ live.IconBorder:SetAtlas("item-update-border")
 local cached = pool:GetCached(addon.Window.main.child, 1)
 for _, b in ipairs({ live, cached }) do
 	pool:SetMode(b, "cell"); pool:ApplyQuality(b, { quality = 2 })
-	check(b.qFrame.texture == "Interface\\Common\\WhiteIconFrame", "live/cached pool uses silver frame despite native updates")
+	check(b.qFrame.texture == "Interface\\AddOns\\BagSmith\\Media\\ui-icon-frame.tga", "live/cached pool uses matching frame despite native updates")
 	check(not b.IconBorder or not b.IconBorder:IsShown(), "native region stays hidden to avoid duplicate borders")
 end
 check(live.IconBorder:GetAlpha() == 0, "secure template cannot restore a second visible frame")
