@@ -146,7 +146,7 @@ end
 Buttons.PixelSize = pixelSize   -- (1.7.3-beta3) also the resize outline's line (Frames/Outline.lua)
 
 -- Classic frames share the icon bounds without changing the slot footprint.
-function Buttons:DrawClassicFrame(b, frame, r, g, bl, a)
+function Buttons:DrawClassicFrame(frame, r, g, bl, a)
 	frame:SetTexture(ns.db and ns.db.borderWeight == "bold" and CLASSIC_FRAME_BOLD or CLASSIC_FRAME)
 	frame:SetVertexColor(r, g, bl, a)
 	frame:Show()
@@ -358,7 +358,7 @@ local function drawIndicatorFrame(self, b, kind)
 		b.qRing:Show(); b.qFrame:Hide()
 	else
 		self:UpdateClassicBorderGeometry(b)
-		self:DrawClassicFrame(b, b.qFrame, r, g, bl, a)
+		self:DrawClassicFrame(b.qFrame, r, g, bl, a)
 		b.qRing:Hide()
 	end
 end
@@ -408,7 +408,7 @@ function Buttons:ApplyQuality(b, rec)
 		if not quest and (q < 2 or not colored) then
 			if classicCell then
 				b.qFrame:Hide(); b.qRing:Hide()
-				if b.defaultFrame then self:DrawClassicFrame(b, b.defaultFrame, 0.72, 0.72, 0.72, 1) end
+				if b.defaultFrame then self:DrawClassicFrame(b.defaultFrame, 0.72, 0.72, 0.72, 1) end
 				return
 			end
 			-- The textured frame loses thin edges when reduced to list size.
@@ -421,9 +421,8 @@ function Buttons:ApplyQuality(b, rec)
 		b.qRing:Hide(); b.qFrame:Hide(); b.frameEdge:Hide(); b.frameBG:Hide()
 		self:DrawModernBorder(b, r, g, bl)
 	elseif classicCell then
-		-- WhiteIconFrame is the clipped, silver bag outline. The template's
-		-- initial IconBorder can instead contain a dark inset frame.
-		self:DrawClassicFrame(b, b.qFrame, r, g, bl, 1)
+		-- The tinted frame follows the same contour as the artwork mask.
+		self:DrawClassicFrame(b.qFrame, r, g, bl, 1)
 		b.qRing:Hide()
 	elseif ns.db and ns.db.borderWeight == "bold" then
 		b.qRing:Hide(); b.qFrame:Hide()
