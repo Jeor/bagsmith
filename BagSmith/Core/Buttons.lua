@@ -142,77 +142,19 @@ end
 
 Buttons.PixelSize = pixelSize   -- (1.7.3-beta3) also the resize outline's line (Frames/Outline.lua)
 
--- Reinforce only the part of the Classic bevel outside the item artwork.
--- Both layers share their bounds and texture coordinates at every scale.
-function Buttons:UpdateClassicBoldGeometry(b)
-	if not b.classicBoldActive then return end
-	local x, y, w, h = b.icon:GetRect()
-	if not (x and y and w and h and w > 0 and h > 0) then return end
-	local pixel = pixelSize(b)
-	-- The base frame and reinforcement share the expanded bounds. Expanding
-	-- only the reinforcement produces two bevel contours at each corner.
-	local thick = b.classicBorderOutset or 0
-	if b.boldW == w and b.boldH == h and b.boldPixel == pixel and b.boldOutset == thick then return end
-	b.boldW, b.boldH, b.boldPixel, b.boldOutset = w, h, pixel, thick
-	-- Crop four disjoint strips from the same full-frame texture.
-	local frameW, frameH = w + 2 * thick, h + 2 * thick
-	local rects = {
-		{-thick, -thick, w + 2 * thick, thick},
-		{-thick, h, w + 2 * thick, thick},
-		{-thick, 0, thick, h},
-		{w, 0, thick, h},
-	}
-	for i, rect in ipairs(rects) do
-		local part = b.classicBold[i]
-		part.boldVisible = thick > 0 and rect[3] > 0 and rect[4] > 0
-		part:ClearAllPoints()
-		part:SetPoint("BOTTOMLEFT", b.icon, "BOTTOMLEFT", rect[1], rect[2])
-		part:SetSize(math.max(pixel, rect[3]), math.max(pixel, rect[4]))
-		part:SetTexCoord((rect[1] + thick) / frameW, (rect[1] + rect[3] + thick) / frameW,
-			1 - (rect[2] + rect[4] + thick) / frameH, 1 - (rect[2] + thick) / frameH)
-		if part.boldVisible then part:Show() else part:Hide() end
-	end
-end
-
+-- Classic frames share the icon bounds without changing the slot footprint.
 function Buttons:DrawClassicFrame(b, frame, r, g, bl, a)
 	frame:SetVertexColor(r, g, bl, a)
 	frame:Show()
-	if not (ns.db and ns.db.borderWeight == "bold") then return end
-	if not b.classicBold then
-		b.classicBold = {}
-		for i = 1, 4 do
-			local part = b:CreateTexture(nil, "OVERLAY", nil, 2)
-			part:SetTexture("Interface\\Common\\WhiteIconFrame")
-			part:SetBlendMode("ADD")
-			if part.SetRoundLayoutToNearestPixel then part:SetRoundLayoutToNearestPixel(false) end
-			b.classicBold[i] = part
-		end
-	end
-	b.classicBoldActive = true
-	self:UpdateClassicBoldGeometry(b)
-	for _, part in ipairs(b.classicBold) do
-		part:SetVertexColor(r, g, bl, a)
-		if part.boldVisible then part:Show() else part:Hide() end
-	end
 end
 
 function Buttons:UpdateClassicBorderGeometry(b)
 	if (ns.db and ns.db.skin or "modern") ~= "classic" then return end
-	local pixel = pixelSize(b)
-	local gap = (ns.View and ns.View.C and ns.View.C.GAP) or 6
-	-- Reserve two pixels for separation and independent icon-origin rounding.
-	-- Tiny scales reduce the margin rather than joining neighboring frames.
-	local maxMargin = ns.db and ns.db.borderWeight == "bold" and 3 or 2
-	local margin = math.max(0, math.min(maxMargin, math.floor((math.floor(gap / pixel) - 2) / 2)))
-	local outset = b.mode == "cell" and margin * pixel or 0
-	if b.classicBorderOutset == outset then self:UpdateClassicBoldGeometry(b); return end
 	for _, frame in ipairs({ b.qFrame, b.defaultFrame }) do
 		frame:ClearAllPoints()
-		frame:SetPoint("TOPLEFT", b.icon, "TOPLEFT", -outset, outset)
-		frame:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", outset, -outset)
+		frame:SetPoint("TOPLEFT", b.icon, "TOPLEFT", 0, 0)
+		frame:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", 0, 0)
 	end
-	b.classicBorderOutset = outset
-	self:UpdateClassicBoldGeometry(b)
 end
 
 -- Always derive from the layout's original rectangle, never from yesterday's
@@ -268,7 +210,6 @@ function Buttons.AddFrame(b)
 		b:HookScript("OnSizeChanged", changed)
 		b.iconGeometryHooks = true
 	end
-	b.classicBorderOutset = nil
 	-- Numeric labels stay above the slot and rarity frames without moving.
 	if b.Count and b.Count.SetDrawLayer then b.Count:SetDrawLayer("OVERLAY", 3) end
 	if b.icon.SetRoundLayoutToNearestPixel then b.icon:SetRoundLayoutToNearestPixel(false) end
@@ -420,8 +361,6 @@ local function drawIndicatorFrame(self, b, kind)
 end
 
 function Buttons:ApplyQuality(b, rec)
-	b.classicBoldActive = nil
-	for _, part in ipairs(b.classicBold or {}) do part:Hide() end
 	self:UpdateIconGeometry(b)
 	self:UpdateClassicBorderGeometry(b)
 	if b.defaultFrame then b.defaultFrame:Hide() end
@@ -497,26 +436,11 @@ function Buttons:ApplyQuality(b, rec)
 	end
 end
 
-local function near(a, b) return math.abs(a - b) < 0.00001 end
 function Buttons:ApplyIconCrop(b)
-	if not b.icon then return end
-	if b.globalChildIcon then return end   -- (1.9.0-beta3) a Global Inventory character row's class icon keeps its own coordinates
-	if (ns.db and ns.db.skin or "modern") == "modern" then
-		local a, c, d, e, f, g, h, i = b.icon:GetTexCoord()
-		if not (near(a, 0.08) and near(c, 0.08) and near(d, 0.08) and near(e, 0.92)
-			and near(f, 0.92) and near(g, 0.08) and near(h, 0.92) and near(i, 0.92)) then
-			-- Item updates reset the crop; retain those coordinates for Classic.
-			local coords = b.classicIconCoords or {}
-			coords[1], coords[2], coords[3], coords[4] = a, c, d, e
-			coords[5], coords[6], coords[7], coords[8] = f, g, h, i
-			b.classicIconCoords = coords
-			b.modernCropActive = true
-			b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-		end
-	elseif b.modernCropActive then
-		b.icon:SetTexCoord(unpack(b.classicIconCoords))
-		b.modernCropActive = nil
-	end
+	if not b.icon or b.globalChildIcon then return end
+	local modern = (ns.db and ns.db.skin or "modern") == "modern"
+	local left, right = modern and 0.08 or 0.07, modern and 0.92 or 0.93
+	b.icon:SetTexCoord(left, right, left, right)
 end
 
 function Buttons:ApplyFrame(b)
@@ -1371,7 +1295,6 @@ function Buttons:TemplateLeftovers(b)
 	for _, k in ipairs(COL_KEYS) do if b[k] then known[b[k]] = true end end
 	for _, sep in ipairs(b.seps or {}) do known[sep] = true end
 	for _, edge in ipairs(b.modernBorder or {}) do known[edge] = true end
-	for _, edge in ipairs(b.classicBold or {}) do known[edge] = true end
 	if b.GetHighlightTexture then local h = b:GetHighlightTexture(); if h then known[h] = true end end
 	local names = {}
 	for k, v in pairs(b) do if type(v) == "table" and type(k) == "string" then names[v] = names[v] or k end end
@@ -1584,7 +1507,7 @@ local function globalChildPlaces(b, child)
 end
 function Buttons:Fill(b, rec, opts)
 	if b.globalChildIcon and not rec.globalChild then
-		b.globalChildIcon, b.modernCropActive = nil, nil
+		b.globalChildIcon = nil
 		b.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 	end
 	globalChildPlaces(b, rec.globalChild)

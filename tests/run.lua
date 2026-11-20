@@ -6954,8 +6954,8 @@ end)()
 	M.fire("ADDON_LOADED", "BagSmith"); M.fire("PLAYER_ENTERING_WORLD"); M.runTimers(); M.runTimers()
 	ToggleAllBags(); M.runTimers()
 	local b = n.Buttons:Get(0, 1)
-	check(b.qFrame:IsShown() and b.qFrame.points[1][2] == b.icon and b.qFrame.points[1][4] == -2 * n.Buttons.PixelSize(b) and b.qFrame.points[2][4] == 2 * n.Buttons.PixelSize(b) and b.icon.points[1][2] == b and b.icon.points[1][4] == 0 and b.icon.points[2][4] == 0,
-		"Classic: full-slot icon retains a two-screen-pixel frame margin")
+	check(b.qFrame:IsShown() and b.qFrame.points[1][2] == b.icon and b.qFrame.points[1][4] == 0 and b.qFrame.points[2][4] == 0 and b.icon.points[1][2] == b and b.icon.points[1][4] == 0 and b.icon.points[2][4] == 0,
+		"Classic: frame matches the full-slot icon bounds")
 end)()
 
 ;(function()

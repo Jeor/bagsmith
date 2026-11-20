@@ -54,7 +54,7 @@ for _, setting in ipairs({ "all", "unc", "off" }) do
 		check(not b.qFrame.shown, "moving an ordinary item to Quest does not change its border")
 		B:ApplyQuality(b, { quality = 1, isQuest = true })
 		check(b.qFrame.shown and b.qFrame.color[1] == 1 and b.qFrame.color[2] == .82 and b.qFrame.color[3] == 0, "quest items have gold borders")
-		check(b.qFrame.points[1][2] == b.icon and b.qFrame.points[1][4] == -2 * B.PixelSize(b) and b.qFrame.points[2][4] == 2 * B.PixelSize(b), "frame leaves breathing room outside the icon")
+		check(b.qFrame.points[1][2] == b.icon and b.qFrame.points[1][4] == 0 and b.qFrame.points[2][4] == 0, "frame matches the icon bounds")
 		B:ApplyQuality(b, { quality = 1 })
 		check(not b.qFrame.shown, "reusing quest cell removes added border")
 		B:ApplyQuality(b, nil)
@@ -118,7 +118,7 @@ for _, b in ipairs({live, cached}) do
  for _, q in ipairs({0, 1, 2}) do
   addon.db.skin = "classic"; pool:SetMode(b, "cell"); pool:ApplyQuality(b, {quality=q})
   check(b.icon.points[1][2] == b and b.icon.points[1][4] == 0 and b.icon.points[2][4] == 0, "Classic artwork fills slot for every rarity")
-  if q == 2 then check(b.qFrame.points[1][2] == b.icon and b.qFrame.points[1][4] == -2 * B.PixelSize(b) and b.qFrame.points[2][4] == 2 * B.PixelSize(b), "rarity frame leaves a physical-pixel margin") end
+  if q == 2 then check(b.qFrame.points[1][2] == b.icon and b.qFrame.points[1][4] == 0 and b.qFrame.points[2][4] == 0, "rarity frame matches the icon bounds") end
  end
  addon.db.skin = "modern"; pool:ApplyFrame(b)
  check(b.icon.points[1][4] == 2 and b.icon.points[2][4] == -2, "Modern retains inset after Classic")

@@ -44,10 +44,10 @@ for _, secure in ipairs({true,false}) do
   ns.db.skin='classic'
   ns.Buttons:ApplyFrame(b)
   ns.Buttons:ApplyQuality(b,record)
-  assert(b.icon.coords[1]==0 and b.icon.coords[8]==1, 'Classic restores original full artwork immediately')
+  assert(b.icon.coords[1]==0.07 and b.icon.coords[8]==0.93, 'Classic applies a consistent crop immediately')
   assert(b.qFrame.shown and not b.qRing.shown, 'Classic quality frame survives')
   ns.Buttons:Fill(b,record)
-  assert(b.icon.coords[1]==0 and b.icon.coords[8]==1, 'Classic updates remain unchanged')
+  assert(b.icon.coords[1]==0.07 and b.icon.coords[8]==0.93, 'Classic crop survives item updates')
   ns.db.skin='modern'
   ns.Buttons:ApplyFrame(b)
   assert(b.icon.coords[1]==0.08, 'Switching to Modern reapplies crop immediately')

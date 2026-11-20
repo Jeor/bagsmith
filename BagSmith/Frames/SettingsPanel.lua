@@ -1745,7 +1745,7 @@ pages.icons = function(self, db)
 	self:Head("Appearance")
 	self:Seg("border", "Rarity Borders", { { "all", "All" }, { "unc", "Green and Up" }, { "off", "Off" } })
 	self:Check("questFrame", "Gold Frame for Quest Items", "Quest items get a gold frame, whatever Rarity Borders is set to.")   -- (1.8.0-beta11)
-	self:Seg("borderWeight", "Icon Border Weight", { { "normal", "Normal" }, { "bold", "Bold" } })
+	self:Seg("borderWeight", "Icon Border Weight", { { "normal", "Normal" }, { "bold", "Bold" } }, "Applies to Modern icons and list-view borders. Classic grid icons use a single textured frame.")
 	self:Step("iconSize", "Icon Size (Icons View)", 2, "%d", nil, {
 		title = "Smaller icons",
 		lines = {
