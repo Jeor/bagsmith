@@ -7,7 +7,9 @@
 	  1. marked as junk: Junk (so junk always sells);
 	  2. a favorite, while the Favorites section is on: Favorites;
 	  3. the section you moved it to;
-	  4. its usual section by type (Core/Classify.lua).
+	  4. (1.10.0-beta1) the first custom section, in your Custom Sections order, whose rules it fits (Core/Rules.lua);
+	     grey items are left to Junk;
+	  5. its usual section by type (Core/Classify.lua).
 
 	Moves are by item ID (every copy). Custom sections have ids "c1", "c2"...
 	and sit in Section Order with the built-in ones. Each section can be
@@ -141,10 +143,21 @@ function S:OwnCategory(rec)
 	return own
 end
 
+-- (1.10.0-beta1) The first custom section whose rules the item fits, in Custom Sections order (its priority: the
+-- higher section gets an item first). Grey items never: they stay in Junk unless you move one yourself.
+function S:RuleSection(rec, own, skip)
+	if (own or rec.ownCat) == "Junk" or rec.quality == 0 then return nil end
+	local Rules = ns.Rules
+	if not Rules then return nil end
+	for _, c in ipairs(self:Customs()) do
+		if c.rules and c.id ~= skip and Rules:Fits(c.rules, rec) then return c.id end
+	end
+	return nil
+end
 -- The section a record goes to, before junk marks (the scanner applies those).
 function S:Apply(rec, own)
 	own = own or rec.ownCat or ns:Categorize(rec)
-	return self:MovedTo(rec.itemID) or own
+	return self:MovedTo(rec.itemID) or self:RuleSection(rec, own) or own
 end
 -- Re-sort what's already scanned after a move, without a rescan.
 -- (1.5.0-beta9) Split Consumables changed: every consumable works out its own section again.
@@ -181,12 +194,13 @@ function S:Move(itemID, to)
 	if not (itemID and self:CanTake(to)) then return false end
 	local moves = ns.db.sectionMoves
 	-- Moving an item to its own section just undoes the move.
-	local own
+	-- (1.10.0-beta1) Unless a rule would take it: then the move back is kept, or the rule would take it straight back.
+	local own, found
 	for _, list in ipairs({ ns.items or {}, ns.bankItems or {} }) do
-		for _, rec in ipairs(list) do if rec.itemID == itemID then own = rec.ownCat or ns:Categorize(rec); break end end
+		for _, rec in ipairs(list) do if rec.itemID == itemID then own = rec.ownCat or ns:Categorize(rec); found = rec; break end end
 		if own then break end
 	end
-	if own and own == to then moves[itemID] = nil else moves[itemID] = to end
+	if own and own == to and not (found and self:RuleSection(found, own)) then moves[itemID] = nil else moves[itemID] = to end
 	self:Reapply()
 	self:RefreshManager()
 	return true
@@ -237,6 +251,84 @@ function S:Create(name)
 	table.insert(order, at or (#order + 1), id)
 	ns:Fire("SETTINGS_CHANGED", "customSections")
 	return id
+end
+-- (1.10.0-beta1) A section's rules (Core/Rules.lua), cleaned before they're kept; nil or nothing usable removes them.
+function S:SetRules(id, rules)
+	local c = self:Custom(id)
+	if not c then return false end
+	c.rules = ns.Rules and ns.Rules.Clean(rules) or nil
+	ns:Fire("SETTINGS_CHANGED", "customSections")
+	self:Reapply(); self:RefreshManager()
+	return true
+end
+function S:Rules(id) local c = self:Custom(id); return c and c.rules or nil end
+-- A new section with rules, last in priority.
+function S:CreateWithRules(name, rules)
+	local clean = ns.Rules and ns.Rules.Clean(rules)
+	if not clean then return nil, "Tick at least one thing for the items to have in common." end
+	local id, why = self:Create(name)
+	if not id then return nil, why end
+	self:SetRules(id, clean)
+	return id
+end
+-- Its place in your Custom Sections list (1 = first, the highest priority), and moving it up or down.
+function S:Priority(id) for i, c in ipairs(self:Customs()) do if c.id == id then return i end end end
+function S:Reorder(id, delta)
+	local list, i = ns.db.customSections, self:Priority(id)
+	local j = i and (i + delta)
+	if not (i and j and j >= 1 and j <= #list) then return false end
+	list[i], list[j] = list[j], list[i]
+	ns:Fire("SETTINGS_CHANGED", "customSections")
+	self:Reapply(); self:RefreshManager()
+	return true
+end
+-- What a set of rules would do right now, over your bags and bank (each item once): here, the items that would land in
+-- the section; elsewhere, the ones that fit but are decided first, as { rec, why }. skip: the section being edited (its
+-- own rules don't count against it); a new section is last in priority, so every other rule section comes first.
+function S:PreviewRules(rules, skip)
+	local here, elsewhere, seen = {}, {}, {}
+	local Rules = ns.Rules
+	if not (Rules and Rules:HasRules(rules)) then return here, elsewhere end
+	local order, at = self:Customs(), nil
+	for i, c in ipairs(order) do if c.id == skip then at = i end end
+	local bank = ns.bankScanned and ns.bankItems or (ns.SavedBank and ns:SavedBank()) or ns.bankItems or {}
+	for _, list in ipairs({ ns.items or {}, bank }) do
+		for _, rec in ipairs(list) do
+			if rec.itemID and not rec.empty and not seen[rec.itemID] and Rules:Fits(rules, rec) then
+				seen[rec.itemID] = true
+				local own = rec.ownCat or ns:Categorize(rec)
+				local why
+				if ns.Junk and ns.Junk:Marked(rec.itemID) then why = "You marked it as junk"
+				elseif own == "Junk" or rec.quality == 0 then why = "Grey items always go to Junk"
+				elseif ns.db.favSection and ns.Marks and ns.Marks:IsFavorite(rec.itemID) then why = "You starred it, so it stays in Favorites"
+				elseif ns.GearSets and ns.GearSets:Showing() and ns.GearSets:SetsOf(rec) then why = "It's in a gear set"
+				else
+					local moved = self:MovedTo(rec.itemID)
+					if moved and moved ~= skip then why = ("You put it in %s yourself"):format(self:Label(moved))
+					elseif not moved then
+						-- a rule section above this one (every one, for a new section) gets it first
+						for i, c in ipairs(order) do
+							if at and i >= at then break end
+							if c.rules and c.id ~= skip and Rules:Fits(c.rules, rec) then why = ("%s is higher on your list"):format(c.name); break end
+						end
+					end
+				end
+				if why then elsewhere[#elsewhere + 1] = { rec = rec, why = why } else here[#here + 1] = rec end
+			end
+		end
+	end
+	return here, elsewhere
+end
+-- How many different items are in a section: the ones you put there, and the ones in your bags and bank right now.
+function S:SectionCount(id)
+	local seen, n = {}, 0
+	for item, to in pairs(self:Moves()) do if to == id and not seen[item] then seen[item] = true; n = n + 1 end end
+	for _, list in ipairs({ ns.items or {}, ns.bankItems or {} }) do
+		for _, rec in ipairs(list) do
+			if rec.itemID and rec.cat == id and not seen[rec.itemID] then seen[rec.itemID] = true; n = n + 1 end
+		end
+	end
+	return n
 end
 function S:Rename(id, name)
 	local c = self:Custom(id)
