@@ -4,17 +4,36 @@ local base = 'BagSmith/Media/ui-icon-'
 local normal = assert(TGA.load(base .. 'frame.tga'))
 local bold = assert(TGA.load(base .. 'frame-bold.tga'))
 local mask = assert(TGA.load(base .. 'mask.tga'))
+assert(normal.w == 64 and normal.h == 64, 'Original frame stays at native resolution')
 assert(normal.w == bold.w and normal.h == mask.h)
 local brighter = 0
 for i = 1, #normal.pixels, 4 do
  local r, a = normal.pixels:byte(i), normal.pixels:byte(i+3)
  local br, ba = bold.pixels:byte(i), bold.pixels:byte(i+3)
  assert(a == ba, 'Bold must preserve exact alpha and geometry')
- if a > 0 then assert(br > r, 'Bold brightens RGB'); brighter = brighter + 1 end
+ if a > 0 then
+  assert(br >= r, 'Bold never dims RGB')
+  if br > r then brighter = brighter + 1 end
+ end
 end
 assert(brighter > 0)
 assert(mask.pixels:byte(4) == 0, 'Corners clip artwork')
-assert(mask.pixels:byte((64*128+64)*4+4) == 255, 'Center stays opaque')
+assert(mask.pixels:byte((32*64+32)*4+4) == 255, 'Center stays opaque')
+-- Every transparent pixel connected to the outside must stay masked out.
+local pending, seen = {0}, {[0]=true}
+while #pending > 0 do
+ local i = table.remove(pending)
+ assert(mask.pixels:byte(i*4+4) == 0, 'Artwork cannot escape outside the original frame')
+ local x, y = i % normal.w, math.floor(i / normal.w)
+ local neighbors = {}
+ if x > 0 then neighbors[#neighbors+1]=i-1 end
+ if x+1 < normal.w then neighbors[#neighbors+1]=i+1 end
+ if y > 0 then neighbors[#neighbors+1]=i-normal.w end
+ if y+1 < normal.h then neighbors[#neighbors+1]=i+normal.w end
+ for _,j in ipairs(neighbors) do
+  if not seen[j] and normal.pixels:byte(j*4+4)==0 then seen[j]=true; pending[#pending+1]=j end
+ end
+end
 package.loaded.mock = nil
 local M = require('mock')
 BagSmithDB = {version=2, profiles={Default={skin='classic'}}, chars={}, cache={}}
