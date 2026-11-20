@@ -55,7 +55,7 @@ for _, b in ipairs({n.Buttons:Get(0,1), n.Buttons:GetCached(n.Window.main.child,
  n.db.skin='modern'; n.Buttons:ApplyFrame(b)
  assert(b.classicMask.texture == 'Interface\\Buttons\\WHITE8X8')
  n.db.skin='classic'; n.Buttons:SetMode(b,'row')
- assert(b.classicMask.texture == 'Interface\\Buttons\\WHITE8X8')
+ assert(b.classicMask.texture:find('ui-icon-mask',1,true))
  n.Buttons:SetMode(b,'cell')
  assert(b.classicMask.texture:find('ui-icon-mask',1,true))
  b.globalChildIcon=true

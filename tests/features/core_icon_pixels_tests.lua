@@ -75,15 +75,12 @@ for _, screenH in ipairs({1080,1440,2160}) do
      if mode=='cell' then
       local expected=37-(skin=='modern' and 4 or 0)
       assert(math.abs(ns.Buttons:IconPx(b)-expected)<0.00001,'Report actual logical icon size for each skin')
-     elseif skin=='classic' then
-      assert(math.abs(b.qRing.points[1][4]+pixel)<0.000001,'Classic row ring must be one physical pixel')
-     end
+          end
      if skin=='classic' and mode=='row' then
       ns.Buttons:ApplyQuality(b,{quality=1})
-      assert(b.qRing.shown and not b.defaultFrame.shown,'Neutral rows use the solid ring at every scale')
-      local rx,ry,rw,rh=b.qRing:GetRect()
-      assert(math.abs((x-rx)/pixel-1)<.000001 and math.abs((y-ry)/pixel-1)<.000001,'Left and bottom neutral edges remain one physical pixel')
-      assert(math.abs((rx+rw-x-w)/pixel-1)<.000001 and math.abs((ry+rh-y-h)/pixel-1)<.000001,'Right and top neutral edges remain one physical pixel')
+      assert(b.defaultFrame.shown and not b.qRing,'Neutral rows use the textured frame at every scale')
+      local rx,ry,rw,rh=b.defaultFrame:GetRect()
+      assert(rx==x and ry==y and rw==w and rh==h,'Neutral row frame matches icon bounds')
      end
      local anchors=b.icon.points
      ns.Buttons:RealignModernBorders()
@@ -95,9 +92,8 @@ for _, screenH in ipairs({1080,1440,2160}) do
     ns.Buttons:ApplyQuality(b,{quality=2})
     ns.Buttons:RealignModernBorders()
     local px=ns.Buttons.PixelSize(b)
-    if skin=='modern' or mode=='row' then
+    if skin=='modern' then
      assert(b.modernBorder[1].shown and math.abs(b.modernBorder[1].h/px-2)<.000001,'Bold solid outlines are two physical pixels')
-     if skin=='classic' then assert(not b.qRing.shown,'Bold rows do not double up translucent rings') end
     else
      assert(b.qFrame.shown and not b.classicBold,'Classic uses a single textured frame for either weight')
      local fx,fy,fw,fh=b.qFrame:GetRect()

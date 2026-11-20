@@ -196,12 +196,6 @@ function Buttons:UpdateIconGeometry(b)
 		b.icon:SetSize(sw, sh)
 		b.iconSnapX, b.iconSnapY, b.iconSnapW, b.iconSnapH = dx, dy, sw, sh
 	end
-	if b.qRing and b.ringPixel ~= pixel then
-		b.qRing:ClearAllPoints()
-		b.qRing:SetPoint("TOPLEFT", b.icon, "TOPLEFT", -pixel, pixel)
-		b.qRing:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", pixel, -pixel)
-		b.ringPixel = pixel
-	end
 end
 
 function Buttons.AddFrame(b)
@@ -226,12 +220,7 @@ function Buttons.AddFrame(b)
 	b.frameEdge = b:CreateTexture(nil, "BACKGROUND", nil, -1)
 	b.frameEdge:SetTexture("Interface\\Buttons\\WHITE8X8")
 	b.frameBG:Hide(); b.frameEdge:Hide()
-	-- Classic list rows retain their original quality ring.
-	b.qRing = b:CreateTexture(nil, "BACKGROUND", nil, 0)
-	b.qRing:SetTexture("Interface\\Buttons\\WHITE8X8")
-	if b.qRing.SetRoundLayoutToNearestPixel then b.qRing:SetRoundLayoutToNearestPixel(false) end
-	b.qRing:Hide()
-	-- Classic cells share one contour for the artwork mask and tinted frame.
+	-- Classic icons share one contour for the artwork mask and tinted frame.
 	b.slotRing = b:CreateTexture(nil, "OVERLAY", nil, 1)
 	b.slotRing:SetTexture("Interface\\Buttons\\UI-Quickslot2")
 	b.slotRing:Hide()
@@ -345,21 +334,12 @@ end
 local function drawIndicatorFrame(self, b, kind)
 	local r, g, bl = ns:BagKindColor(kind)
 	local a = tonumber(ns.db["glowAlpha_" .. kind]) or 1
-	if (ns.db.skin or "modern") == "modern" or (b.mode == "row" and ns.db.borderWeight == "bold") then
+	if (ns.db.skin or "modern") == "modern" then
 		self:DrawModernBorder(b, r, g, bl, a)
-		b.qRing:Hide(); b.qFrame:Hide()
-	elseif b.mode == "row" then
-		-- (beta12) a Classic list row's thin ring, in the kind's color
-		local pixel = pixelSize(b)
-		b.qRing:ClearAllPoints()
-		b.qRing:SetPoint("TOPLEFT", b.icon, "TOPLEFT", -pixel, pixel); b.qRing:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", pixel, -pixel)
-		b.ringPixel = pixel
-		b.qRing:SetVertexColor(r, g, bl, a)
-		b.qRing:Show(); b.qFrame:Hide()
+		b.qFrame:Hide()
 	else
 		self:UpdateClassicBorderGeometry(b)
 		self:DrawClassicFrame(b.qFrame, r, g, bl, a)
-		b.qRing:Hide()
 	end
 end
 
@@ -370,18 +350,18 @@ function Buttons:ApplyQuality(b, rec)
 	b.modernBorderActive = nil
 	for _, edge in ipairs(b.modernBorder or {}) do edge:Hide() end
 	if b.IconBorder then b.IconBorder:Hide() end
-	if not b.qRing then return end
+	if not b.qFrame then return end
 	local kind, style = self:Indicator(b, rec)
 	-- No item, no frame: empty slots and blank rows keep their own look (a special bag's Frame Color indicator aside).
 	if not rec then
-		b.qRing:Hide(); b.qFrame:Hide()
+		b.qFrame:Hide()
 		if (ns.db and ns.db.skin or "modern") == "modern" then self:ApplyFrame(b) end
 		if style == "frame" then drawIndicatorFrame(self, b, kind) end
 		return
 	end
 	if style == "frame" then
 		b.qNeutral = false
-		if (ns.db and ns.db.skin or "modern") == "modern" then b.qRing:Hide(); b.qFrame:Hide(); b.frameEdge:Hide(); b.frameBG:Hide() end   -- as an item's rarity frame does
+		if (ns.db and ns.db.skin or "modern") == "modern" then b.qFrame:Hide(); b.frameEdge:Hide(); b.frameBG:Hide() end   -- as an item's rarity frame does
 		drawIndicatorFrame(self, b, kind)
 		return
 	end
@@ -394,54 +374,36 @@ function Buttons:ApplyQuality(b, rec)
 	local r, g, bl
 	if colored then r, g, bl = qcolor(q) else r, g, bl = Buttons.NEUTRAL_FRAME[1], Buttons.NEUTRAL_FRAME[2], Buttons.NEUTRAL_FRAME[3] end
 	b.qNeutral = not colored
-	local icon = b.icon
-	local classicCell = (ns.db and ns.db.skin or "modern") == "classic" and b.mode == "cell"
+	local classic = (ns.db and ns.db.skin or "modern") == "classic"
 	-- Match Classify.lua: the container quest flag is not set for every quest item.
 	-- (1.8.0-beta11, Shweep) the gold quest frame in both skins, whatever Rarity Borders says; its own setting
 	-- (Gold Frame for Quest Items, on by default) turns it off
 	local questClass = ns.ITEM_CLASS and ns.ITEM_CLASS.Questitem or 12
 	local quest = (ns.db == nil or ns.db.questFrame ~= false) and (rec.isQuest or rec.classID == questClass or rec.bindType == 4) and true or false
-	if quest and (ns.db and ns.db.skin or "modern") == "modern" then r, g, bl = 1, 0.82, 0; b.qNeutral = false end
-	if (ns.db and ns.db.skin or "modern") == "classic" then
+	if quest and not classic then r, g, bl = 1, 0.82, 0; b.qNeutral = false end
+	if classic then
 		-- Ordinary items retain the untinted Classic outline. It is separate
 		-- from the slot background so the icon cannot cover it.
 		if not quest and (q < 2 or not colored) then
-			if classicCell then
-				b.qFrame:Hide(); b.qRing:Hide()
-				if b.defaultFrame then self:DrawClassicFrame(b.defaultFrame, 0.72, 0.72, 0.72, 1) end
-				return
-			end
-			-- The textured frame loses thin edges when reduced to list size.
-			-- Use the same physical-pixel ring as rarity/quest rows, untinted.
-			r, g, bl = 0.72, 0.72, 0.72
+			b.qFrame:Hide()
+			if b.defaultFrame then self:DrawClassicFrame(b.defaultFrame, 0.72, 0.72, 0.72, 1) end
+			return
 		end
 		if quest then r, g, bl = 1, 0.82, 0 end
 	end
-	if (ns.db and ns.db.skin or "modern") == "modern" then
-		b.qRing:Hide(); b.qFrame:Hide(); b.frameEdge:Hide(); b.frameBG:Hide()
+	if not classic then
+		b.qFrame:Hide(); b.frameEdge:Hide(); b.frameBG:Hide()
 		self:DrawModernBorder(b, r, g, bl)
-	elseif classicCell then
+	else
 		-- The tinted frame follows the same contour as the artwork mask.
 		self:DrawClassicFrame(b.qFrame, r, g, bl, 1)
-		b.qRing:Hide()
-	elseif ns.db and ns.db.borderWeight == "bold" then
-		b.qRing:Hide(); b.qFrame:Hide()
-		self:DrawModernBorder(b, r, g, bl, 0.95)
-	else
-		-- Classic rows use a compact ring with the same quest/rarity rules.
-		b.qRing:ClearAllPoints()
-		local pixel = pixelSize(b)
-		b.qRing:SetPoint("TOPLEFT", icon, "TOPLEFT", -pixel, pixel); b.qRing:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", pixel, -pixel)
-		b.ringPixel = pixel
-		b.qRing:SetVertexColor(r, g, bl, 0.95)
-		b.qRing:Show(); b.qFrame:Hide()
 	end
 end
 
 function Buttons:ApplyIconCrop(b)
 	if not b.icon then return end
 	local modern = (ns.db and ns.db.skin or "modern") == "modern"
-	local masked = not modern and b.mode == "cell" and not b.globalChildIcon
+	local masked = not modern and not b.globalChildIcon
 	if masked and not b.classicMask and b.CreateMaskTexture and b.icon.AddMaskTexture then
 		b.classicMask = b:CreateMaskTexture()
 		b.classicMask:SetAllPoints(b.icon)
@@ -773,7 +735,7 @@ function Buttons:BagGlow(b, rec)
 end
 function Buttons:RefreshGlows()
 	local function each(b)
-		if b.qRing then self:ApplyQuality(b, b.hasItem and b.rec or nil) end   -- (beta9) the Frame Color style
+		if b.qFrame then self:ApplyQuality(b, b.hasItem and b.rec or nil) end   -- (beta9) the Frame Color style
 		self:BagGlow(b, b.rec)
 	end
 	for _, b in ipairs(self.all) do each(b) end
@@ -1302,7 +1264,7 @@ end
 -- visible on it (BagSmith draws its own frame; anything listed here is the game's art showing through).
 function Buttons:TemplateLeftovers(b)
 	local known = {}
-	for _, k in ipairs({ "icon", "Count", "frameBG", "frameEdge", "qRing", "qFrame", "defaultFrame", "slotRing", "slotBG", "newDot", "junkCoin",
+	for _, k in ipairs({ "icon", "Count", "frameBG", "frameEdge", "qFrame", "defaultFrame", "slotRing", "slotBG", "newDot", "junkCoin",
 		"ilvlText", "pawnArrow", "linkMark", "linkCount", "stripe", "bagGlow" }) do if b[k] then known[b[k]] = true end end
 	for _, k in ipairs(COL_KEYS) do if b[k] then known[b[k]] = true end end
 	for _, sep in ipairs(b.seps or {}) do known[sep] = true end
@@ -1598,6 +1560,7 @@ function Buttons:Fill(b, rec, opts)
 		b.icon:SetTexture(c and "Interface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES" or nil)
 		if c then b.icon:SetTexCoord(c[1], c[2], c[3], c[4]) end
 		b.globalChildIcon = true
+		self:ApplyIconCrop(b)
 		b.colName:SetText(rec.who or "?"); b.colName:SetTextColor(ns.ClassColor(rec.whoClass))
 		b.colName.baseColor = { ns.ClassColor(rec.whoClass) }
 		b.colWho:SetText("")

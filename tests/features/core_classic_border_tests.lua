@@ -34,7 +34,7 @@ for _, setting in ipairs({ "all", "unc", "off" }) do
 		ns.db.skin, ns.db.border = "classic", setting
 		for _, quality in ipairs({ 0, 1 }) do
 			B:ApplyQuality(b, { quality = quality })
-			check(not b.qFrame.shown and not b.qRing.shown, "poor/common items have no rarity tint")
+			check(not b.qFrame.shown and not b.qRing, "poor/common items have no rarity tint")
 			check(b.defaultFrame and b.defaultFrame.shown and b.defaultFrame.color[1] == .72 and b.defaultFrame.color[2] == .72 and b.defaultFrame.color[3] == .72, "poor/common items retain a visible silver-gray default frame")
 		end
 		for quality = 2, 5 do
@@ -68,17 +68,17 @@ for _, setting in ipairs({ "all", "unc", "off" }) do
 		ns.db.skin = "classic"; B:ApplyQuality(b, { quality = 1 })
 		check(not b.qFrame.shown and not b.modernBorder[1].shown, "skin switch restores default Classic common slot")
 		b.mode = "row"; B:ApplyQuality(b, { quality = 1 })
-		check(b.qRing.shown and not b.qFrame.shown and b.qRing.color[1] == .72 and b.qRing.color[2] == .72 and b.qRing.color[3] == .72, "common list rows use a solid neutral ring")
-		check(b.defaultFrame and not b.defaultFrame.shown, "list icons never downsample the textured default frame")
+		check(b.defaultFrame.shown and not b.qFrame.shown and b.defaultFrame.color[1] == .72 and b.defaultFrame.color[2] == .72 and b.defaultFrame.color[3] == .72, "common list rows use the neutral textured frame")
+		check(b.defaultFrame and b.defaultFrame.shown, "list icons share the textured default frame")
 		for _, rec in ipairs({ { quality = 1, isQuest = true }, { quality = 1, classID = 12 }, { quality = 1, bindType = 4 } }) do
 			B:ApplyQuality(b, rec)
-			check(b.qRing.shown and not b.qFrame.shown and b.qRing.color[1] == 1 and b.qRing.color[2] == .82 and b.qRing.color[3] == 0, "Classic list quest ring is gold for all quest criteria")
+			check(b.qFrame.shown and not b.defaultFrame.shown and b.qFrame.color[1] == 1 and b.qFrame.color[2] == .82 and b.qFrame.color[3] == 0, "Classic list quest ring is gold for all quest criteria")
 		end
 		B:ApplyQuality(b, { quality = 2 })
-		check(b.qRing.shown and not b.qFrame.shown and (setting ~= "off" or b.qRing.color[1] == .72), "disabled list rarity coloring retains a neutral ring")
-		if setting ~= "off" then check(b.qRing.color[1] == 0 and b.qRing.color[2] == 1, "list uncommon ring is green") end
+		check((setting == "off" and b.defaultFrame.shown and not b.qFrame.shown) or (setting ~= "off" and b.qFrame.shown and not b.defaultFrame.shown), "disabled list rarity coloring retains a neutral ring")
+		if setting ~= "off" then check(b.qFrame.color[1] == 0 and b.qFrame.color[2] == 1, "list uncommon ring is green") end
 		B:ApplyQuality(b, { quality = 0 })
-		check(b.qRing.shown and b.qRing.color[1] == .72 and b.qRing.color[2] == .72 and not b.qFrame.shown, "reused list rows clear quest/rarity tint")
+		check(b.defaultFrame.shown and b.defaultFrame.color[1] == .72 and b.defaultFrame.color[2] == .72 and not b.qFrame.shown, "reused list rows clear quest/rarity tint")
 	end
 end
 
